@@ -18,7 +18,17 @@ class MemoryStore {
       agent_sessions: [],
       agent_steps: [],
       memory_vault: [],
-      artifacts: []
+      artifacts: [],
+      settings: {
+        provider: 'mock',
+        anthropicApiKey: '',
+        openaiApiKey: '',
+        geminiApiKey: '',
+        ollamaHost: 'http://localhost:11434',
+        defaultModel: 'sonnet-3.7',
+        sandboxEnabled: true,
+        worktreeIsolation: true
+      }
     };
     this.load();
   }
@@ -153,6 +163,44 @@ class MemoryStore {
     this.data.artifacts.push(record);
     this.save();
     return record;
+  }
+
+  deleteSession(id) {
+    const initialCount = this.data.agent_sessions.length;
+    this.data.agent_sessions = this.data.agent_sessions.filter(s => s.id !== id);
+    this.data.agent_steps = this.data.agent_steps.filter(s => s.session_id !== id);
+    this.data.artifacts = this.data.artifacts.filter(a => a.session_id !== id);
+    this.save();
+    return this.data.agent_sessions.length < initialCount;
+  }
+
+  renameSession(id, title) {
+    const session = this.data.agent_sessions.find(s => s.id === id);
+    if (session) {
+      session.title = title;
+      this.save();
+      return session;
+    }
+    return null;
+  }
+
+  getSettings() {
+    return this.data.settings || {
+      provider: 'mock',
+      anthropicApiKey: '',
+      openaiApiKey: '',
+      geminiApiKey: '',
+      ollamaHost: 'http://localhost:11434',
+      defaultModel: 'sonnet-3.7',
+      sandboxEnabled: true,
+      worktreeIsolation: true
+    };
+  }
+
+  saveSettings(newSettings) {
+    this.data.settings = Object.assign(this.getSettings(), newSettings);
+    this.save();
+    return this.data.settings;
   }
 }
 

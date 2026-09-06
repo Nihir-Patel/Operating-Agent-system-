@@ -96,6 +96,257 @@ class OasControlPlaneServer {
     }
   }
 
+  buildKnowledgeGraph() {
+    if (!this.cachedCatalog) this.initCatalog();
+    const agents = this.cachedCatalog?.agents || [];
+    const skills = this.cachedCatalog?.skills || [];
+    const commands = this.cachedCatalog?.commands || [];
+    const mcpServers = this.cachedCatalog?.mcpServers || {};
+
+    const nodes = [];
+    const edges = [];
+    const nodeIds = new Set();
+
+    // 1. Agents
+    for (const a of agents) {
+      const id = `agent:${a.id}`;
+      nodeIds.add(id);
+      nodes.push({
+        id,
+        entityId: a.id,
+        name: a.name || a.id,
+        type: 'agent',
+        category: 'Agents',
+        model: a.model || 'sonnet-3.7',
+        description: a.description || 'Specialized OAS agent',
+        tools: a.tools || [],
+        weight: 10
+      });
+    }
+
+    // 2. Skills
+    for (const s of skills) {
+      const id = `skill:${s.id}`;
+      nodeIds.add(id);
+      nodes.push({
+        id,
+        entityId: s.id,
+        name: s.name || s.id,
+        type: 'skill',
+        category: 'Skills',
+        description: s.description || 'Workflow skill',
+        triggers: s.triggers || [],
+        weight: 6
+      });
+    }
+
+    // 3. Commands
+    for (const c of commands) {
+      const id = `command:${c.id}`;
+      nodeIds.add(id);
+      nodes.push({
+        id,
+        entityId: c.id,
+        name: `/${c.id}`,
+        type: 'command',
+        category: 'Commands',
+        description: c.description || 'Slash command entrypoint',
+        weight: 4
+      });
+    }
+
+    // 4. MCP Servers
+    for (const [mcpName, mcpConfig] of Object.entries(mcpServers)) {
+      const id = `mcp:${mcpName}`;
+      nodeIds.add(id);
+      nodes.push({
+        id,
+        entityId: mcpName,
+        name: mcpName,
+        type: 'mcp',
+        category: 'MCPs',
+        description: mcpConfig.description || `MCP Server: ${mcpName}`,
+        weight: 5
+      });
+    }
+
+    // Edges: Agent -> Skill
+    for (const a of agents) {
+      const agentNodeId = `agent:${a.id}`;
+      for (const s of skills) {
+        const skillNodeId = `skill:${s.id}`;
+        const aClean = a.id.replace(/-guide|-reviewer|-architect|-resolver|-hunter|-cleaner/g, '');
+        const sClean = s.id.replace(/-workflow|-patterns|-database|-design/g, '');
+        if (a.id === s.id || (aClean.length > 3 && s.id.includes(aClean)) || (sClean.length > 3 && a.id.includes(sClean))) {
+          edges.push({
+            id: `edge:${agentNodeId}->${skillNodeId}`,
+            source: agentNodeId,
+            target: skillNodeId,
+            type: 'uses_skill',
+            label: 'uses skill'
+          });
+        }
+      }
+    }
+
+    // Edges: Command -> Agent / Skill
+    for (const c of commands) {
+      const cmdNodeId = `command:${c.id}`;
+      const targetAgent = agents.find(a => a.id === c.id || a.id.startsWith(c.id) || c.id.startsWith(a.id));
+      if (targetAgent) {
+        edges.push({
+          id: `edge:${cmdNodeId}->agent:${targetAgent.id}`,
+          source: cmdNodeId,
+          target: `agent:${targetAgent.id}`,
+          type: 'triggers_agent',
+          label: 'triggers'
+        });
+      }
+      const targetSkill = skills.find(s => s.id === c.id || s.id.startsWith(c.id) || c.id.startsWith(s.id));
+      if (targetSkill) {
+        edges.push({
+          id: `edge:${cmdNodeId}->skill:${targetSkill.id}`,
+          source: cmdNodeId,
+          target: `skill:${targetSkill.id}`,
+          type: 'executes_skill',
+          label: 'executes'
+        });
+      }
+    }
+
+    // Edges: Agent Delegation Pipeline
+    const delegations = [
+      ['planner', 'architect'],
+      ['planner', 'tdd-guide'],
+      ['architect', 'tdd-guide'],
+      ['tdd-guide', 'code-reviewer'],
+      ['tdd-guide', 'build-error-resolver'],
+      ['code-reviewer', 'security-reviewer'],
+      ['code-reviewer', 'typescript-reviewer'],
+      ['code-reviewer', 'python-reviewer'],
+      ['code-reviewer', 'go-reviewer'],
+      ['code-reviewer', 'rust-reviewer'],
+      ['security-reviewer', 'e2e-runner'],
+      ['e2e-runner', 'doc-updater']
+    ];
+
+    for (const [src, tgt] of delegations) {
+      if (nodeIds.has(`agent:${src}`) && nodeIds.has(`agent:${tgt}`)) {
+        edges.push({
+          id: `edge:agent:${src}->agent:${tgt}`,
+          source: `agent:${src}`,
+          target: `agent:${tgt}`,
+          type: 'delegates_to',
+          label: 'delegates to'
+        });
+      }
+    }
+
+    // Edges: MCP bindings
+    const mcpBindings = {
+      'context7': ['docs-lookup', 'planner'],
+      'firecrawl': ['code-explorer'],
+      'exa': ['code-explorer'],
+      'postgres': ['database-reviewer'],
+      'playwright': ['e2e-runner'],
+      'snyk': ['security-reviewer']
+    };
+
+    for (const [mcp, boundAgents] of Object.entries(mcpBindings)) {
+      if (nodeIds.has(`mcp:${mcp}`)) {
+        for (const ag of boundAgents) {
+          if (nodeIds.has(`agent:${ag}`)) {
+            edges.push({
+              id: `edge:mcp:${mcp}->agent:${ag}`,
+              source: `mcp:${mcp}`,
+              target: `agent:${ag}`,
+              type: 'provides_tools',
+              label: 'provides context'
+            });
+          }
+        }
+      }
+    }
+
+    return {
+      totalNodes: nodes.length,
+      totalEdges: edges.length,
+      counts: {
+        agents: agents.length,
+        skills: skills.length,
+        commands: commands.length,
+        mcps: Object.keys(mcpServers).length
+      },
+      nodes,
+      edges
+    };
+  }
+
+  getWorkspaceFileTree(dirPath, relativePath = '', depth = 0) {
+    if (depth > 4) return [];
+    const ignored = new Set(['node_modules', '.git', '.oas-worktrees', '.next', 'dist', 'build', '.DS_Store', '.oas-store.json']);
+    const entries = [];
+    try {
+      const items = fs.readdirSync(dirPath, { withFileTypes: true });
+      for (const item of items) {
+        if (ignored.has(item.name)) continue;
+        if (item.name.startsWith('.') && item.name !== '.agents') continue;
+        const itemRel = relativePath ? `${relativePath}/${item.name}` : item.name;
+        const fullPath = path.join(dirPath, item.name);
+        if (item.isDirectory()) {
+          entries.push({
+            name: item.name,
+            path: itemRel,
+            type: 'directory',
+            children: this.getWorkspaceFileTree(fullPath, itemRel, depth + 1)
+          });
+        } else if (item.isFile()) {
+          const stat = fs.statSync(fullPath);
+          entries.push({
+            name: item.name,
+            path: itemRel,
+            type: 'file',
+            size: stat.size,
+            extension: path.extname(item.name)
+          });
+        }
+      }
+    } catch {
+      // ignore unreadable dirs
+    }
+    entries.sort((a, b) => {
+      if (a.type === b.type) return a.name.localeCompare(b.name);
+      return a.type === 'directory' ? -1 : 1;
+    });
+    return entries;
+  }
+
+  readWorkspaceFile(relativeFilePath) {
+    const resolved = path.resolve(this.workspaceRoot, relativeFilePath);
+    if (!resolved.startsWith(this.workspaceRoot)) {
+      throw new Error('Access denied: Path outside workspace sandbox');
+    }
+    if (!fs.existsSync(resolved)) {
+      throw new Error('File not found: ' + relativeFilePath);
+    }
+    const stat = fs.statSync(resolved);
+    if (stat.isDirectory()) {
+      throw new Error('Path is a directory');
+    }
+    if (stat.size > 1024 * 1024) {
+      throw new Error('File exceeds maximum readable size of 1MB');
+    }
+    const content = fs.readFileSync(resolved, 'utf8');
+    const lines = content.split('\n').length;
+    return {
+      path: relativeFilePath,
+      size: stat.size,
+      lines,
+      extension: path.extname(resolved),
+      content
+    };
+  }
+
   setCorsHeaders(res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -129,19 +380,18 @@ class OasControlPlaneServer {
     });
   }
 
-  start() {
-    const server = http.createServer(async (req, res) => {
-      this.setCorsHeaders(res);
+  async handleRequest(req, res) {
+    this.setCorsHeaders(res);
 
-      if (req.method === 'OPTIONS') {
-        res.writeHead(204);
-        return res.end();
-      }
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      return res.end();
+    }
 
-      const parsedUrl = url.parse(req.url, true);
-      const pathname = parsedUrl.pathname;
+    const parsedUrl = url.parse(req.url, true);
+    const pathname = parsedUrl.pathname;
 
-      try {
+    try {
         // --- REAL-TIME SSE STREAM ---
         if (pathname === '/api/stream') {
           res.writeHead(200, {
@@ -265,16 +515,62 @@ class OasControlPlaneServer {
           return this.sendJson(res, 200, this.cachedCatalog.mcpServers);
         }
 
+        // --- KNOWLEDGE GRAPH ---
+        if (pathname === '/api/graph' && req.method === 'GET') {
+          const graph = this.buildKnowledgeGraph();
+          return this.sendJson(res, 200, graph);
+        }
+
+        // --- WORKSPACE FILESYSTEM EXPLORER ---
+        if (pathname === '/api/fs/tree' && req.method === 'GET') {
+          const tree = this.getWorkspaceFileTree(this.workspaceRoot);
+          return this.sendJson(res, 200, { root: this.workspaceRoot, tree });
+        }
+
+        if (pathname === '/api/fs/read' && req.method === 'GET') {
+          const filePath = parsedUrl.query.path;
+          if (!filePath) {
+            return this.sendJson(res, 400, { error: 'Query parameter "path" is required' });
+          }
+          try {
+            const fileData = this.readWorkspaceFile(filePath);
+            return this.sendJson(res, 200, fileData);
+          } catch (err) {
+            return this.sendJson(res, 400, { error: err.message });
+          }
+        }
+
+        // --- PLATFORM SETTINGS ---
+        if (pathname === '/api/settings' && req.method === 'GET') {
+          return this.sendJson(res, 200, this.store.getSettings());
+        }
+
+        if (pathname === '/api/settings' && req.method === 'POST') {
+          const body = await this.parseBody(req);
+          const updated = this.store.saveSettings(body);
+          return this.sendJson(res, 200, updated);
+        }
+
         // --- SESSIONS & DAG ORCHESTRATION ---
         if (pathname === '/api/sessions' && req.method === 'GET') {
           const sessions = this.store.getSessions();
-          return this.sendJson(res, 200, sessions);
+          // Annotate with steps count and active run info
+          const annotated = sessions.map(s => {
+            const steps = this.store.getSteps(s.id);
+            const run = this.scheduler.getRun(s.id);
+            return {
+              ...s,
+              stepCount: steps.length,
+              activeNodes: run ? run.nodes.filter(n => n.status === 'completed').length : 0,
+              totalNodes: run ? run.nodes.length : 0
+            };
+          });
+          return this.sendJson(res, 200, annotated);
         }
 
         if (pathname === '/api/sessions' && req.method === 'POST') {
           const body = await this.parseBody(req);
           const session = this.store.createSession(body);
-          // Also instantiate in DAG scheduler
           this.scheduler.createPipeline(session.id, session.title, body.pipelineType || 'feature_lifecycle');
           return this.sendJson(res, 201, session);
         }
@@ -318,7 +614,6 @@ class OasControlPlaneServer {
           const agentId = activeNode.agentId;
           const agentDef = (this.cachedCatalog?.agents || []).find(a => a.id === agentId) || { id: agentId, model: 'sonnet' };
 
-          // Execute cycle through Universal Gateway
           const stepResult = await this.runner.executeAgentCycle(agentDef, body.prompt || run.intent, {
             onStepChunk: chunk => {
               this.broadcastSse('agent:thought:chunk', { sessionId, ...chunk });
@@ -328,7 +623,6 @@ class OasControlPlaneServer {
             }
           });
 
-          // Mark node completed and advance step
           activeNode.status = 'completed';
           const stepRecord = {
             stepIndex: run.history.length + 1,
@@ -360,7 +654,7 @@ class OasControlPlaneServer {
           const parts = pathname.split('/');
           const sessionId = parts[3];
           const body = await this.parseBody(req);
-          const action = body.action; // 'pause', 'resume', 'abort', 'feedback'
+          const action = body.action;
 
           let updatedRun = null;
           if (action === 'pause') updatedRun = this.scheduler.pauseRun(sessionId);
@@ -369,6 +663,68 @@ class OasControlPlaneServer {
           else if (action === 'feedback') updatedRun = this.scheduler.provideFeedback(sessionId, body.feedback);
 
           return this.sendJson(res, 200, { success: true, run: updatedRun });
+        }
+
+        if (pathname.startsWith('/api/sessions/') && pathname.endsWith('/rename') && req.method === 'POST') {
+          const parts = pathname.split('/');
+          const sessionId = parts[3];
+          const body = await this.parseBody(req);
+          const renamed = this.store.renameSession(sessionId, body.title || 'Untitled Session');
+          return this.sendJson(res, 200, { success: Boolean(renamed), session: renamed });
+        }
+
+        if (pathname.startsWith('/api/sessions/') && pathname.endsWith('/export') && req.method === 'GET') {
+          const parts = pathname.split('/');
+          const sessionId = parts[3];
+          const session = this.store.getSession(sessionId);
+          if (!session) {
+            return this.sendJson(res, 404, { error: 'Session not found' });
+          }
+          const steps = this.store.getSteps(sessionId);
+          const artifacts = this.store.getArtifacts(sessionId);
+          const markdown = [
+            `# Session Transcript: ${session.title}`,
+            `**Session ID:** \`${session.id}\` | **Status:** \`${session.status}\` | **Started:** ${session.started_at}`,
+            '',
+            '## Execution Steps',
+            ...steps.map(s => `### Step ${s.step_index} [${s.agent_id}] (${s.step_type})\n${s.content || ''}\n`),
+            '',
+            '## Artifacts',
+            ...artifacts.map(a => `### ${a.title}\n\`\`\`\n${a.content}\n\`\`\``)
+          ].join('\n');
+          return this.sendJson(res, 200, {
+            sessionId,
+            title: session.title,
+            stepsCount: steps.length,
+            markdown,
+            json: { session, steps, artifacts }
+          });
+        }
+
+        // Single session details
+        if (pathname.startsWith('/api/sessions/') && req.method === 'GET') {
+          const parts = pathname.split('/');
+          if (parts.length === 4) {
+            const sessionId = parts[3];
+            const session = this.store.getSession(sessionId);
+            if (!session) {
+              return this.sendJson(res, 404, { error: 'Session not found: ' + sessionId });
+            }
+            const steps = this.store.getSteps(sessionId);
+            const artifacts = this.store.getArtifacts(sessionId);
+            const pipeline = this.scheduler.getRun(sessionId);
+            return this.sendJson(res, 200, { session, steps, artifacts, pipeline });
+          }
+        }
+
+        // Delete session
+        if (pathname.startsWith('/api/sessions/') && req.method === 'DELETE') {
+          const parts = pathname.split('/');
+          if (parts.length === 4) {
+            const sessionId = parts[3];
+            const deleted = this.store.deleteSession(sessionId);
+            return this.sendJson(res, 200, { success: deleted, sessionId });
+          }
         }
 
         // --- MEMORY VAULT ---
@@ -483,12 +839,13 @@ class OasControlPlaneServer {
         console.error('[OAS Control Plane Error]', err);
         return this.sendJson(res, 500, { error: err.message });
       }
-    });
+    }
 
+  start() {
+    const server = http.createServer((req, res) => this.handleRequest(req, res));
     server.listen(this.port, this.host, () => {
       console.log(`[OAS Control Plane API] Running on http://${this.host}:${this.port}`);
     });
-
     return server;
   }
 }

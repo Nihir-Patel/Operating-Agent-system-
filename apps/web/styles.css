@@ -812,3 +812,135 @@ code, pre, .font-mono {
   justify-content: flex-end;
   gap: 12px;
 }
+
+/* --- WORKSPACE FILESYSTEM EXPLORER --- */
+.fs-tree-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: background 0.15s ease, color 0.15s ease;
+  user-select: none;
+}
+
+.fs-tree-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #F8FAFC;
+}
+
+.fs-tree-item.active {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93C5FD;
+  font-weight: 600;
+}
+
+.fs-icon {
+  font-size: 11px;
+  width: 14px;
+  display: inline-block;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.fs-depth-1 { padding-left: 14px; }
+.fs-depth-2 { padding-left: 26px; }
+.fs-depth-3 { padding-left: 38px; }
+.fs-depth-4 { padding-left: 50px; }
+
+/* --- SLASH COMMAND AUTOCOMPLETE --- */
+.command-autocomplete-popup {
+  background: #0B1120;
+  border: 1px solid var(--brand-blue);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(59, 130, 246, 0.3);
+}
+
+.autocomplete-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.autocomplete-option:hover,
+.autocomplete-option.selected {
+  background: rgba(59, 130, 246, 0.25);
+}
+
+.autocomplete-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: #60A5FA;
+}
+
+.autocomplete-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  max-width: 260px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- KNOWLEDGE GRAPH CANVAS --- */
+#view-knowledge-graph {
+  height: 100%;
+}
+
+.kg-view-container {
+  height: 100%;
+}
+
+/* --- MULTI-SESSION DRAWER --- */
+.session-card-item {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.session-card-item:hover {
+  border-color: var(--brand-blue);
+  background: rgba(15, 23, 42, 0.9);
+  transform: translateX(2px);
+}
+
+.session-card-item.active {
+  border-color: #3B82F6;
+  background: rgba(59, 130, 246, 0.12);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.2);
+}
+
+.session-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.session-title-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: #F8FAFC;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.session-meta-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
