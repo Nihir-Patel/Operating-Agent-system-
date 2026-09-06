@@ -1,0 +1,196 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="1350" viewBox="0 0 2400 1350" role="img" aria-labelledby="t">
+<title id="t">OAS — Operating Agent Systems</title>
+<defs>
+  <linearGradient id="bgG" x1="0" y1="0" x2="0.6" y2="1">
+    <stop offset="0" stop-color="#060B18"/>
+    <stop offset="1" stop-color="#10062A"/>
+  </linearGradient>
+  <linearGradient id="acG" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#3B82F6"/>
+    <stop offset="1" stop-color="#8B5CF6"/>
+  </linearGradient>
+  <linearGradient id="acG2" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#3B82F6"/>
+    <stop offset="1" stop-color="#10B981"/>
+  </linearGradient>
+  <linearGradient id="barSkill" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#3B82F6"/>
+    <stop offset="0.7" stop-color="#6366F1"/>
+    <stop offset="1" stop-color="#8B5CF6"/>
+  </linearGradient>
+  <linearGradient id="barAgent" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#06B6D4"/>
+    <stop offset="1" stop-color="#3B82F6"/>
+  </linearGradient>
+  <linearGradient id="barCmd" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#10B981"/>
+    <stop offset="1" stop-color="#06B6D4"/>
+  </linearGradient>
+  <radialGradient id="gl" cx="0.2" cy="0.3" r="0.55">
+    <stop offset="0" stop-color="rgba(59,130,246,0.07)"/>
+    <stop offset="1" stop-color="rgba(59,130,246,0)"/>
+  </radialGradient>
+  <radialGradient id="gl2" cx="0.8" cy="0.7" r="0.4">
+    <stop offset="0" stop-color="rgba(139,92,246,0.05)"/>
+    <stop offset="1" stop-color="rgba(139,92,246,0)"/>
+  </radialGradient>
+  <pattern id="dots" width="48" height="48" patternUnits="userSpaceOnUse">
+    <circle cx="24" cy="24" r="0.8" fill="rgba(148,163,184,0.05)"/>
+  </pattern>
+</defs>
+
+<!-- Background layers -->
+<rect width="2400" height="1350" fill="url(#bgG)"/>
+<rect width="2400" height="1350" fill="url(#gl)"/>
+<rect width="2400" height="1350" fill="url(#gl2)"/>
+<rect width="2400" height="1350" fill="url(#dots)"/>
+
+<!-- Top nav bar -->
+<rect x="0" y="0" width="2400" height="100" fill="#080D1E"/>
+<rect x="0" y="98" width="2400" height="2" fill="url(#acG)" opacity="0.6"/>
+
+<!-- Logo: interconnected nodes (agent orchestration symbol) -->
+<g transform="translate(50,12) scale(0.82)">
+  <rect x="6" y="6" width="84" height="84" rx="22" fill="rgba(59,130,246,0.06)" stroke="url(#acG)" stroke-width="2.5"/>
+  <circle cx="48" cy="48" r="11" fill="rgba(59,130,246,0.12)" stroke="#3B82F6" stroke-width="2"/>
+  <circle cx="48" cy="22" r="7" fill="#8B5CF6"/>
+  <circle cx="26" cy="66" r="7" fill="#3B82F6"/>
+  <circle cx="70" cy="66" r="7" fill="#10B981"/>
+  <line x1="48" y1="29" x2="48" y2="37" stroke="#8B5CF6" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="31" y1="62" x2="39" y2="54" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="65" y1="62" x2="57" y2="54" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="48" cy="48" r="3.5" fill="#E2E8F0"/>
+</g>
+
+<!-- Brand text -->
+<text x="140" y="62" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="30" font-weight="bold" letter-spacing="2" fill="#E2E8F0">OAS</text>
+<text x="220" y="62" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="27" fill="#334155">/</text>
+<text x="248" y="62" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="27" fill="#94A3B8">neal0709/Operating-Agent-system-</text>
+
+<!-- Version badge -->
+<rect x="2010" y="24" width="330" height="52" rx="26" fill="rgba(59,130,246,0.06)" stroke="rgba(99,102,241,0.3)" stroke-width="1.5"/>
+<circle cx="2040" cy="50" r="5" fill="#6366F1"/>
+<text x="2060" y="59" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="24" letter-spacing="1" fill="#818CF8">v2.2.1 · Sep 2026</text>
+
+<!-- Subtitle bar -->
+<line x1="64" y1="182" x2="112" y2="182" stroke="url(#acG)" stroke-width="3"/>
+<text x="130" y="191" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="22" letter-spacing="6" fill="#6366F1" opacity="0.9">OPERATING AGENT SYSTEMS</text>
+
+<!-- Main headline -->
+<text x="62" y="318" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="102" font-weight="bold" letter-spacing="-3" fill="#F1F5F9">The intelligent</text>
+<text x="62" y="428" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="102" font-weight="bold" letter-spacing="-3" fill="#F1F5F9">framework for <tspan fill="#60A5FA">AI</tspan></text>
+<text x="62" y="538" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="102" font-weight="bold" letter-spacing="-3" fill="url(#acG)">agent orchestration.</text>
+
+<!-- Description -->
+<text x="64" y="615" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="31" fill="#94A3B8">Specialized agents, production skills, memory, security scanning,</text>
+<text x="64" y="658" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="31" fill="#94A3B8">and automated workflows — <tspan fill="#E2E8F0" font-weight="bold">a complete operating system</tspan>.</text>
+
+<!-- RUNS ACROSS -->
+<text x="64" y="745" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="20" letter-spacing="5" fill="#475569">RUNS ACROSS</text>
+<!-- Harness pills row 1 -->
+<rect x="64" y="773" width="200" height="48" rx="10" fill="rgba(59,130,246,0.10)" stroke="rgba(99,102,241,0.45)" stroke-width="1.5"/>
+<text x="164" y="805" text-anchor="middle" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="24" fill="#818CF8">Claude Code</text>
+<rect x="282" y="773" width="130" height="48" rx="10" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.10)" stroke-width="1.5"/>
+<text x="347" y="805" text-anchor="middle" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="24" fill="#94A3B8">Codex</text>
+<rect x="430" y="773" width="140" height="48" rx="10" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.10)" stroke-width="1.5"/>
+<text x="500" y="805" text-anchor="middle" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="24" fill="#94A3B8">Cursor</text>
+<rect x="588" y="773" width="177" height="48" rx="10" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.10)" stroke-width="1.5"/>
+<text x="676" y="805" text-anchor="middle" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="24" fill="#94A3B8">OpenCode</text>
+<rect x="783" y="773" width="148" height="48" rx="10" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.10)" stroke-width="1.5"/>
+<text x="857" y="805" text-anchor="middle" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="24" fill="#94A3B8">Gemini</text>
+<!-- Row 2 -->
+<rect x="64" y="839" width="96" height="48" rx="10" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.10)" stroke-width="1.5"/>
+<text x="112" y="871" text-anchor="middle" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="24" fill="#94A3B8">Zed</text>
+<rect x="178" y="839" width="155" height="48" rx="10" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.10)" stroke-width="1.5"/>
+<text x="255" y="871" text-anchor="middle" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="24" fill="#94A3B8">Copilot</text>
+
+<!-- ========== RIGHT SIDE: DASHBOARD METRIC CARDS ========== -->
+
+<!-- SKILLS CARD -->
+<rect x="1064" y="160" width="1270" height="320" rx="16" fill="rgba(226,232,240,0.018)" stroke="rgba(226,232,240,0.07)" stroke-width="1.5"/>
+<!-- Header -->
+<circle cx="1110" cy="210" r="8" fill="#8B5CF6"/>
+<text x="1134" y="220" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="27" font-weight="bold" letter-spacing="3" fill="#E2E8F0">SKILLS</text>
+<text x="2290" y="224" text-anchor="end" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="52" font-weight="bold" fill="#8B5CF6">286</text>
+<!-- Progress bar -->
+<rect x="1100" y="250" width="1190" height="8" rx="4" fill="rgba(139,92,246,0.1)"/>
+<rect x="1100" y="250" width="1190" height="8" rx="4" fill="url(#barSkill)" opacity="0.7"/>
+<!-- Skill pills -->
+<rect x="1100" y="282" width="270" height="42" rx="8" fill="rgba(139,92,246,0.06)" stroke="rgba(139,92,246,0.25)" stroke-width="1"/>
+<text x="1116" y="310" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" fill="#A78BFA">agent-harness-config</text>
+<rect x="1388" y="282" width="220" height="42" rx="8" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.06)" stroke-width="1"/>
+<text x="1404" y="310" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" fill="#CBD5E1">context-budget</text>
+<rect x="1626" y="282" width="260" height="42" rx="8" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.06)" stroke-width="1"/>
+<text x="1642" y="310" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" fill="#CBD5E1">autonomous-loops</text>
+<rect x="1904" y="282" width="300" height="42" rx="8" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.06)" stroke-width="1"/>
+<text x="1920" y="310" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" fill="#CBD5E1">mcp-server-patterns</text>
+<rect x="1100" y="340" width="180" height="42" rx="8" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.06)" stroke-width="1"/>
+<text x="1116" y="368" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" fill="#CBD5E1">bun-runtime</text>
+<rect x="1298" y="340" width="280" height="42" rx="8" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.06)" stroke-width="1"/>
+<text x="1314" y="368" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" fill="#CBD5E1">security-review</text>
+<rect x="1596" y="340" width="300" height="42" rx="8" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.06)" stroke-width="1"/>
+<text x="1612" y="368" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" fill="#CBD5E1">ai-regression-testing</text>
+<rect x="1914" y="340" width="270" height="42" rx="8" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.06)" stroke-width="1"/>
+<text x="1930" y="368" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" fill="#CBD5E1">frontend-patterns</text>
+<rect x="1100" y="398" width="200" height="42" rx="8" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.06)" stroke-width="1"/>
+<text x="1116" y="426" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" fill="#64748B">+ 277 more</text>
+
+<!-- AGENTS CARD -->
+<rect x="1064" y="504" width="1270" height="280" rx="16" fill="rgba(226,232,240,0.018)" stroke="rgba(226,232,240,0.07)" stroke-width="1.5"/>
+<circle cx="1110" cy="550" r="8" fill="#3B82F6"/>
+<text x="1134" y="560" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="27" font-weight="bold" letter-spacing="3" fill="#E2E8F0">AGENTS</text>
+<text x="2290" y="564" text-anchor="end" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="52" font-weight="bold" fill="#3B82F6">68</text>
+<!-- Progress bar -->
+<rect x="1100" y="590" width="1190" height="8" rx="4" fill="rgba(59,130,246,0.1)"/>
+<rect x="1100" y="590" width="283" height="8" rx="4" fill="url(#barAgent)" opacity="0.7"/>
+<!-- Agent pills -->
+<rect x="1100" y="622" width="270" height="42" rx="8" fill="rgba(59,130,246,0.06)" stroke="rgba(59,130,246,0.25)" stroke-width="1"/>
+<text x="1116" y="650" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" fill="#60A5FA">harness-optimizer</text>
+<rect x="1388" y="622" width="220" height="42" rx="8" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.06)" stroke-width="1"/>
+<text x="1404" y="650" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" fill="#CBD5E1">code-reviewer</text>
+<rect x="1626" y="622" width="230" height="42" rx="8" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.06)" stroke-width="1"/>
+<text x="1642" y="650" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" fill="#CBD5E1">code-architect</text>
+<rect x="1874" y="622" width="260" height="42" rx="8" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.06)" stroke-width="1"/>
+<text x="1890" y="650" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" fill="#CBD5E1">security-reviewer</text>
+<rect x="1100" y="680" width="320" height="42" rx="8" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.06)" stroke-width="1"/>
+<text x="1116" y="708" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" fill="#CBD5E1">build-error-resolver</text>
+<rect x="1438" y="680" width="210" height="42" rx="8" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.06)" stroke-width="1"/>
+<text x="1454" y="708" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" fill="#CBD5E1">gan-planner</text>
+<rect x="1666" y="680" width="200" height="42" rx="8" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.06)" stroke-width="1"/>
+<text x="1682" y="708" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" fill="#64748B">+ 61 more</text>
+
+<!-- COMMANDS CARD -->
+<rect x="1064" y="808" width="1270" height="280" rx="16" fill="rgba(226,232,240,0.018)" stroke="rgba(226,232,240,0.07)" stroke-width="1.5"/>
+<circle cx="1110" cy="854" r="8" fill="#10B981"/>
+<text x="1134" y="864" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="27" font-weight="bold" letter-spacing="3" fill="#E2E8F0">COMMANDS</text>
+<text x="2290" y="868" text-anchor="end" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="52" font-weight="bold" fill="#10B981">94</text>
+<!-- Progress bar -->
+<rect x="1100" y="894" width="1190" height="8" rx="4" fill="rgba(16,185,129,0.1)"/>
+<rect x="1100" y="894" width="393" height="8" rx="4" fill="url(#barCmd)" opacity="0.7"/>
+<!-- Command pills -->
+<rect x="1100" y="926" width="240" height="42" rx="8" fill="rgba(16,185,129,0.06)" stroke="rgba(16,185,129,0.25)" stroke-width="1"/>
+<text x="1116" y="954" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" fill="#34D399">/harness-audit</text>
+<rect x="1358" y="926" width="210" height="42" rx="8" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.06)" stroke-width="1"/>
+<text x="1374" y="954" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" fill="#CBD5E1">/code-review</text>
+<rect x="1586" y="926" width="210" height="42" rx="8" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.06)" stroke-width="1"/>
+<text x="1602" y="954" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" fill="#CBD5E1">/feature-dev</text>
+<rect x="1814" y="926" width="220" height="42" rx="8" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.06)" stroke-width="1"/>
+<text x="1830" y="954" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" fill="#CBD5E1">/security-scan</text>
+<rect x="1100" y="984" width="210" height="42" rx="8" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.06)" stroke-width="1"/>
+<text x="1116" y="1012" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" fill="#CBD5E1">/checkpoint</text>
+<rect x="1328" y="984" width="200" height="42" rx="8" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.06)" stroke-width="1"/>
+<text x="1344" y="1012" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" fill="#CBD5E1">/skill-create</text>
+<rect x="1546" y="984" width="200" height="42" rx="8" fill="rgba(226,232,240,0.025)" stroke="rgba(226,232,240,0.06)" stroke-width="1"/>
+<text x="1562" y="1012" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" fill="#64748B">+ 87 more</text>
+
+<!-- ========== BOTTOM STATS BAR ========== -->
+<line x1="64" y1="1222" x2="2336" y2="1222" stroke="rgba(226,232,240,0.07)" stroke-width="1.5"/>
+<text x="64" y="1290" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="46" font-weight="bold" fill="#F1F5F9">448</text>
+<text x="172" y="1290" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" letter-spacing="3" fill="#475569">CATALOG</text>
+<text x="370" y="1290" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="46" font-weight="bold" fill="#F1F5F9">7</text>
+<text x="406" y="1290" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" letter-spacing="3" fill="#475569">HARNESSES</text>
+<text x="620" y="1290" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="46" font-weight="bold" fill="#F1F5F9">OAS 2.2</text>
+<text x="882" y="1290" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="21" letter-spacing="3" fill="#475569">STABLE</text>
+<text x="1060" y="1290" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="46" font-weight="bold" fill="#F1F5F9">MIT</text>
+<text x="2336" y="1284" text-anchor="end" font-family="'SF Mono',Menlo,'Courier New',monospace" font-size="25" letter-spacing="2" xml:space="preserve"><tspan fill="#475569">NPM:&#160;</tspan><tspan fill="#CBD5E1" font-weight="bold">OAS-UNIVERSAL</tspan><tspan fill="#475569">&#160;·&#160;AGENTSHIELD</tspan></text>
+</svg>

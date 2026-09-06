@@ -1,0 +1,47 @@
+{
+  "name": "oas",
+  "owner": {
+    "name": "Nihir Patel",
+    "email": "nihir@example.com"
+  },
+  "metadata": {
+    "description": "Harness-native OAS skills, hooks, rules, MCP conventions, and operator workflows"
+  },
+  "plugins": [
+    {
+      "name": "oas",
+      "source": "./",
+      "description": "Harness-native OAS operator layer - 68 agents, 286 skills, 94 legacy command shims, reusable hooks, rules, selective install profiles, and production-ready workflows for Claude Code, Codex, OpenCode, Cursor, and related agent harnesses",
+      "version": "2.2.1",
+      "author": {
+        "name": "Nihir Patel",
+        "email": "nihir@example.com"
+      },
+      "homepage": "https://oas.tools",
+      "repository": "https://github.com/neal0709/Operating-Agent-system-",
+      "license": "MIT",
+      "keywords": [
+        "agents",
+        "skills",
+        "hooks",
+        "commands",
+        "tdd",
+        "code-review",
+        "security",
+        "best-practices"
+      ],
+      "category": "workflow",
+      "tags": [
+        "agents",
+        "skills",
+        "hooks",
+        "commands",
+        "tdd",
+        "code-review",
+        "security",
+        "best-practices"
+      ],
+      "strict": false
+    }
+  ]
+}

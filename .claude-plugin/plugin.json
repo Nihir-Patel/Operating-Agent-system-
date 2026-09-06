@@ -1,0 +1,46 @@
+{
+  "name": "oas",
+  "version": "2.2.1",
+  "description": "Harness-native OAS plugin for engineering teams - 68 agents, 286 skills, 94 legacy command shims, reusable hooks, rules, MCP conventions, and operator workflows for Claude Code plus adjacent agent harnesses",
+  "author": {
+    "name": "Nihir Patel",
+    "url": "https://x.com/nihirpatel"
+  },
+  "homepage": "https://oas.tools",
+  "repository": "https://github.com/neal0709/Operating-Agent-system-",
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "agents",
+    "skills",
+    "hooks",
+    "rules",
+    "tdd",
+    "code-review",
+    "security",
+    "workflow",
+    "automation",
+    "best-practices"
+  ],
+  "userConfig": {
+    "hooks_enabled": {
+      "type": "boolean",
+      "title": "Enable OAS hooks",
+      "description": "Run OAS's local lifecycle, quality, and safety automation. Disable this to keep skills and commands without local hook automation.",
+      "default": true
+    },
+    "hook_profile": {
+      "type": "string",
+      "title": "OAS hook profile",
+      "description": "Choose minimal, standard, or strict. Invalid values safely fall back to standard.",
+      "default": "standard"
+    }
+  },
+  "mcpServers": {},
+  "skills": [
+    "./skills/"
+  ],
+  "commands": [
+    "./commands/"
+  ]
+}
