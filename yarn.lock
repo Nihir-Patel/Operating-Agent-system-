@@ -594,32 +594,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ecc-universal@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "ecc-universal@workspace:."
-  dependencies:
-    "@eslint/js": "npm:9.39.2"
-    "@iarna/toml": "npm:2.2.5"
-    "@opencode-ai/plugin": "npm:1.18.25"
-    "@types/node": "npm:26.4.0"
-    ajv: "npm:8.20.0"
-    c8: "npm:11.0.0"
-    eslint: "npm:10.9.1"
-    globals: "npm:17.11.0"
-    js-yaml: "npm:4.3.1"
-    markdownlint-cli: "npm:0.49.1"
-    sql.js: "npm:1.14.2"
-    typescript: "npm:6.0.3"
-  bin:
-    ecc: scripts/ecc.js
-    ecc-control-pane: scripts/control-pane.js
-    ecc-install: scripts/install-apply.js
-    ecc-memory-mcp: scripts/memory-mcp.mjs
-    ecc-plan-canvas: scripts/plan-canvas.js
-    ecc-universal: scripts/ecc.js
-  languageName: unknown
-  linkType: soft
-
 "effect@npm:4.0.0-beta.83":
   version: 4.0.0-beta.83
   resolution: "effect@npm:4.0.0-beta.83"
@@ -1082,14 +1056,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"js-yaml@npm:4.3.1":
-  version: 4.3.1
-  resolution: "js-yaml@npm:4.3.1"
+"js-yaml@npm:5.4.1":
+  version: 5.4.1
+  resolution: "js-yaml@npm:5.4.1"
   dependencies:
     argparse: "npm:^2.0.1"
   bin:
-    js-yaml: bin/js-yaml.js
-  checksum: 10c0/13c500ca322e0c3f8c81686e6ecda96d2ea37b45247a420c17c7db36932d6965cc27391abc2d1a104501600e7f0d947a5f8b7be6db619c4fefa87901b3512807
+    js-yaml: bin/js-yaml.mjs
+  checksum: 10c0/efe9dfaf222809694d375ad5ecca825561d2432eb55bc0f628911c0dfa4dbce98a71dcbc3252f630208bbdf5f4e9ac363847e4a7f49845b577ae2548b8fcf147
   languageName: node
   linkType: hard
 
@@ -1718,6 +1692,32 @@ __metadata:
   checksum: 10c0/980d89257f9587f3e1f77877ddbf905d6aa3b738ec33e49a4fa1a059a0dd82eb28063982b150654a7ae9de386f2ead60e56172db7d37cf56de545f7392a2a26a
   languageName: node
   linkType: hard
+
+"oas-universal@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "oas-universal@workspace:."
+  dependencies:
+    "@eslint/js": "npm:9.39.2"
+    "@iarna/toml": "npm:2.2.5"
+    "@opencode-ai/plugin": "npm:1.18.25"
+    "@types/node": "npm:26.4.0"
+    ajv: "npm:8.20.0"
+    c8: "npm:11.0.0"
+    eslint: "npm:10.9.1"
+    globals: "npm:17.11.0"
+    js-yaml: "npm:5.4.1"
+    markdownlint-cli: "npm:0.49.1"
+    sql.js: "npm:1.14.2"
+    typescript: "npm:6.0.3"
+  bin:
+    oas: scripts/oas.js
+    oas-control-pane: scripts/control-pane.js
+    oas-install: scripts/install-apply.js
+    oas-memory-mcp: scripts/memory-mcp.mjs
+    oas-plan-canvas: scripts/plan-canvas.js
+    oas-universal: scripts/oas.js
+  languageName: unknown
+  linkType: soft
 
 "optionator@npm:^0.9.3":
   version: 0.9.4
