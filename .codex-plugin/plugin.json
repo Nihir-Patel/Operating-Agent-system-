@@ -1,0 +1,50 @@
+{
+  "name": "oas",
+  "version": "2.2.1",
+  "description": "Harness-native OAS workflows for Codex: shared skills, production-ready MCP configs, and selective-install-aligned conventions for TDD, security scanning, code review, and autonomous development.",
+  "author": {
+    "name": "Nihir Patel",
+    "email": "nihir@example.com",
+    "url": "https://x.com/nihirpatel"
+  },
+  "homepage": "https://oas.tools",
+  "repository": "https://github.com/neal0709/Operating-Agent-system-",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "agents",
+    "skills",
+    "tdd",
+    "code-review",
+    "security",
+    "workflow",
+    "automation"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "hooks": "./hooks/codex-hooks.json",
+  "interface": {
+    "displayName": "OAS",
+    "shortDescription": "281 OAS skills plus MCP configs for TDD, security, code review, and autonomous development.",
+    "longDescription": "OAS is a harness-native operator system for Codex and adjacent agent harnesses. It packages reusable skills, MCP configs, TDD workflows, security scanning, code review, architecture decisions, operator workflows, and release gates in one installable plugin.",
+    "developerName": "Nihir Patel",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://oas.tools",
+    "privacyPolicyURL": "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement",
+    "termsOfServiceURL": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    "brandColor": "#E07856",
+    "composerIcon": "./assets/oas-icon.svg",
+    "logo": "./assets/hero.png",
+    "screenshots": [],
+    "defaultPrompt": [
+      "Use the tdd-workflow skill to write tests before implementation.",
+      "Use the security-review skill to scan for OWASP Top 10 vulnerabilities.",
+      "Use the verification-loop skill to verify correctness before shipping changes."
+    ]
+  }
+}
