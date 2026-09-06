@@ -10,7 +10,7 @@ const fs = require('fs');
 
 const { OasParser } = require('../../../packages/parser/src/parser');
 const { MemoryStore } = require('../../../packages/db/src/index');
-const { AgentDagScheduler, ExecutionSandbox, StrategicCompactor, UniversalModelGateway, AgentRunner, WorktreeRunner } = require('../../../packages/engine/src/index');
+const { AgentDagScheduler, ExecutionSandbox, StrategicCompactor, UniversalModelGateway, AgentRunner, WorktreeRunner, CommandRunner } = require('../../../packages/engine/src/index');
 
 class OasControlPlaneServer {
   constructor(options = {}) {
@@ -32,6 +32,13 @@ class OasControlPlaneServer {
       sandbox: this.sandbox,
       gateway: this.gateway,
       store: this.store
+    });
+    this.commands = new CommandRunner({
+      scheduler: this.scheduler,
+      runner: this.runner,
+      compactor: this.compactor,
+      store: this.store,
+      worktrees: this.worktrees
     });
 
     // Connected SSE clients for live agent streaming
@@ -240,9 +247,17 @@ class OasControlPlaneServer {
           });
         }
 
-        if (pathname === '/api/commands') {
+        if (pathname === '/api/commands' && req.method === 'GET') {
           if (!this.cachedCatalog) this.initCatalog();
           return this.sendJson(res, 200, this.cachedCatalog.commands);
+        }
+
+        if (pathname === '/api/commands/execute' && req.method === 'POST') {
+          const body = await this.parseBody(req);
+          const cmdString = body.command || '';
+          const result = await this.commands.executeCommand(cmdString, { sessionId: body.sessionId });
+          this.broadcastSse('agent:command:executed', result);
+          return this.sendJson(res, 200, result);
         }
 
         if (pathname === '/api/mcp') {

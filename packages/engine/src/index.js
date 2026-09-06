@@ -9,6 +9,7 @@ const { StrategicCompactor } = require('./compactor');
 const { UniversalModelGateway } = require('./llm-gateway');
 const { AgentRunner } = require('./agent-runner');
 const { WorktreeRunner } = require('./worktree-runner');
+const { CommandRunner } = require('./command-runner');
 
 module.exports = {
   AgentDagScheduler,
@@ -16,5 +17,6 @@ module.exports = {
   StrategicCompactor,
   UniversalModelGateway,
   AgentRunner,
-  WorktreeRunner
+  WorktreeRunner,
+  CommandRunner
 };

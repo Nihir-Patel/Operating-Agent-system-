@@ -429,16 +429,93 @@ if (elements.catalogSearch) {
   });
 }
 
+// Interactive Terminal CLI & Command Execution
+async function executeCliCommand(cmdString) {
+  if (!cmdString || !cmdString.trim()) return;
+  const command = cmdString.trim();
+
+  // Print command into virtual terminal
+  const diffViewer = document.getElementById('workspace-diff-viewer');
+  if (diffViewer) {
+    diffViewer.innerHTML += `\n\n<span style="color: #38BDF8; font-weight: 700;">oas&gt; ${command}</span>\n`;
+    diffViewer.scrollTop = diffViewer.scrollHeight;
+  }
+
+  try {
+    const res = await fetch('/api/commands/execute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ command, sessionId: state.activeSession.id })
+    });
+
+    if (res.ok) {
+      const result = await res.json();
+      if (diffViewer && result.output) {
+        diffViewer.innerHTML += `<span style="color: #34D399;">${result.output.replace(/\n/g, '<br>')}</span>\n`;
+        diffViewer.scrollTop = diffViewer.scrollHeight;
+      }
+      // Also append to thought stream
+      const stream = document.getElementById('thought-stream-content');
+      if (stream && result.output) {
+        const msg = document.createElement('div');
+        msg.className = 'stream-message';
+        msg.innerHTML = `<strong>[Command ${command.split(' ')[0]}]</strong> ${result.output}`;
+        stream.appendChild(msg);
+        stream.scrollTop = stream.scrollHeight;
+      }
+    }
+  } catch (err) {
+    if (diffViewer) {
+      diffViewer.innerHTML += `<span style="color: #FB7185;">Execution error: ${err.message}</span>\n`;
+    }
+  }
+}
+
+const cliInput = document.getElementById('terminal-cli-input');
+const btnCliExec = document.getElementById('btn-terminal-exec');
+
+if (cliInput) {
+  cliInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const val = cliInput.value;
+      cliInput.value = '';
+      executeCliCommand(val);
+    }
+  });
+}
+
+if (btnCliExec && cliInput) {
+  btnCliExec.addEventListener('click', () => {
+    const val = cliInput.value;
+    cliInput.value = '';
+    executeCliCommand(val);
+  });
+}
+
 // Floating Action Dock Buttons
 const dockButtons = {
-  'dock-run-loop': () => alert('Initiating continuous agent loop (/loop) with stall monitoring.'),
-  'dock-pause': () => alert('Agent execution paused. State checkpoint saved.'),
-  'dock-intervene': () => {
-    const feedback = prompt('Provide human intervention instructions for active subagent:');
-    if (feedback) alert('Intervention dispatched to active subagent queue: ' + feedback);
+  'dock-run-loop': () => executeCliCommand('/loop Autonomous loop iteration with stall detection'),
+  'dock-pause': async () => {
+    await fetch(`/api/sessions/${state.activeSession.id}/intervene`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'pause' })
+    });
+    alert('Agent execution paused. State checkpoint saved.');
   },
-  'dock-compact': () => alert('Strategic Context Compactor executed. 18,400 tokens reclaimed.'),
-  'dock-rollback': () => alert('Rollback to previous checkpoint (/checkpoint) executed.')
+  'dock-intervene': async () => {
+    const feedback = prompt('Provide human intervention instructions for active subagent:');
+    if (feedback) {
+      await fetch(`/api/sessions/${state.activeSession.id}/intervene`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'feedback', feedback })
+      });
+      alert('Intervention dispatched to active subagent: ' + feedback);
+    }
+  },
+  'dock-compact': () => executeCliCommand('/compact'),
+  'dock-rollback': () => executeCliCommand('/checkpoint manual_rollback_target')
 };
 
 Object.entries(dockButtons).forEach(([id, handler]) => {

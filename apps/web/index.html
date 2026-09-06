@@ -266,6 +266,11 @@
 +    this.activeRuns.set(taskId, { nodes, status: 'running' });
 +  }
               </div>
+              <div class="terminal-cli-bar" style="display: flex; gap: 8px; padding: 10px; background: #050914; border-top: 1px solid var(--border-subtle);">
+                <span style="color: var(--brand-blue); font-family: 'JetBrains Mono', monospace; font-size: 13px; align-self: center; font-weight: 700;">oas&gt;</span>
+                <input type="text" id="terminal-cli-input" class="search-input" style="padding: 8px 12px; font-size: 12px; font-family: 'JetBrains Mono', monospace; flex: 1;" placeholder="Execute command: /plan, /tdd, /loop, /compact, /build-fix, /checkpoint...">
+                <button class="btn btn-primary" id="btn-terminal-exec" style="padding: 6px 14px; font-size: 12px;">Run</button>
+              </div>
             </div>
 
             <!-- Floating Action Dock -->
