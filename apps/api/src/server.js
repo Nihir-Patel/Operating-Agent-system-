@@ -729,7 +729,8 @@ class OasControlPlaneServer {
 
         // --- MEMORY VAULT ---
         if (pathname === '/api/memory' && req.method === 'GET') {
-          return this.sendJson(res, 200, this.store.getMemoryVault());
+          const query = (parsedUrl.query && parsedUrl.query.query) || '';
+          return this.sendJson(res, 200, this.store.getMemoryVault(query));
         }
 
         if (pathname === '/api/memory' && req.method === 'POST') {
@@ -738,15 +739,34 @@ class OasControlPlaneServer {
           return this.sendJson(res, 201, record);
         }
 
+        if (pathname.startsWith('/api/memory/') && req.method === 'DELETE') {
+          const parts = pathname.split('/');
+          const id = parts[3];
+          const success = this.store.deleteMemory(id);
+          return this.sendJson(res, 200, { success, id });
+        }
+
         // --- ARTIFACTS & PLANS ---
         if (pathname === '/api/artifacts' && req.method === 'GET') {
-          return this.sendJson(res, 200, this.store.getArtifacts());
+          const sessionId = parsedUrl.query && parsedUrl.query.sessionId;
+          return this.sendJson(res, 200, this.store.getArtifacts(sessionId));
         }
 
         if (pathname === '/api/artifacts' && req.method === 'POST') {
           const body = await this.parseBody(req);
           const record = this.store.addArtifact(body);
           return this.sendJson(res, 201, record);
+        }
+
+        if (pathname.startsWith('/api/artifacts/') && req.method === 'PUT') {
+          const parts = pathname.split('/');
+          const id = parts[3];
+          const body = await this.parseBody(req);
+          const updated = this.store.updateArtifact(id, body);
+          if (!updated) {
+            return this.sendJson(res, 404, { error: 'Artifact not found' });
+          }
+          return this.sendJson(res, 200, updated);
         }
 
         // --- GIT WORKTREES MULTI-AGENT RUNNER ---
@@ -841,12 +861,25 @@ class OasControlPlaneServer {
       }
     }
 
-  start() {
-    const server = http.createServer((req, res) => this.handleRequest(req, res));
-    server.listen(this.port, this.host, () => {
-      console.log(`[OAS Control Plane API] Running on http://${this.host}:${this.port}`);
-    });
-    return server;
+  start(callback) {
+    const tryListen = (currentPort) => {
+      const server = http.createServer((req, res) => this.handleRequest(req, res));
+      server.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+          console.warn(`[OAS Studio] Port ${currentPort} in use, trying ${currentPort + 1}...`);
+          tryListen(currentPort + 1);
+        } else {
+          console.error('[OAS Studio Server Error]', err);
+        }
+      });
+      server.listen(currentPort, this.host, () => {
+        this.port = currentPort;
+        console.log(`[OAS Control Plane API] Running on http://${this.host}:${this.port}`);
+        if (callback) callback(server, this.port);
+      });
+      return server;
+    };
+    return tryListen(this.port);
   }
 }
 

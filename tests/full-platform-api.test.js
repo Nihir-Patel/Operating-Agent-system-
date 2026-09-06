@@ -192,6 +192,67 @@ async function runTests() {
   assert.strictEqual(postDeleteDetail.status, 404);
   console.log('  ✓ Session lifecycle CRUD & transcript export verified');
 
+  // 6. Memory Vault Verification
+  console.log('[Test] 6. Verifying /api/memory query, creation, and deletion...');
+  const memListRes = await dispatch(serverInstance, 'GET', '/api/memory');
+  assert.strictEqual(memListRes.status, 200);
+  assert(Array.isArray(memListRes.body), 'Memory vault must return array');
+  assert(memListRes.body.length > 0, 'Memory vault should contain seeded memories');
+
+  // Query filter
+  const queryRes = await dispatch(serverInstance, 'GET', '/api/memory?query=immutability');
+  assert.strictEqual(queryRes.status, 200);
+  assert(queryRes.body.length > 0, 'Query search should match immutability memory');
+
+  // Create new memory
+  const createMemRes = await dispatch(serverInstance, 'POST', '/api/memory', {
+    title: 'Test Integration Policy',
+    scope: 'team',
+    kind: 'policy',
+    body: 'Automated test suite assertions must pass 100% before commit.'
+  });
+  assert.strictEqual(createMemRes.status, 201);
+  assert(createMemRes.body.id.startsWith('mem_'));
+  const newMemId = createMemRes.body.id;
+
+  // Delete memory
+  const deleteMemRes = await dispatch(serverInstance, 'DELETE', `/api/memory/${newMemId}`);
+  assert.strictEqual(deleteMemRes.status, 200);
+  assert.strictEqual(deleteMemRes.body.success, true);
+  console.log('  ✓ Memory Vault query, creation, and deletion verified');
+
+  // 7. Plan Artifacts Verification
+  console.log('[Test] 7. Verifying /api/artifacts plan management & updates...');
+  const artListRes = await dispatch(serverInstance, 'GET', '/api/artifacts');
+  assert.strictEqual(artListRes.status, 200);
+  assert(Array.isArray(artListRes.body), 'Artifacts must return array');
+  const planArt = artListRes.body.find(a => a.artifact_type === 'plan');
+  assert(planArt, 'Seeded plan artifact must exist');
+
+  // Update plan phases
+  const updatedPhases = [
+    ...(planArt.phases || []),
+    { id: 'p_test', title: 'Phase Test', description: 'Test Phase', completed: true }
+  ];
+  const updateArtRes = await dispatch(serverInstance, 'PUT', `/api/artifacts/${planArt.id}`, {
+    phases: updatedPhases
+  });
+  assert.strictEqual(updateArtRes.status, 200);
+  assert.strictEqual(updateArtRes.body.phases.length, updatedPhases.length);
+  console.log('  ✓ Plan Artifacts management and updates verified');
+
+  // 8. Telemetry Verification
+  console.log('[Test] 8. Verifying /api/telemetry real-time statistics...');
+  const telemRes = await dispatch(serverInstance, 'GET', '/api/telemetry');
+  assert.strictEqual(telemRes.status, 200);
+  assert.strictEqual(telemRes.body.status, 'HEALTHY');
+  assert(typeof telemRes.body.uptime === 'number');
+  assert(typeof telemRes.body.memoryUtilizationMb === 'number');
+  assert.strictEqual(telemRes.body.totalAgents, 68);
+  assert.strictEqual(telemRes.body.totalSkills, 286);
+  assert.strictEqual(telemRes.body.totalCommands, 94);
+  console.log(`  ✓ Telemetry verified: ${telemRes.body.memoryUtilizationMb} MB Heap, ${telemRes.body.totalAgents} Agents, status ${telemRes.body.status}`);
+
   console.log('\n✅ ALL FULL-PLATFORM API TESTS PASSED WITH 100% SUCCESS!\n');
 }
 

@@ -109,6 +109,11 @@ const viewTitles = {
   'view-builder': 'Studio Builder (Visual Agent & Skill Designer)'
 };
 
+function escapeHtml(str) {
+  if (typeof str !== 'string') return String(str || '');
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 // Navigation
 function switchView(viewId) {
   state.activeView = viewId;
@@ -137,8 +142,16 @@ function switchView(viewId) {
     setTimeout(initKgSimulation, 50);
   } else if (viewId === 'view-workspace') {
     loadWorkspaceTree();
+    loadSessionSteps(state.activeSession.id);
   } else if (viewId === 'view-dag') {
     renderDynamicDag();
+  } else if (viewId === 'view-plan-canvas') {
+    loadPlanCanvas();
+  } else if (viewId === 'view-vault') {
+    loadTelemetry();
+    loadMemoryVault();
+  } else if (viewId === 'view-catalog') {
+    renderCatalog();
   }
 }
 
@@ -151,91 +164,112 @@ elements.navItems.forEach(item => {
 
 // Interactive DAG Node Selection
 function selectDagNode(agentKey) {
-  const meta = nodeMetadata[agentKey];
-  if (!meta) return;
+  const agentDef = (state.catalog.agents || []).find(a => a.id === agentKey);
+  const meta = nodeMetadata[agentKey] || {};
 
-  elements.inspectorNodeName.textContent = meta.name;
-  elements.inspectorModelBadge.textContent = 'Model: ' + meta.model;
-  elements.inspectorNodeRole.textContent = meta.role;
-  elements.inspectorCotText.textContent = meta.cot;
-  elements.inspectorToolBlock.innerHTML = meta.tool.replace(/\n/g, '<br>');
+  const name = agentDef ? agentDef.name || agentDef.id : (meta.name || agentKey);
+  const model = agentDef?.model ? `Claude 3.7 ${agentDef.model.toUpperCase()}` : (meta.model || 'Claude 3.7 Sonnet');
+  const role = agentDef?.description || meta.role || 'Autonomous Domain Subagent';
+  const cot = meta.cot || `[${agentKey}] Active and ready for orchestration in session ${state.activeSession.id}.`;
+  const tools = agentDef?.tools ? (Array.isArray(agentDef.tools) ? agentDef.tools.join(', ') : agentDef.tools) : 'Read, Write, Edit, Grep, Glob, Bash';
 
-  elements.dagNodes.forEach(node => {
+  if (elements.inspectorNodeName) elements.inspectorNodeName.textContent = name;
+  if (elements.inspectorModelBadge) elements.inspectorModelBadge.textContent = 'Model: ' + model;
+  if (elements.inspectorNodeRole) elements.inspectorNodeRole.textContent = role;
+  if (elements.inspectorCotText) elements.inspectorCotText.textContent = cot;
+  if (elements.inspectorToolBlock) elements.inspectorToolBlock.innerHTML = `tools: ${tools}`;
+
+  document.querySelectorAll('.dag-node').forEach(node => {
     const key = node.getAttribute('data-agent');
     const rect = node.querySelector('rect');
-    if (key === agentKey) {
-      rect.setAttribute('stroke', '#3B82F6');
-      rect.setAttribute('stroke-width', '2.5');
-    } else {
-      rect.setAttribute('stroke-width', '1.5');
+    if (rect) {
+      if (key === agentKey) {
+        rect.setAttribute('stroke', '#3B82F6');
+        rect.setAttribute('stroke-width', '2.5');
+      } else {
+        rect.setAttribute('stroke-width', '1.5');
+      }
     }
   });
 }
 
-elements.dagNodes.forEach(node => {
-  node.addEventListener('click', () => {
-    const key = node.getAttribute('data-agent');
-    selectDagNode(key);
-  });
-});
+// Live Session Steps & Thought Stream Loader
+async function loadSessionSteps(sessionId) {
+  const stream = document.getElementById('thought-stream-content');
+  if (!stream) return;
+  stream.innerHTML = '';
+
+  try {
+    const res = await fetch(`/api/sessions/${sessionId}`);
+    if (res.ok) {
+      const data = await res.json();
+      const steps = data.steps || [];
+      if (steps.length === 0) {
+        stream.innerHTML = `
+          <div class="stream-empty-state" style="padding: 32px 16px; text-align: center; color: var(--text-muted);">
+            <div style="font-size: 28px; margin-bottom: 8px;">⚡</div>
+            <div style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Streaming Workspace Ready</div>
+            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 6px; line-height: 1.5;">
+              Active session: <code style="color: var(--brand-blue);">${data.session?.title || sessionId}</code><br>
+              Type a prompt or slash command (<code>/plan</code>, <code>/tdd</code>, <code>/loop</code>) below, or click <strong>Advance Step</strong> in the DAG.
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      steps.forEach(step => {
+        appendStepToStream(step);
+      });
+      stream.scrollTop = stream.scrollHeight;
+    }
+  } catch (err) {
+    stream.innerHTML = `<div style="color: var(--status-error); padding: 12px;">Failed to load session steps: ${err.message}</div>`;
+  }
+}
+
+function appendStepToStream(step) {
+  const stream = document.getElementById('thought-stream-content');
+  if (!stream) return;
+  const empty = stream.querySelector('.stream-empty-state');
+  if (empty) empty.remove();
+
+  const msg = document.createElement('div');
+  if (step.step_type === 'diff' || step.diff_content) {
+    msg.className = 'stream-message diff-gen';
+    msg.innerHTML = `<strong>[${step.agent_id || 'diff'}]</strong> ${escapeHtml(step.content || '')}`;
+  } else if (step.step_type === 'tool_call' || step.tool_name) {
+    msg.className = 'stream-message tool-use';
+    msg.innerHTML = `<strong>[Tool Invoked]</strong> ${step.tool_name}: <code>${escapeHtml(JSON.stringify(step.tool_args || ''))}</code>`;
+  } else if (step.step_type === 'intervention') {
+    msg.className = 'stream-message';
+    msg.style.borderLeft = '3px solid #F59E0B';
+    msg.innerHTML = `<strong>[Human Intervention]</strong> ${escapeHtml(step.content || '')}`;
+  } else {
+    msg.className = 'stream-message';
+    msg.innerHTML = `<strong>[${step.agent_id || 'system'}]</strong> ${escapeHtml(step.content || '')}`;
+  }
+  stream.appendChild(msg);
+  stream.scrollTop = stream.scrollHeight;
+}
 
 // Live Execution & DAG Step Advancement
-const stepSequence = ['planner', 'architect', 'tdd-guide', 'code-reviewer', 'security-reviewer', 'doc-updater'];
-let currentSequenceIndex = 2;
-
 async function advanceDagStep() {
-  const activeAgent = stepSequence[currentSequenceIndex];
-  selectDagNode(activeAgent);
-
-  // Attempt live execution via backend
   try {
-    const res = await fetch(`/api/sessions/${state.activeSession.id}/execute`, {
+    const res = await fetch(`/api/sessions/${state.activeSession.id}/step`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ intent: 'OAS Enterprise Capability Run' })
+      body: JSON.stringify({ intent: 'Advance DAG pipeline step' })
     });
     if (res.ok) {
       const data = await res.json();
-      if (data.output) {
-        elements.inspectorCotText.textContent = data.output;
+      if (data.step) {
+        appendStepToStream(data.step);
       }
+      renderDynamicDag();
     }
   } catch (err) {
-    // Graceful offline fallback
-  }
-
-  currentSequenceIndex = (currentSequenceIndex + 1) % stepSequence.length;
-  const nextAgent = stepSequence[currentSequenceIndex];
-
-  // Update visual node status
-  elements.dagNodes.forEach((node, idx) => {
-    const rect = node.querySelector('rect');
-    const circle = node.querySelector('circle');
-    const textStatus = node.querySelectorAll('text')[2];
-
-    if (idx < currentSequenceIndex) {
-      rect.setAttribute('stroke', '#10B981');
-      circle.setAttribute('fill', '#10B981');
-      if (textStatus) textStatus.textContent = 'DONE';
-    } else if (idx === currentSequenceIndex) {
-      rect.setAttribute('stroke', '#3B82F6');
-      circle.setAttribute('fill', '#3B82F6');
-      if (textStatus) textStatus.textContent = 'RUNNING';
-    } else {
-      rect.setAttribute('stroke', 'rgba(226, 232, 240, 0.15)');
-      circle.setAttribute('fill', '#64748B');
-      if (textStatus) textStatus.textContent = 'QUEUED';
-    }
-  });
-
-  // Append step to streaming workspace
-  const stream = document.getElementById('thought-stream-content');
-  if (stream) {
-    const msg = document.createElement('div');
-    msg.className = 'stream-message';
-    msg.innerHTML = `<strong>[${nextAgent}]</strong> Executing subagent cycle with live Universal Model Gateway.`;
-    stream.appendChild(msg);
-    stream.scrollTop = stream.scrollHeight;
+    console.error('Failed to advance step:', err);
   }
 }
 
@@ -532,17 +566,145 @@ Object.entries(dockButtons).forEach(([id, handler]) => {
   if (btn) btn.addEventListener('click', handler);
 });
 
-// Plan Canvas Annotation addition
-if (elements.btnAddAnnotation && elements.annotationInput) {
-  elements.btnAddAnnotation.addEventListener('click', () => {
-    const text = elements.annotationInput.value.trim();
-    if (!text) return;
-    const box = document.createElement('div');
-    box.className = 'annotation-box';
-    box.innerHTML = `<strong>Human Reviewer:</strong> ${text}`;
-    elements.annotationInput.parentNode.insertBefore(box, elements.annotationInput);
-    elements.annotationInput.value = '';
-  });
+// --- PLAN CANVAS PRO CONTROLLER ---
+let currentPlanArtifact = null;
+
+async function loadPlanCanvas() {
+  const container = document.getElementById('plan-phases-list');
+  const annotationsContainer = document.getElementById('plan-annotations-list');
+  const badge = document.getElementById('plan-status-badge');
+  const desc = document.getElementById('plan-status-desc');
+  if (!container) return;
+
+  container.innerHTML = '<div style="color: var(--text-muted); padding: 16px;">Loading capability plan from artifact store...</div>';
+
+  try {
+    const res = await fetch(`/api/artifacts?sessionId=${state.activeSession.id}`);
+    let artifacts = [];
+    if (res.ok) {
+      artifacts = await res.json();
+    }
+    if (!artifacts || artifacts.length === 0) {
+      const allRes = await fetch('/api/artifacts');
+      if (allRes.ok) artifacts = await allRes.json();
+    }
+
+    const plan = (artifacts || []).find(a => a.artifact_type === 'plan') || (artifacts && artifacts[0]);
+    if (!plan) {
+      container.innerHTML = '<div style="color: var(--text-muted); padding: 16px;">No capability plan artifacts found. Use /plan to generate one.</div>';
+      return;
+    }
+
+    currentPlanArtifact = plan;
+    if (badge) {
+      badge.textContent = (plan.status || 'READY').toUpperCase();
+      badge.style.color = plan.status === 'completed' ? 'var(--status-active)' : 'var(--brand-blue)';
+    }
+    if (desc) {
+      desc.textContent = `Artifact ID: ${plan.id} • ${plan.phases ? plan.phases.length : 0} phases tracked.`;
+    }
+
+    // Render phases
+    const phases = plan.phases || [];
+    container.innerHTML = '';
+    phases.forEach((phase, idx) => {
+      const card = document.createElement('div');
+      card.className = 'phase-card';
+      card.innerHTML = `
+        <input type="checkbox" ${phase.completed ? 'checked' : ''} class="phase-check" id="chk-phase-${idx}">
+        <div style="flex: 1;">
+          <strong style="font-size: 14px; color: var(--text-primary);">${escapeHtml(phase.title)}</strong>
+          <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; line-height: 1.5;">${escapeHtml(phase.description)}</p>
+        </div>
+        <span class="badge-tag font-mono" style="color: ${phase.completed ? '#10B981' : '#F59E0B'};">${phase.completed ? 'PASSED' : 'PENDING'}</span>
+      `;
+      const chk = card.querySelector('.phase-check');
+      chk.addEventListener('change', async () => {
+        phase.completed = chk.checked;
+        const tag = card.querySelector('.badge-tag');
+        tag.textContent = chk.checked ? 'PASSED' : 'PENDING';
+        tag.style.color = chk.checked ? '#10B981' : '#F59E0B';
+        await fetch(`/api/artifacts/${plan.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phases: plan.phases })
+        });
+      });
+      container.appendChild(card);
+    });
+
+    // Render annotations
+    if (annotationsContainer) {
+      annotationsContainer.innerHTML = '';
+      const annotations = plan.annotations || [];
+      if (annotations.length === 0) {
+        annotationsContainer.innerHTML = '<div style="font-size: 11px; color: var(--text-muted); padding: 8px;">No human review annotations yet. Post one below.</div>';
+      } else {
+        annotations.forEach(ann => {
+          const box = document.createElement('div');
+          box.className = 'annotation-box';
+          box.innerHTML = `<strong>${escapeHtml(ann.author || 'Reviewer')}:</strong> ${escapeHtml(ann.text)}`;
+          annotationsContainer.appendChild(box);
+        });
+      }
+    }
+  } catch (err) {
+    container.innerHTML = `<div style="color: var(--status-error); padding: 16px;">Failed to load plan: ${err.message}</div>`;
+  }
+}
+
+function initPlanCanvasInteractions() {
+  const btnAdd = document.getElementById('btn-add-annotation');
+  const input = document.getElementById('plan-new-annotation');
+  const btnExec = document.getElementById('btn-execute-plan');
+
+  if (btnAdd && input) {
+    btnAdd.onclick = async () => {
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+
+      await fetch(`/api/sessions/${state.activeSession.id}/intervene`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ annotation: text, author: 'Human Reviewer' })
+      });
+
+      if (currentPlanArtifact) {
+        if (!currentPlanArtifact.annotations) currentPlanArtifact.annotations = [];
+        currentPlanArtifact.annotations.push({ author: 'Human Reviewer', text });
+        await fetch(`/api/artifacts/${currentPlanArtifact.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ annotations: currentPlanArtifact.annotations })
+        });
+      }
+
+      loadPlanCanvas();
+    };
+  }
+
+  if (btnExec) {
+    btnExec.onclick = async () => {
+      const badge = document.getElementById('plan-status-badge');
+      if (badge) {
+        badge.textContent = 'EXECUTING';
+        badge.style.color = '#3B82F6';
+      }
+      try {
+        const res = await fetch(`/api/sessions/${state.activeSession.id}/execute`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ intent: 'Execute approved capability roadmap' })
+        });
+        if (res.ok) {
+          switchView('view-workspace');
+        }
+      } catch (err) {
+        alert('Execution failed: ' + err.message);
+      }
+    };
+  }
 }
 
 // --- STUDIO BUILDER (CUSTOM AGENT & SKILL DESIGNER) ---
@@ -708,9 +870,38 @@ let dagNodesData = [
   { id: 'node_docs', agentId: 'doc-updater', status: 'pending', x: 80, y: 320 }
 ];
 
-function renderDynamicDag() {
+async function renderDynamicDag() {
   const viewport = document.getElementById('dag-viewport');
   if (!viewport) return;
+
+  try {
+    const res = await fetch(`/api/sessions/${state.activeSession.id}/pipeline`);
+    if (res.ok) {
+      const run = await res.json();
+      if (run && run.nodes && run.nodes.length > 0) {
+        dagNodesData = run.nodes.map((node, i) => {
+          let x, y;
+          if (i < 3) {
+            x = 80 + i * 260;
+            y = 120;
+          } else {
+            x = 80 + (5 - i) * 260;
+            y = 320;
+          }
+          return {
+            id: node.id,
+            agentId: node.agentId,
+            status: node.status,
+            x,
+            y
+          };
+        });
+      }
+    }
+  } catch (err) {
+    // Keep local layout fallback
+  }
+
   viewport.innerHTML = '';
   viewport.setAttribute('transform', `translate(${dagPan.x}, ${dagPan.y}) scale(${dagZoom})`);
 
@@ -749,11 +940,14 @@ function renderDynamicDag() {
     const statusText = node.status === 'completed' ? 'DONE' : (node.status === 'running' ? 'RUNNING' : 'QUEUED');
     const badgeColor = node.status === 'completed' ? '#10B981' : (node.status === 'running' ? '#3B82F6' : '#94A3B8');
 
+    const agentDef = (state.catalog.agents || []).find(a => a.id === node.agentId);
+    const roleText = (agentDef?.description || nodeMetadata[node.agentId]?.role || 'Agent Task').substring(0, 22) + '...';
+
     g.innerHTML = `
       <rect width="140" height="90" rx="10" fill="#0B1120" stroke="${strokeColor}" stroke-width="2" />
       <circle cx="24" cy="28" r="6" fill="${badgeColor}" />
-      <text x="38" y="32" fill="#F8FAFC" font-size="13" font-weight="700">${node.agentId}</text>
-      <text x="18" y="55" fill="#94A3B8" font-size="10">${(nodeMetadata[node.agentId]?.role || 'Agent Task').substring(0, 20)}...</text>
+      <text x="38" y="32" fill="#F8FAFC" font-size="13" font-weight="700">${escapeHtml(node.agentId)}</text>
+      <text x="18" y="55" fill="#94A3B8" font-size="10">${escapeHtml(roleText)}</text>
       <rect x="18" y="65" width="54" height="16" rx="4" fill="rgba(255, 255, 255, 0.06)" />
       <text x="24" y="77" fill="${badgeColor}" font-size="9" font-weight="600">${statusText}</text>
     `;
@@ -1347,6 +1541,11 @@ function switchActiveSession(sessionId) {
   const label = document.getElementById('dag-session-label');
   if (label) label.textContent = sessionId;
   loadSessions();
+  loadSessionSteps(sessionId);
+  renderDynamicDag();
+  if (state.activeView === 'view-plan-canvas') {
+    loadPlanCanvas();
+  }
 }
 
 function initSessionManager() {
@@ -1457,6 +1656,145 @@ function initSettingsManager() {
   }
 }
 
+// ==========================================
+// 7. MEMORY VAULT & TELEMETRY DASHBOARD
+// ==========================================
+async function loadMemoryVault(query = '') {
+  const grid = document.getElementById('memory-grid');
+  if (!grid) return;
+
+  grid.innerHTML = '<div style="color: var(--text-muted); padding: 16px;">Querying Durable Memory Vault...</div>';
+
+  try {
+    const url = query ? `/api/memory?query=${encodeURIComponent(query)}` : '/api/memory';
+    const res = await fetch(url);
+    if (res.ok) {
+      const memories = await res.json();
+      if (!memories || memories.length === 0) {
+        grid.innerHTML = '<div style="color: var(--text-muted); padding: 16px;">No memory entries match the search criteria.</div>';
+        return;
+      }
+
+      grid.innerHTML = '';
+      memories.forEach(mem => {
+        const card = document.createElement('div');
+        card.className = 'memory-card';
+        card.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <strong style="color: var(--text-primary); font-size: 14px;">${escapeHtml(mem.title)}</strong>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <span class="badge-tag">${escapeHtml(mem.scope || 'project')}</span>
+              <button class="btn-delete-mem" data-id="${mem.id}" style="background: none; border: none; color: #EF4444; cursor: pointer; font-size: 14px; padding: 0 4px;" title="Delete Memory">&times;</button>
+            </div>
+          </div>
+          <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin: 8px 0;">
+            ${escapeHtml(mem.body)}
+          </p>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="badge-tag font-mono" style="font-size: 10px; cursor: pointer;" title="SHA-256 Memory Digest">Hash: ${escapeHtml(mem.hash || 'sha256')}</span>
+            <span style="font-size: 10px; color: var(--text-muted);">${escapeHtml(mem.kind || 'convention')}</span>
+          </div>
+        `;
+
+        const delBtn = card.querySelector('.btn-delete-mem');
+        if (delBtn) {
+          delBtn.onclick = async (e) => {
+            e.stopPropagation();
+            if (confirm(`Delete memory "${mem.title}"?`)) {
+              await fetch(`/api/memory/${mem.id}`, { method: 'DELETE' });
+              loadMemoryVault(document.getElementById('memory-search-input')?.value || '');
+            }
+          };
+        }
+
+        grid.appendChild(card);
+      });
+    }
+  } catch (err) {
+    grid.innerHTML = `<div style="color: var(--status-error); padding: 16px;">Error querying memory vault: ${err.message}</div>`;
+  }
+}
+
+async function loadTelemetry() {
+  try {
+    const res = await fetch('/api/telemetry');
+    if (res.ok) {
+      const data = await res.json();
+      const elEntities = document.getElementById('stat-entities');
+      const elBreakdown = document.getElementById('stat-entities-breakdown');
+      const elMemory = document.getElementById('stat-memory-mb');
+      const elUptime = document.getElementById('stat-uptime');
+      const elPipelines = document.getElementById('stat-active-pipelines');
+
+      const total = (data.totalAgents || 0) + (data.totalSkills || 0) + (data.totalCommands || 0) + (data.totalMcpServers || 0);
+      if (elEntities) elEntities.textContent = total;
+      if (elBreakdown) elBreakdown.textContent = `${data.totalAgents || 0} Agents • ${data.totalSkills || 0} Skills • ${data.totalCommands || 0} Commands • ${data.totalMcpServers || 0} MCPs`;
+      if (elMemory) elMemory.textContent = `${data.memoryUtilizationMb || 0} MB`;
+      if (elUptime) elUptime.textContent = `${Math.round(data.uptime || 0)}s`;
+      if (elPipelines) elPipelines.textContent = data.activePipelines !== undefined ? data.activePipelines : 1;
+    }
+  } catch (err) {
+    console.error('Failed to load telemetry:', err);
+  }
+}
+
+function initMemoryVaultManager() {
+  const searchInput = document.getElementById('memory-search-input');
+  if (searchInput) {
+    let timer = null;
+    searchInput.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        loadMemoryVault(searchInput.value.trim());
+      }, 200);
+    });
+  }
+
+  const btnOpen = document.getElementById('btn-open-add-memory');
+  const modal = document.getElementById('modal-add-memory');
+  const btnClose = document.getElementById('btn-close-add-memory');
+  const btnCancel = document.getElementById('btn-cancel-add-memory');
+  const btnSave = document.getElementById('btn-save-add-memory');
+
+  if (btnOpen && modal) {
+    btnOpen.onclick = () => { modal.style.display = 'flex'; };
+  }
+  if (btnClose && modal) {
+    btnClose.onclick = () => { modal.style.display = 'none'; };
+  }
+  if (btnCancel && modal) {
+    btnCancel.onclick = () => { modal.style.display = 'none'; };
+  }
+  if (btnSave && modal) {
+    btnSave.onclick = async () => {
+      const title = document.getElementById('add-memory-title')?.value.trim();
+      const scope = document.getElementById('add-memory-scope')?.value;
+      const kind = document.getElementById('add-memory-kind')?.value;
+      const body = document.getElementById('add-memory-body')?.value.trim();
+
+      if (!title || !body) return alert('Title and Content are required to store a durable memory.');
+
+      try {
+        const res = await fetch('/api/memory', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, scope, kind, body })
+        });
+        if (res.ok) {
+          modal.style.display = 'none';
+          document.getElementById('add-memory-title').value = '';
+          document.getElementById('add-memory-body').value = '';
+          loadMemoryVault();
+        } else {
+          alert('Failed to save memory.');
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    };
+  }
+}
+
 // Initialize on DOM Ready
 window.addEventListener('DOMContentLoaded', () => {
   loadCatalog();
@@ -1472,5 +1810,13 @@ window.addEventListener('DOMContentLoaded', () => {
   initKnowledgeGraph();
   initSessionManager();
   initSettingsManager();
+  initPlanCanvasInteractions();
+  initMemoryVaultManager();
+
+  // Initial Data Load
+  loadSessionSteps(state.activeSession.id);
+  loadPlanCanvas();
+  loadTelemetry();
+  loadMemoryVault();
 });
 

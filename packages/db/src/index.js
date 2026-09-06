@@ -42,6 +42,104 @@ class MemoryStore {
         // Fallback to fresh store
       }
     }
+
+    // Seed defaults if empty
+    if (!this.data.memory_vault || this.data.memory_vault.length === 0) {
+      this.data.memory_vault = [
+        {
+          id: 'mem_immutability',
+          scope: 'project',
+          kind: 'convention',
+          title: 'Project Immutability Contract',
+          body: 'Always return new object instances instead of in-place mutation. Enforced across state managers, engine schedulers, and AST parsers.',
+          hash: 'a9f81bc2',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        {
+          id: 'mem_test_coverage',
+          scope: 'team',
+          kind: 'policy',
+          title: '80%+ Test Coverage Policy',
+          body: 'All feature pull requests require unit, integration, and contract test suites. TDD Red-Green discipline enforced via tdd-guide.',
+          hash: 'd43e21aa',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        {
+          id: 'mem_sandbox_guard',
+          scope: 'security',
+          kind: 'security',
+          title: 'Pre-Tool Sandbox Loopback Guard',
+          body: 'Intercepts high-risk shell patterns, prevents secret egress over curl/wget, and forces human approval for destructive mutations.',
+          hash: '78fe5901',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        {
+          id: 'mem_spec_miner',
+          scope: 'architecture',
+          kind: 'invariant',
+          title: 'Brownfield Spec Extraction Policy',
+          body: 'Extract formal specifications, invariants, and test coverage matrices prior to refactoring legacy systems.',
+          hash: '3bc941e8',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      ];
+      this.save();
+    }
+
+    if (!this.data.artifacts || this.data.artifacts.length === 0) {
+      this.data.artifacts = [
+        {
+          id: 'art_roadmap_default',
+          session_id: 'sess_enterprise_control_plane',
+          artifact_type: 'plan',
+          title: 'Full Platform Capability Roadmap',
+          status: 'in_progress',
+          phases: [
+            {
+              id: 'p0',
+              title: 'Phase 0: Codebase Ontology & Directory Deep-Dive',
+              description: 'Cataloged all 68 agents, 286 skills, 94 commands, and 35 MCP servers into relational knowledge graph.',
+              completed: true
+            },
+            {
+              id: 'p1',
+              title: 'Phase 1: System Architecture & Persistence Layer',
+              description: 'Drizzle ORM schema with pgvector support and localized MemoryStore JSON fallback.',
+              completed: true
+            },
+            {
+              id: 'p2',
+              title: 'Phase 2: Live Workspace & File Tree Integration',
+              description: 'Live file tree explorer, sandbox file reader, and real-time execution thought stream.',
+              completed: true
+            },
+            {
+              id: 'p3',
+              title: 'Phase 3: Multi-Session Execution & Worktree Runner',
+              description: 'Isolated Git worktrees per subagent, multi-session CRUD, and transcript export.',
+              completed: true
+            },
+            {
+              id: 'p4',
+              title: 'Phase 4: Verification Suite & Enterprise Hardening',
+              description: 'Full unit and integration test coverage across all control plane routes.',
+              completed: false
+            }
+          ],
+          annotations: [
+            { author: 'architect', text: 'Monorepo boundaries strictly decouple parser, engine, and UI layers.' },
+            { author: 'security-reviewer', text: 'Sandboxing layer verified against destructive rm -rf and environment leaks.' }
+          ],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      ];
+      this.save();
+    }
   }
 
   save() {
@@ -122,8 +220,14 @@ class MemoryStore {
     return this.data.agent_steps.filter(s => s.session_id === sessionId);
   }
 
-  getMemoryVault() {
-    return this.data.memory_vault;
+  getMemoryVault(query) {
+    if (!query) return this.data.memory_vault;
+    const q = query.toLowerCase();
+    return this.data.memory_vault.filter(m =>
+      (m.title && m.title.toLowerCase().includes(q)) ||
+      (m.body && m.body.toLowerCase().includes(q)) ||
+      (m.scope && m.scope.toLowerCase().includes(q))
+    );
   }
 
   addMemory(item) {
@@ -142,6 +246,13 @@ class MemoryStore {
     return record;
   }
 
+  deleteMemory(id) {
+    const initialLen = this.data.memory_vault.length;
+    this.data.memory_vault = this.data.memory_vault.filter(m => m.id !== id);
+    this.save();
+    return this.data.memory_vault.length < initialLen;
+  }
+
   getArtifacts(sessionId) {
     if (sessionId) {
       return this.data.artifacts.filter(a => a.session_id === sessionId);
@@ -151,18 +262,36 @@ class MemoryStore {
 
   addArtifact(artifact) {
     const record = {
-      id: 'art_' + Date.now().toString(36),
-      session_id: artifact.session_id,
+      id: artifact.id || ('art_' + Date.now().toString(36)),
+      session_id: artifact.session_id || 'sess_enterprise_control_plane',
       artifact_type: artifact.artifact_type || 'plan',
-      title: artifact.title,
-      file_path: artifact.file_path,
-      content: artifact.content,
+      title: artifact.title || 'Capability Roadmap',
+      status: artifact.status || 'in_progress',
+      phases: artifact.phases || [],
+      annotations: artifact.annotations || [],
+      file_path: artifact.file_path || null,
+      content: artifact.content || null,
       metadata: artifact.metadata || {},
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
     this.data.artifacts.push(record);
     this.save();
     return record;
+  }
+
+  updateArtifact(id, updates) {
+    const art = this.data.artifacts.find(a => a.id === id);
+    if (!art) return null;
+    if (updates.title !== undefined) art.title = updates.title;
+    if (updates.status !== undefined) art.status = updates.status;
+    if (updates.phases !== undefined) art.phases = updates.phases;
+    if (updates.annotations !== undefined) art.annotations = updates.annotations;
+    if (updates.content !== undefined) art.content = updates.content;
+    if (updates.metadata !== undefined) art.metadata = { ...art.metadata, ...updates.metadata };
+    art.updated_at = new Date().toISOString();
+    this.save();
+    return art;
   }
 
   deleteSession(id) {
