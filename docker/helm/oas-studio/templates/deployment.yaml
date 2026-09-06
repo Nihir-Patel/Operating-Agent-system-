@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-oas-studio
+  labels:
+    app.kubernetes.io/name: oas-studio
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: oas-studio
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: oas-studio
+    spec:
+      containers:
+        - name: oas-studio
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.port }}
+          env:
+            - name: NODE_ENV
+              value: {{ .Values.env.NODE_ENV | quote }}
+            - name: OAS_STUDIO_PORT
+              value: {{ .Values.env.OAS_STUDIO_PORT | quote }}
+            - name: OAS_STUDIO_HOST
+              value: {{ .Values.env.OAS_STUDIO_HOST | quote }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-oas-studio
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.port }}
+  selector:
+    app.kubernetes.io/name: oas-studio

@@ -1,0 +1,51 @@
+services:
+  oas-studio:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.studio
+    container_name: oas-studio-control-plane
+    restart: unless-stopped
+    ports:
+      - "${OAS_STUDIO_PORT:-3456}:3456"
+    environment:
+      - NODE_ENV=production
+      - OAS_STUDIO_PORT=3456
+      - OAS_STUDIO_HOST=0.0.0.0
+      - DATABASE_URL=postgresql://oas:oas_secret@postgres:5432/oas_enterprise
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ../agents:/app/agents:ro
+      - ../skills:/app/skills:ro
+      - ../commands:/app/commands:ro
+      - ../rules:/app/rules:ro
+      - ../hooks:/app/hooks:ro
+      - ../mcp-configs:/app/mcp-configs:ro
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: oas-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: oas
+      POSTGRES_PASSWORD: oas_secret
+      POSTGRES_DB: oas_enterprise
+    ports:
+      - "${POSTGRES_PORT:-5435}:5432"
+    volumes:
+      - oas_pg_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: oas-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - oas_redis_data:/data
+
+volumes:
+  oas_pg_data:
+  oas_redis_data:

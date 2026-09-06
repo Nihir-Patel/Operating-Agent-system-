@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OAS Studio & Cloud Control Plane</title>
+  <meta name="description" content="Operating Agent Systems (OAS) Studio & Enterprise Cloud Control Plane - Orchestrate 68 agents, 286 skills, 94 commands with live DAG visualization and streaming.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container" id="oas-app-root">
+    <!-- Left Navigation Sidebar -->
+    <aside class="sidebar" id="oas-sidebar">
+      <div class="brand-header">
+        <div class="brand-logo" id="brand-logo">Ω</div>
+        <div>
+          <div class="brand-title">OAS Studio</div>
+          <div class="brand-badge">Enterprise v2.2.1</div>
+        </div>
+      </div>
+
+      <nav class="nav-section" id="sidebar-nav">
+        <div class="nav-item active" data-view="view-dag" id="nav-dag">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="12" r="3"/><path d="M8.5 7.5l7 3.5M8.5 16.5l7-3.5"/></svg>
+          <span>Execution DAG</span>
+        </div>
+        <div class="nav-item" data-view="view-workspace" id="nav-workspace">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          <span>Live Workspace</span>
+        </div>
+        <div class="nav-item" data-view="view-plan-canvas" id="nav-plan-canvas">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <span>Plan Canvas Pro</span>
+        </div>
+        <div class="nav-item" data-view="view-catalog" id="nav-catalog">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <span>Capabilities Catalog</span>
+        </div>
+        <div class="nav-item" data-view="view-vault" id="nav-vault">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          <span>Memory & Telemetry</span>
+        </div>
+        <div class="nav-item" data-view="view-builder" id="nav-builder">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          <span>Studio Builder</span>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="system-status-indicator">
+          <div class="status-dot"></div>
+          <span>Control Plane Online</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Viewport -->
+    <main class="main-content">
+      <!-- Top Navigation Header -->
+      <header class="top-bar">
+        <div class="top-bar-left">
+          <h1 class="view-title" id="current-view-title">
+            <span>Execution DAG Orchestrator</span>
+          </h1>
+          <span class="badge-tag" id="active-harness-badge">Harness: Universal (Claude + Codex + Cursor)</span>
+        </div>
+        <div class="top-bar-right">
+          <button class="btn btn-secondary" id="btn-quick-run-dialog">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span>Run Pipeline</span>
+          </button>
+          <button class="btn btn-primary" id="btn-refresh-catalog">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            <span>Sync Entities</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Subsystem Views Container -->
+      <div class="view-viewport">
+        <!-- VIEW 1: AGENT EXECUTION CANVAS (INTERACTIVE DAG) -->
+        <section class="view-panel active" id="view-dag">
+          <div class="dag-container">
+            <div class="dag-canvas-area">
+              <div class="canvas-toolbar">
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Active Session:</span>
+                  <span class="badge-tag" id="dag-session-label" style="color: var(--brand-blue);">sess_enterprise_control_plane</span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button class="btn btn-secondary" id="btn-dag-simulate-step" style="font-size: 11px; padding: 5px 10px;">Advance Step</button>
+                  <button class="btn btn-secondary" id="btn-dag-pause" style="font-size: 11px; padding: 5px 10px;">Pause</button>
+                  <button class="btn btn-primary" id="btn-dag-auto-run" style="font-size: 11px; padding: 5px 10px;">Auto Run</button>
+                </div>
+              </div>
+
+              <!-- Interactive SVG Node DAG -->
+              <svg class="canvas-graph-svg" id="dag-svg" viewBox="0 0 900 560">
+                <defs>
+                  <linearGradient id="grad-active" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#3B82F6"/>
+                    <stop offset="100%" stop-color="#6366F1"/>
+                  </linearGradient>
+                  <linearGradient id="grad-completed" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#10B981"/>
+                    <stop offset="100%" stop-color="#059669"/>
+                  </linearGradient>
+                  <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="6" result="blur"/>
+                    <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+                  </filter>
+                </defs>
+
+                <!-- Glowing Edges -->
+                <path class="dag-edge" d="M 180 140 L 320 140" />
+                <path class="dag-edge" d="M 460 140 L 600 140" />
+                <path class="dag-edge" d="M 670 190 L 670 280" />
+                <path class="dag-edge" d="M 600 330 L 460 330" />
+                <path class="dag-edge" d="M 320 330 L 180 330" />
+
+                <!-- Nodes -->
+                <!-- 1. Planner -->
+                <g class="dag-node" id="node-planner" data-agent="planner" transform="translate(60, 90)">
+                  <rect width="140" height="90" rx="10" fill="#0B1120" stroke="#10B981" stroke-width="2" />
+                  <circle cx="24" cy="28" r="6" fill="#10B981" filter="url(#glow)" />
+                  <text x="38" y="32" fill="#F8FAFC" font-size="13" font-weight="700">planner</text>
+                  <text x="18" y="55" fill="#94A3B8" font-size="10">Decompose Spec</text>
+                  <rect x="18" y="65" width="48" height="16" rx="4" fill="rgba(16, 185, 129, 0.2)" />
+                  <text x="24" y="77" fill="#10B981" font-size="9" font-weight="600">DONE</text>
+                </g>
+
+                <!-- 2. Architect -->
+                <g class="dag-node" id="node-architect" data-agent="architect" transform="translate(320, 90)">
+                  <rect width="140" height="90" rx="10" fill="#0B1120" stroke="#10B981" stroke-width="2" />
+                  <circle cx="24" cy="28" r="6" fill="#10B981" />
+                  <text x="38" y="32" fill="#F8FAFC" font-size="13" font-weight="700">architect</text>
+                  <text x="18" y="55" fill="#94A3B8" font-size="10">System Invariants</text>
+                  <rect x="18" y="65" width="48" height="16" rx="4" fill="rgba(16, 185, 129, 0.2)" />
+                  <text x="24" y="77" fill="#10B981" font-size="9" font-weight="600">DONE</text>
+                </g>
+
+                <!-- 3. TDD Guide -->
+                <g class="dag-node active" id="node-tdd" data-agent="tdd-guide" transform="translate(600, 90)">
+                  <rect width="140" height="90" rx="10" fill="#0B1120" stroke="#3B82F6" stroke-width="2" filter="url(#glow)" />
+                  <circle cx="24" cy="28" r="6" fill="#3B82F6" />
+                  <text x="38" y="32" fill="#F8FAFC" font-size="13" font-weight="700">tdd-guide</text>
+                  <text x="18" y="55" fill="#94A3B8" font-size="10">Red-Green Tests</text>
+                  <rect x="18" y="65" width="58" height="16" rx="4" fill="rgba(59, 130, 246, 0.2)" />
+                  <text x="24" y="77" fill="#3B82F6" font-size="9" font-weight="600">RUNNING</text>
+                </g>
+
+                <!-- 4. Code Reviewer -->
+                <g class="dag-node" id="node-code-reviewer" data-agent="code-reviewer" transform="translate(600, 280)">
+                  <rect width="140" height="90" rx="10" fill="#0B1120" stroke="rgba(226, 232, 240, 0.15)" stroke-width="1.5" />
+                  <circle cx="24" cy="28" r="6" fill="#64748B" />
+                  <text x="38" y="32" fill="#94A3B8" font-size="13" font-weight="700">code-reviewer</text>
+                  <text x="18" y="55" fill="#64748B" font-size="10">Quality & Immutability</text>
+                  <rect x="18" y="65" width="54" height="16" rx="4" fill="rgba(255, 255, 255, 0.05)" />
+                  <text x="24" y="77" fill="#94A3B8" font-size="9" font-weight="600">QUEUED</text>
+                </g>
+
+                <!-- 5. Security Reviewer -->
+                <g class="dag-node" id="node-security" data-agent="security-reviewer" transform="translate(320, 280)">
+                  <rect width="140" height="90" rx="10" fill="#0B1120" stroke="rgba(226, 232, 240, 0.15)" stroke-width="1.5" />
+                  <circle cx="24" cy="28" r="6" fill="#64748B" />
+                  <text x="38" y="32" fill="#94A3B8" font-size="13" font-weight="700">security-reviewer</text>
+                  <text x="18" y="55" fill="#64748B" font-size="10">Threat Scan & Inputs</text>
+                  <rect x="18" y="65" width="54" height="16" rx="4" fill="rgba(255, 255, 255, 0.05)" />
+                  <text x="24" y="77" fill="#94A3B8" font-size="9" font-weight="600">QUEUED</text>
+                </g>
+
+                <!-- 6. Doc Updater -->
+                <g class="dag-node" id="node-docs" data-agent="doc-updater" transform="translate(60, 280)">
+                  <rect width="140" height="90" rx="10" fill="#0B1120" stroke="rgba(226, 232, 240, 0.15)" stroke-width="1.5" />
+                  <circle cx="24" cy="28" r="6" fill="#64748B" />
+                  <text x="38" y="32" fill="#94A3B8" font-size="13" font-weight="700">doc-updater</text>
+                  <text x="18" y="55" fill="#64748B" font-size="10">Codemap & Docs</text>
+                  <rect x="18" y="65" width="54" height="16" rx="4" fill="rgba(255, 255, 255, 0.05)" />
+                  <text x="24" y="77" fill="#94A3B8" font-size="9" font-weight="600">QUEUED</text>
+                </g>
+              </svg>
+            </div>
+
+            <!-- Right Node Inspector -->
+            <div class="dag-inspector" id="dag-node-inspector">
+              <div class="inspector-title">
+                <span id="inspector-node-name">tdd-guide</span>
+                <span class="badge-tag" id="inspector-model-badge" style="color: var(--brand-blue);">Model: Sonnet 3.7</span>
+              </div>
+              <div class="inspector-content">
+                <div>
+                  <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">ACTIVE RESPONSIBILITY:</span>
+                  <p id="inspector-node-role" style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Enforce 80%+ test coverage with red-green TDD test cycles.</p>
+                </div>
+
+                <div>
+                  <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">CHAIN-OF-THOUGHT STREAM:</span>
+                  <div class="cot-block" id="inspector-cot-text">
+                    [tdd-guide] Identified critical path for RealTimeEventProtocol. Writing initial failing test case in tests/event-protocol.test.ts asserting bidirectional handshake and diff broadcast before implementation...
+                  </div>
+                </div>
+
+                <div>
+                  <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">ACTIVE TOOL INVOCATION:</span>
+                  <div class="cot-block font-mono" id="inspector-tool-block">
+                    tool: write_to_file<br>
+                    path: "tests/event-protocol.test.ts"<br>
+                    execution_time: 48ms
+                  </div>
+                </div>
+
+                <div style="margin-top: auto; display: flex; gap: 8px;">
+                  <button class="btn btn-secondary" style="flex: 1; font-size: 11px;" id="btn-inspector-diff">View Diff</button>
+                  <button class="btn btn-primary" style="flex: 1; font-size: 11px;" id="btn-inspector-intervene">Intervene</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 2: STREAMING WORKSPACE & VIRTUAL TERMINAL -->
+        <section class="view-panel" id="view-workspace">
+          <div class="workspace-container">
+            <!-- Left: Agent Thought Stream -->
+            <div class="thought-stream-pane">
+              <div class="pane-header">
+                <span>Agent Thought Stream</span>
+                <span class="badge-tag" style="color: var(--status-active);">Live (SSE Connected)</span>
+              </div>
+              <div class="stream-scroll" id="thought-stream-content">
+                <div class="stream-message">
+                  <strong>[planner]</strong> Analyzed project intent. Generated implementation plan spanning Drizzle data layer, Fastify control plane, and Cyber-Indigo UI.
+                </div>
+                <div class="stream-message tool-use">
+                  <strong>[architect]</strong> Verified architectural invariants. Immutability enforced across packages/engine. Delegating to tdd-guide.
+                </div>
+                <div class="stream-message">
+                  <strong>[tdd-guide]</strong> Formulated unit test suite in tests/api-control-plane.test.js with mock server responses.
+                </div>
+                <div class="stream-message diff-gen">
+                  <strong>[tdd-guide]</strong> Generated code diff for packages/engine/src/scheduler.js. Added DAG scheduling with pause/resume hooks.
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Diff Viewer & Terminal -->
+            <div class="diff-terminal-pane">
+              <div class="pane-header">
+                <span>Unified Diff Inspector</span>
+                <span class="badge-tag font-mono">packages/engine/src/scheduler.js</span>
+              </div>
+              <div class="diff-viewer" id="workspace-diff-viewer">
+@@ -14,8 +14,14 @@
+ class AgentDagScheduler extends EventEmitter {
+   constructor(options = {}) {
+     super();
++    this.activeRuns = new Map();
++    this.store = options.store;
+   }
+ 
++  createPipeline(taskId, rootIntent) {
++    const nodes = [
++      { id: 'node_planner', agentId: 'planner', status: 'pending' },
++      { id: 'node_architect', agentId: 'architect', status: 'pending' }
++    ];
++    this.activeRuns.set(taskId, { nodes, status: 'running' });
++  }
+              </div>
+            </div>
+
+            <!-- Floating Action Dock -->
+            <div class="floating-dock">
+              <button class="dock-btn active" id="dock-run-loop">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span>Run Loop</span>
+              </button>
+              <button class="dock-btn" id="dock-pause">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                <span>Pause</span>
+              </button>
+              <button class="dock-btn" id="dock-intervene">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span>Intervene</span>
+              </button>
+              <button class="dock-btn" id="dock-compact">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/></svg>
+                <span>Compact Context</span>
+              </button>
+              <button class="dock-btn" id="dock-rollback">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                <span>Rollback</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 3: PLAN CANVAS PRO -->
+        <section class="view-panel" id="view-plan-canvas">
+          <div class="plan-canvas-container">
+            <div class="plan-document-pane">
+              <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 12px;">Capability Plan: Enterprise Control Plane v2.2.1</h2>
+              <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.6; margin-bottom: 20px;">
+                This plan formalizes the end-to-end full-stack integration for the OAS operating platform. Click on any section to leave human-in-the-loop annotations or toggle phase readiness.
+              </p>
+
+              <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div class="phase-card">
+                  <input type="checkbox" checked class="phase-check" id="chk-p0">
+                  <div>
+                    <strong style="font-size: 14px; color: var(--text-primary);">Phase 0: Exhaustive Codebase & Directory Deep-Dive</strong>
+                    <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Parsed all 68 agents, 286 skills, 94 commands, 35 MCP servers, and Rust core.</p>
+                  </div>
+                </div>
+
+                <div class="phase-card">
+                  <input type="checkbox" checked class="phase-check" id="chk-p1">
+                  <div>
+                    <strong style="font-size: 14px; color: var(--text-primary);">Phase 1: System Architecture & Data Layer</strong>
+                    <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Implemented Drizzle PostgreSQL + pgvector schema and local MemoryStore adapter.</p>
+                  </div>
+                </div>
+
+                <div class="phase-card">
+                  <input type="checkbox" checked class="phase-check" id="chk-p2">
+                  <div>
+                    <strong style="font-size: 14px; color: var(--text-primary);">Phase 2: Cyber-Indigo Design System & Control Plane UI</strong>
+                    <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Built Obsidian Navy surfaces, animated DAG, diff inspector, and catalog studio.</p>
+                  </div>
+                </div>
+
+                <div class="phase-card">
+                  <input type="checkbox" checked class="phase-check" id="chk-p3">
+                  <div>
+                    <strong style="font-size: 14px; color: var(--text-primary);">Phase 3: Backend Streaming Engine & Sandboxing</strong>
+                    <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Built Fastify/HTTP streaming engine with loopback security and strategic compactor.</p>
+                  </div>
+                </div>
+
+                <div class="phase-card">
+                  <input type="checkbox" checked class="phase-check" id="chk-p4">
+                  <div>
+                    <strong style="font-size: 14px; color: var(--text-primary);">Phase 4: Test Suite & Enterprise Production Delivery</strong>
+                    <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Unit test coverage, Docker Compose orchestration, and Helm deployment templates.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="plan-sidebar-pane">
+              <div class="stat-card">
+                <div class="stat-label">Plan Execution Status</div>
+                <div class="stat-value" style="color: var(--status-active);">READY</div>
+                <p style="font-size: 12px; color: var(--text-secondary);">All 5 phases approved with verified test coverage.</p>
+                <button class="btn btn-primary" id="btn-execute-plan" style="margin-top: 10px; width: 100%;">Approve & Execute All</button>
+              </div>
+
+              <div class="stat-card" style="flex: 1;">
+                <div class="stat-label">Human Review Annotations</div>
+                <div class="annotation-box">
+                  <strong>Architect:</strong> Monorepo boundaries strictly decouple parser, engine, and UI layers.
+                </div>
+                <div class="annotation-box">
+                  <strong>Security Reviewer:</strong> Sandboxing layer verified against destructive rm -rf and environment leaks.
+                </div>
+                <textarea class="search-input" id="plan-new-annotation" placeholder="Type annotation or comment..." style="margin-top: auto; height: 70px; resize: none;"></textarea>
+                <button class="btn btn-secondary" id="btn-add-annotation" style="margin-top: 8px;">Post Annotation</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 4: CAPABILITIES CATALOG & STUDIO -->
+        <section class="view-panel" id="view-catalog">
+          <div class="catalog-container">
+            <div class="catalog-search-bar">
+              <input type="text" class="search-input" id="catalog-search" placeholder="Search 68 agents, 286 skills, 94 commands, 35 MCP servers...">
+              <div class="filter-pills">
+                <div class="pill active" data-filter="all">All (483)</div>
+                <div class="pill" data-filter="agents">Agents (68)</div>
+                <div class="pill" data-filter="skills">Skills (286)</div>
+                <div class="pill" data-filter="commands">Commands (94)</div>
+                <div class="pill" data-filter="mcp">MCPs (35)</div>
+              </div>
+            </div>
+
+            <div class="catalog-grid" id="catalog-grid-cards">
+              <!-- Dynamically populated via JavaScript -->
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 5: MEMORY VAULT & TELEMETRY DASHBOARD -->
+        <section class="view-panel" id="view-vault">
+          <div class="vault-container">
+            <div class="telemetry-row">
+              <div class="stat-card">
+                <div class="stat-label">Total Entities</div>
+                <div class="stat-value" id="stat-entities">483</div>
+                <div class="stat-trend positive">68 Agents • 286 Skills • 94 Commands</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Context Token Budget</div>
+                <div class="stat-value" id="stat-tokens">42,350</div>
+                <div class="stat-trend positive">78.8% Headroom Remaining</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Execution Latency (P50)</div>
+                <div class="stat-value">142 ms</div>
+                <div class="stat-trend positive">P95: 420ms • P99: 890ms</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Loop Health Score</div>
+                <div class="stat-value" style="color: var(--status-active);">99.4%</div>
+                <div class="stat-trend positive">Zero Stalls Detected</div>
+              </div>
+            </div>
+
+            <h3 style="font-size: 16px; font-weight: 700; margin-top: 10px;">Durable Memory Vault</h3>
+            <div class="memory-items-grid" id="memory-grid">
+              <div class="memory-card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <strong style="color: var(--text-primary); font-size: 14px;">Project Immutability Contract</strong>
+                  <span class="badge-tag">Scope: Project</span>
+                </div>
+                <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
+                  Always return new object instances instead of in-place mutation. Enforced across state managers, engine schedulers, and AST parsers.
+                </p>
+                <span class="badge-tag font-mono" style="font-size: 10px;">Hash: a9f81bc2</span>
+              </div>
+
+              <div class="memory-card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <strong style="color: var(--text-primary); font-size: 14px;">80%+ Test Coverage Policy</strong>
+                  <span class="badge-tag">Scope: Team</span>
+                </div>
+                <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
+                  All feature pull requests require unit, integration, and contract test suites. TDD Red-Green discipline enforced via tdd-guide.
+                </p>
+                <span class="badge-tag font-mono" style="font-size: 10px;">Hash: d43e21aa</span>
+              </div>
+
+              <div class="memory-card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <strong style="color: var(--text-primary); font-size: 14px;">Pre-Tool Sandbox Loopback Guard</strong>
+                  <span class="badge-tag">Scope: Security</span>
+                </div>
+                <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
+                  Intercepts high-risk shell patterns, prevents secret egress over curl/wget, and forces human approval for destructive mutations.
+                </p>
+                <span class="badge-tag font-mono" style="font-size: 10px;">Hash: 78fe5901</span>
+              </div>
+            </div>
+          </div>
+        <!-- VIEW 6: STUDIO BUILDER (CUSTOM AGENT & SKILL CREATOR) -->
+        <section class="view-panel" id="view-builder">
+          <div style="display: flex; flex-direction: column; gap: 16px; height: 100%;">
+            <div style="display: flex; gap: 12px; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
+              <div class="pill active" id="builder-tab-agent">Agent Designer</div>
+              <div class="pill" id="builder-tab-skill">Skill Designer</div>
+            </div>
+
+            <!-- Agent Designer Section -->
+            <div id="builder-section-agent" style="display: flex; gap: 20px; flex: 1; overflow: hidden;">
+              <!-- Left Form -->
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 8px;">
+                <div>
+                  <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">AGENT IDENTIFIER (SLUG):</label>
+                  <input type="text" id="builder-agent-id" class="search-input" style="margin-top: 4px;" placeholder="e.g. distributed-tracer">
+                </div>
+                <div style="display: flex; gap: 12px;">
+                  <div style="flex: 1;">
+                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">CLUSTER:</label>
+                    <select id="builder-agent-cluster" class="search-input" style="margin-top: 4px; background: #0B1120;">
+                      <option value="architecture_and_planning">Architecture & Planning</option>
+                      <option value="quality_and_review">Quality & Review</option>
+                      <option value="build_resolvers">Build Resolvers</option>
+                      <option value="operations_and_meta">Operations & Meta</option>
+                      <option value="specialized_domains">Specialized Domains</option>
+                    </select>
+                  </div>
+                  <div style="flex: 1;">
+                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">RECOMMENDED MODEL:</label>
+                    <select id="builder-agent-model" class="search-input" style="margin-top: 4px; background: #0B1120;">
+                      <option value="sonnet">Claude 3.7 Sonnet (Standard)</option>
+                      <option value="opus">Claude 3.7 Opus (Strategic)</option>
+                      <option value="haiku">Claude 3.5 Haiku (Fast Triage)</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">TOOLS ALLOWED:</label>
+                  <input type="text" id="builder-agent-tools" class="search-input" style="margin-top: 4px;" value="Read, Write, Edit, Grep, Glob, Bash">
+                </div>
+                <div>
+                  <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">ROLE DESCRIPTION:</label>
+                  <textarea id="builder-agent-desc" class="search-input" style="margin-top: 4px; height: 60px; resize: none;" placeholder="Brief description of agent specialization..."></textarea>
+                </div>
+                <div style="flex: 1; display: flex; flex-direction: column;">
+                  <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">SYSTEM INSTRUCTIONS / PROMPT:</label>
+                  <textarea id="builder-agent-prompt" class="search-input" style="margin-top: 4px; flex: 1; min-height: 120px; resize: none;" placeholder="Enter step-by-step instructions, constraints, and operational patterns..."></textarea>
+                </div>
+                <button class="btn btn-primary" id="btn-export-agent" style="margin-top: 8px;">Export & Register Agent (agents/*.md)</button>
+              </div>
+
+              <!-- Right Preview -->
+              <div style="flex: 1; background: #050914; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 16px; display: flex; flex-direction: column;">
+                <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">LIVE FILE PREVIEW (YAML Frontmatter + Markdown)</div>
+                <pre id="builder-agent-preview" class="font-mono" style="flex: 1; overflow-y: auto; font-size: 11px; color: #93C5FD; line-height: 1.5;"></pre>
+              </div>
+            </div>
+
+            <!-- Skill Designer Section -->
+            <div id="builder-section-skill" style="display: none; gap: 20px; flex: 1; overflow: hidden;">
+              <!-- Left Form -->
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 8px;">
+                <div>
+                  <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">SKILL IDENTIFIER (DIRECTORY NAME):</label>
+                  <input type="text" id="builder-skill-id" class="search-input" style="margin-top: 4px;" placeholder="e.g. distributed-tracing-patterns">
+                </div>
+                <div>
+                  <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">DOMAIN CATEGORY:</label>
+                  <select id="builder-skill-domain" class="search-input" style="margin-top: 4px; background: #0B1120;">
+                    <option value="Engineering Workflows">Engineering Workflows</option>
+                    <option value="Testing & Evals">Testing & Evals</option>
+                    <option value="Agentic Infrastructure">Agentic Infrastructure</option>
+                    <option value="Frontend & Design">Frontend & Design</option>
+                    <option value="Backend & APIs">Backend & APIs</option>
+                    <option value="Data & Storage">Data & Storage</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">TRIGGERS (COMMA SEPARATED):</label>
+                  <input type="text" id="builder-skill-triggers" class="search-input" style="margin-top: 4px;" placeholder="e.g. tracing, telemetry, jaeger, open-telemetry">
+                </div>
+                <div>
+                  <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">DESCRIPTION:</label>
+                  <textarea id="builder-skill-desc" class="search-input" style="margin-top: 4px; height: 60px; resize: none;" placeholder="Summary of what this skill enables..."></textarea>
+                </div>
+                <div style="flex: 1; display: flex; flex-direction: column;">
+                  <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">WORKFLOW INSTRUCTIONS (SKILL.md):</label>
+                  <textarea id="builder-skill-prompt" class="search-input" style="margin-top: 4px; flex: 1; min-height: 120px; resize: none;" placeholder="Detailed execution protocol and step-by-step guidance..."></textarea>
+                </div>
+                <button class="btn btn-primary" id="btn-export-skill" style="margin-top: 8px;">Export & Register Skill (skills/*/SKILL.md)</button>
+              </div>
+
+              <!-- Right Preview -->
+              <div style="flex: 1; background: #050914; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 16px; display: flex; flex-direction: column;">
+                <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">LIVE FILE PREVIEW (SKILL.md)</div>
+                <pre id="builder-skill-preview" class="font-mono" style="flex: 1; overflow-y: auto; font-size: 11px; color: #A7F3D0; line-height: 1.5;"></pre>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Modal for Entity Details & Prompt Playground -->
+    <div class="modal-overlay" id="entity-modal">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <div>
+            <h3 id="modal-title" style="font-size: 16px; font-weight: 700;">Agent Specification</h3>
+            <span id="modal-subtitle" class="badge-tag" style="margin-top: 4px;">Model: Sonnet 3.7</span>
+          </div>
+          <button class="btn btn-secondary" id="modal-close" style="padding: 4px 8px;">✕</button>
+        </div>
+        <div class="modal-body">
+          <div>
+            <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">DESCRIPTION:</span>
+            <p id="modal-desc" style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;"></p>
+          </div>
+          <div>
+            <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">SYSTEM PROMPT / INSTRUCTIONS:</span>
+            <pre id="modal-prompt" style="background: #050914; border: 1px solid var(--border-subtle); padding: 12px; border-radius: 6px; font-size: 11px; max-height: 200px; overflow-y: auto; color: #CBD5E1;"></pre>
+          </div>
+          <div>
+            <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">PROMPT TEST RUNNER:</span>
+            <textarea id="modal-test-input" class="search-input" style="height: 60px; margin-top: 4px; resize: none;" placeholder="Enter test prompt to evaluate agent response..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" id="modal-btn-cancel">Close</button>
+          <button class="btn btn-primary" id="modal-btn-run">Execute Test Run</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

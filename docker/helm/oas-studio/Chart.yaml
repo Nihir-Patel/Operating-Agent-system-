@@ -1,0 +1,6 @@
+apiVersion: v2
+name: oas-studio
+description: Helm chart for Operating Agent Systems (OAS) Studio & Cloud Control Plane
+type: application
+version: 2.2.1
+appVersion: "2.2.1"

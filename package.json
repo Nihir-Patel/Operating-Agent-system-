@@ -474,7 +474,8 @@
     "build:opencode": "node scripts/build-opencode.js",
     "prepack": "npm run build:opencode",
     "dashboard": "python3 ./oas_dashboard.py",
-    "dashboard:web": "node scripts/dashboard-web.js"
+    "dashboard:web": "node scripts/dashboard-web.js",
+    "studio": "node scripts/oas-studio.js"
   },
   "dependencies": {
     "@iarna/toml": "2.2.5",

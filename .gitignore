@@ -107,3 +107,7 @@ oas2/target/
 assets/images/security/badrudi-exploit.mp4
 
 .aider*
+
+# OAS Studio local runtime
+.oas-store.json
+.oas-worktrees/

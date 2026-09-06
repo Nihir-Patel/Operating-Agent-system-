@@ -1,0 +1,34 @@
+replicaCount: 2
+
+image:
+  repository: ghcr.io/neal0709/oas-studio
+  pullPolicy: IfNotPresent
+  tag: "2.2.1"
+
+service:
+  type: ClusterIP
+  port: 3456
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1024Mi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+env:
+  NODE_ENV: "production"
+  OAS_STUDIO_PORT: "3456"
+  OAS_STUDIO_HOST: "0.0.0.0"
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: studio.oas.local
+      paths:
+        - path: /
+          pathType: Prefix
