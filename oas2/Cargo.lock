@@ -585,33 +585,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ecc-tui"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "clap",
- "cron",
- "crossterm",
- "dirs",
- "git2",
- "libc",
- "ratatui",
- "regex",
- "rusqlite",
- "serde",
- "serde_json",
- "sha2 0.11.0",
- "thiserror 2.0.20",
- "tokio",
- "toml",
- "tracing",
- "tracing-subscriber",
- "ureq",
- "uuid",
-]
-
-[[package]]
 name = "either"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1371,6 +1344,33 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c7398b9c8b70908f6371f47ed36737907c87c52af34c268fed0bf0ceb92ead9"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "oas-tui"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "clap",
+ "cron",
+ "crossterm",
+ "dirs",
+ "git2",
+ "libc",
+ "ratatui",
+ "regex",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "thiserror 2.0.20",
+ "tokio",
+ "toml",
+ "tracing",
+ "tracing-subscriber",
+ "ureq",
+ "uuid",
 ]
 
 [[package]]
@@ -2375,9 +2375,9 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "1.1.4+spec-1.1.0"
+version = "1.1.5+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3aace63f4bbcdfc2c965b059de67119c89c4017a70d633be6c104910f67056f5"
+checksum = "12c0ba9680044b4ce98d391a62094047eada0d64860b80166c39f4a6b5640785"
 dependencies = [
  "indexmap",
  "serde_core",
