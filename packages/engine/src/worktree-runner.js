@@ -41,7 +41,10 @@ class WorktreeRunner {
         encoding: 'utf8'
       });
 
-      const success = res.status === 0;
+      const success = res.status === 0 && fs.existsSync(worktreePath);
+      if (!success) {
+        try { fs.mkdirSync(worktreePath, { recursive: true }); } catch {}
+      }
       const record = {
         id: slug,
         taskId,
@@ -49,14 +52,13 @@ class WorktreeRunner {
         branch: branchName,
         path: worktreePath,
         status: success ? 'ACTIVE' : 'FALLBACK_LOCAL',
-        error: success ? null : res.stderr,
+        error: success ? null : (res.stderr || 'git worktree add failed'),
         createdAt: new Date().toISOString()
       };
       this.activeWorktrees.set(slug, record);
       return record;
     }
 
-    // Fallback if not a git worktree environment (e.g. mock / container directory)
     try {
       fs.mkdirSync(worktreePath, { recursive: true });
     } catch {}
@@ -67,7 +69,8 @@ class WorktreeRunner {
       agentId,
       branch: branchName,
       path: worktreePath,
-      status: 'MOCK_SANDBOX',
+      status: 'FALLBACK_LOCAL',
+      error: 'Not a git repository; isolated directory created without a worktree',
       createdAt: new Date().toISOString()
     };
     this.activeWorktrees.set(slug, record);
@@ -125,9 +128,9 @@ class WorktreeRunner {
     }
 
     return {
-      success: true,
+      success: false,
       mergedBranch: wt.branch,
-      message: 'Mock worktree merged'
+      reason: 'Worktree is not an active git worktree; merge refused'
     };
   }
 

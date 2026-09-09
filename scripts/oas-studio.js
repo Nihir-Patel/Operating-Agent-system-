@@ -10,6 +10,15 @@
 
 const { OasControlPlaneServer } = require('../apps/api/src/server');
 
+// Global crash resilience: ensure server stays online under network glitches and unhandled promises
+process.on('uncaughtException', (err) => {
+  console.error('[OAS Studio Process Warning - Uncaught Exception]', err.message || err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[OAS Studio Process Warning - Unhandled Rejection]', reason);
+});
+
 const port = parseInt(process.argv[2] || process.env.OAS_STUDIO_PORT || '3458', 10);
 const host = process.env.OAS_STUDIO_HOST || '127.0.0.1';
 

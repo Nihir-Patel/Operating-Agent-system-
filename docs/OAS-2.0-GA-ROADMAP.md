@@ -13,7 +13,7 @@ execution truth is split across:
 - handoffs under `~/.cluster-swarm/handoffs/`.
 
 The May 19 release/growth execution map lives at
-[`docs/releases/2.0.0/oas-2-hypergrowth-release-command-center.md`](releases/2.0.0/oas-2-hypergrowth-release-command-center.md).
+[`docs/releases/2.0.0/ecc-2-hypergrowth-release-command-center.md`](releases/2.0.0/ecc-2-hypergrowth-release-command-center.md).
 It is the operator surface for the final OAS 2.0 repo identity, video suite,
 partner/sponsor funnel, consulting/talk funnel, and social launch plan.
 

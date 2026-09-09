@@ -6,7 +6,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 
-const scriptPath = path.join(__dirname, '..', '..', 'scripts', 'sync-oas-to-codex.sh');
+const scriptPath = path.join(__dirname, '..', '..', 'scripts', 'sync-ecc-to-codex.sh');
 const source = fs.readFileSync(scriptPath, 'utf8');
 const normalizedSource = source.replace(/\r\n/g, '\n');
 const runOrEchoSource = (() => {

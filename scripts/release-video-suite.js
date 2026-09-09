@@ -6,7 +6,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const SCHEMA_VERSION = 'oas.release-video-suite.v1';
-const HYPERGROWTH_DOC_PATH = 'docs/releases/2.0.0/oas-2-hypergrowth-release-command-center.md';
+const HYPERGROWTH_DOC_PATH = 'docs/releases/2.0.0/ecc-2-hypergrowth-release-command-center.md';
 
 const REQUIRED_DOC_MARKERS = [
   'OAS 2.0 Video Suite Production Manifest',

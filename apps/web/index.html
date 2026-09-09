@@ -5,12 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OAS Studio & Cloud Control Plane</title>
   <meta name="description" content="Operating Agent Systems (OAS) Studio & Enterprise Cloud Control Plane - Orchestrate 68 agents, 286 skills, 94 commands with live DAG visualization and streaming.">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=2.2.2">
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
   <div class="app-container" id="oas-app-root">
     <!-- Left Navigation Sidebar -->
-    <aside class="sidebar" id="oas-sidebar">
+    <aside class="sidebar" id="oas-sidebar" aria-label="Studio views">
       <div class="brand-header">
         <div class="brand-logo" id="brand-logo">Ω</div>
         <div>
@@ -19,35 +20,35 @@
         </div>
       </div>
 
-      <nav class="nav-section" id="sidebar-nav">
-        <div class="nav-item active" data-view="view-dag" id="nav-dag">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="12" r="3"/><path d="M8.5 7.5l7 3.5M8.5 16.5l7-3.5"/></svg>
+      <nav class="nav-section" id="sidebar-nav" aria-label="Primary">
+        <button type="button" class="nav-item active" data-view="view-dag" id="nav-dag" aria-current="page">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="12" r="3"/><path d="M8.5 7.5l7 3.5M8.5 16.5l7-3.5"/></svg>
           <span>Execution DAG</span>
-        </div>
-        <div class="nav-item" data-view="view-workspace" id="nav-workspace">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        </button>
+        <button type="button" class="nav-item" data-view="view-workspace" id="nav-workspace">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
           <span>Live Workspace</span>
-        </div>
-        <div class="nav-item" data-view="view-knowledge-graph" id="nav-knowledge-graph">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </button>
+        <button type="button" class="nav-item" data-view="view-knowledge-graph" id="nav-knowledge-graph">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
           <span>Knowledge Graph</span>
-        </div>
-        <div class="nav-item" data-view="view-plan-canvas" id="nav-plan-canvas">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        </button>
+        <button type="button" class="nav-item" data-view="view-plan-canvas" id="nav-plan-canvas">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
           <span>Plan Canvas Pro</span>
-        </div>
-        <div class="nav-item" data-view="view-catalog" id="nav-catalog">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        </button>
+        <button type="button" class="nav-item" data-view="view-catalog" id="nav-catalog">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
           <span>Capabilities Catalog</span>
-        </div>
-        <div class="nav-item" data-view="view-vault" id="nav-vault">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        </button>
+        <button type="button" class="nav-item" data-view="view-vault" id="nav-vault">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
           <span>Memory & Telemetry</span>
-        </div>
-        <div class="nav-item" data-view="view-builder" id="nav-builder">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </button>
+        <button type="button" class="nav-item" data-view="view-builder" id="nav-builder">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           <span>Studio Builder</span>
-        </div>
+        </button>
       </nav>
 
       <div class="sidebar-footer">
@@ -69,50 +70,108 @@
     </aside>
 
     <!-- Main Viewport -->
-    <main class="main-content">
+    <main class="main-content" id="main-content">
       <!-- Top Navigation Header -->
       <header class="top-bar">
         <div class="top-bar-left">
-          <h1 class="view-title" id="current-view-title">
+          <h1 class="view-title" id="current-view-title" style="font-size: 14px;">
             <span>Execution DAG Orchestrator</span>
           </h1>
-          <div style="display: flex; gap: 8px; align-items: center;">
-            <select id="global-session-select" class="session-dropdown" style="background: #0B1120; border: 1px solid var(--border-subtle); color: #93C5FD; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 600; cursor: pointer;"></select>
-            <span class="badge-tag" id="active-harness-badge">Harness: Universal (Claude + Codex + Cursor)</span>
+          <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
+            <select id="global-session-select" class="session-dropdown" style="background: #0B1120; border: 1px solid var(--border-subtle); color: #93C5FD; font-size: 11px; padding: 4px 7px; border-radius: 6px; font-weight: 600; cursor: pointer; max-width: 175px;" title="Select active session"></select>
+            <span class="badge-tag" id="active-harness-badge" style="white-space: nowrap; flex-shrink: 0;" title="Universal Harness (Claude + Codex + Cursor)">Harness: Universal</span>
           </div>
         </div>
         <div class="top-bar-right">
-          <button class="btn btn-secondary" id="btn-quick-run-dialog">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            <span>Run Pipeline</span>
-          </button>
-          <button class="btn btn-primary" id="btn-refresh-catalog">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-            <span>Sync Entities</span>
-          </button>
+          <!-- Group 1: Intelligence, Safety & Airspace -->
+          <div class="topbar-button-group">
+            <button class="btn btn-secondary topbar-btn" id="btn-open-hud-status" title="Inspect OAS 2.0 HUD Status Payload">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              <span>HUD Status</span>
+            </button>
+            <button class="btn btn-secondary topbar-btn" id="btn-open-compliance" title="12-Target Harness Compliance Matrix">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              <span>Harnesses (12)</span>
+            </button>
+            <button class="btn btn-secondary topbar-btn" id="btn-open-security" title="AgentShield Supply Chain & Security Audit">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span style="color: #34D399;">AgentShield</span>
+            </button>
+            <button class="btn btn-secondary topbar-btn" id="btn-open-tcas" title="TCAS Layer 4 Agent Proximity & Collision Deconfliction">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <span style="color: #F59E0B;">TCAS Airspace</span>
+            </button>
+            <button class="btn btn-secondary topbar-btn" id="btn-open-observability" title="OAS 2.0 Observability Readiness Gate (21/21)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+              <span style="color: #A78BFA;">Observability</span>
+            </button>
+            <button class="btn btn-secondary topbar-btn" id="btn-open-arena" title="OAS Multi-Model Arena & Benchmark Lab">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="m10 13-2 2 2 2"/><path d="m14 17 2-2-2-2"/></svg>
+              <span style="color: #EC4899;">⚔️ Arena</span>
+            </button>
+            <button class="btn btn-secondary topbar-btn" id="btn-open-council" title="Council of Agents Multi-Agent Consensus Chamber">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span style="color: #38BDF8;">🏛️ Council</span>
+            </button>
+            <button class="btn btn-secondary topbar-btn" id="btn-open-github-pr" title="Git Cloud Bridge & GitHub PR Generator">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
+              <span style="color: #60A5FA;">🚀 PR Bridge</span>
+            </button>
+            <button class="btn btn-secondary topbar-btn" id="btn-open-compliance-vault" title="Cryptographic Compliance Vault & Dossier">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <span style="color: #10B981;">📜 Compliance</span>
+            </button>
+          </div>
+
+          <!-- Group 2: Operational Commands & Sync -->
+          <div class="topbar-button-group">
+            <button class="btn btn-secondary topbar-btn" id="btn-toggle-terminal" title="In-Browser Live Terminal & Auto-Healing Loop">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FBBF24" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+              <span style="color: #FBBF24;">📟 Terminal</span>
+            </button>
+            <button class="btn btn-secondary topbar-btn" id="btn-open-command-palette" title="Universal Command Palette (⌘K / Ctrl+K)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <span>Command Bar</span>
+              <span class="kbd-pill" style="font-size: 8.5px; padding: 1px 3px;">⌘K</span>
+            </button>
+            <button class="btn btn-secondary topbar-btn" id="btn-quick-run-dialog" title="Run Pipeline Dialog">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <span>Run Pipeline</span>
+            </button>
+            <button class="btn btn-primary topbar-btn" id="btn-refresh-catalog" title="Sync All Entities">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              <span>Sync Entities</span>
+            </button>
+          </div>
         </div>
       </header>
 
       <!-- Subsystem Views Container -->
       <div class="view-viewport">
         <!-- VIEW 1: AGENT EXECUTION CANVAS (INTERACTIVE DAG) -->
-        <section class="view-panel active" id="view-dag">
+        <section class="view-panel active" id="view-dag" aria-label="Execution DAG Orchestrator">
           <div class="dag-container">
             <div class="dag-canvas-area">
               <div class="canvas-toolbar">
                 <div style="display: flex; gap: 8px; align-items: center;">
-                  <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Active Session:</span>
-                  <span class="badge-tag" id="dag-session-label" style="color: var(--brand-blue);">sess_enterprise_control_plane</span>
+                  <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Active Session:</span>
+                  <div style="display: flex; align-items: center; gap: 4px; background: rgba(5, 9, 20, 0.7); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px; padding: 2px 6px;">
+                    <input type="text" id="dag-session-input" class="editable-session-input" placeholder="Loading session..." style="background: transparent; border: none; color: #38BDF8; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; width: 220px;" title="Click to edit session ID or label" />
+                    <button class="btn btn-secondary" id="btn-save-session-name" style="padding: 2px 6px; font-size: 10px; height: 20px; line-height: 1; border-color: rgba(56, 189, 248, 0.3);" title="Save Session ID">✓</button>
+                  </div>
+                  <span class="badge-tag" id="dag-session-label" style="color: var(--brand-blue); display: none;"></span>
+                  <span class="badge-tag" id="dag-session-status-badge" style="color: #10B981; border-color: rgba(16, 185, 129, 0.3); font-size: 10px; padding: 2px 6px;">ACTIVE</span>
                 </div>
-                <div style="display: flex; gap: 6px; align-items: center;">
+                <div style="display: flex; gap: 5px; align-items: center;">
                   <button class="btn btn-secondary" id="btn-dag-zoom-in" style="font-size: 11px; padding: 4px 8px;" title="Zoom In">+</button>
                   <button class="btn btn-secondary" id="btn-dag-zoom-out" style="font-size: 11px; padding: 4px 8px;" title="Zoom Out">-</button>
                   <button class="btn btn-secondary" id="btn-dag-reset-zoom" style="font-size: 11px; padding: 4px 8px;" title="Reset View">Reset</button>
                   <button class="btn btn-secondary" id="btn-dag-auto-layout" style="font-size: 11px; padding: 4px 8px;" title="Auto Layout">Auto Layout</button>
                   <span style="width: 1px; height: 16px; background: var(--border-subtle); margin: 0 4px;"></span>
-                  <button class="btn btn-secondary" id="btn-dag-simulate-step" style="font-size: 11px; padding: 5px 10px;">Advance Step</button>
-                  <button class="btn btn-secondary" id="btn-dag-pause" style="font-size: 11px; padding: 5px 10px;">Pause</button>
-                  <button class="btn btn-primary" id="btn-dag-auto-run" style="font-size: 11px; padding: 5px 10px;">Auto Run</button>
+                  <button class="btn btn-secondary" id="btn-dag-simulate-step" style="font-size: 11px; padding: 4px 9px;">Advance Step</button>
+                  <button class="btn btn-secondary" id="btn-dag-pause" style="font-size: 11px; padding: 4px 9px;">Pause</button>
+                  <button class="btn btn-primary" id="btn-dag-auto-run" style="font-size: 11px; padding: 4px 9px;">Auto Run</button>
+                  <button class="btn btn-secondary" id="btn-toggle-3d-topology" style="font-size: 11px; padding: 4px 9px; color: #818CF8; border-color: rgba(129, 140, 248, 0.3);" title="Switch between 2D SVG Graph and Interactive 3D Architecture Topology">🌌 3D Topology</button>
                 </div>
               </div>
 
@@ -120,58 +179,154 @@
               <svg class="canvas-graph-svg" id="dag-svg" viewBox="0 0 960 560" style="cursor: grab;">
                 <defs>
                   <linearGradient id="grad-active" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#3B82F6"/>
-                    <stop offset="100%" stop-color="#6366F1"/>
+                    <stop offset="0%" stop-color="#0284C7"/>
+                    <stop offset="100%" stop-color="#38BDF8"/>
                   </linearGradient>
                   <linearGradient id="grad-completed" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#10B981"/>
-                    <stop offset="100%" stop-color="#059669"/>
+                    <stop offset="0%" stop-color="#059669"/>
+                    <stop offset="100%" stop-color="#34D399"/>
                   </linearGradient>
-                  <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="6" result="blur"/>
+                  <linearGradient id="grad-node-cyber" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="rgba(14, 24, 48, 0.95)"/>
+                    <stop offset="100%" stop-color="rgba(6, 11, 24, 0.95)"/>
+                  </linearGradient>
+                  <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+                    <feGaussianBlur stdDeviation="8" result="blur"/>
                     <feComposite in="SourceGraphic" in2="blur" operator="over"/>
                   </filter>
+                  <pattern id="dag-cyber-grid" width="28" height="28" patternUnits="userSpaceOnUse">
+                    <path d="M 28 0 L 0 0 0 28" fill="none" stroke="rgba(56, 189, 248, 0.05)" stroke-width="1"/>
+                  </pattern>
                   <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#38BDF8"/>
                   </marker>
                 </defs>
+
+                <!-- Background Cyber Grid -->
+                <rect width="100%" height="100%" fill="url(#dag-cyber-grid)" pointer-events="none" />
 
                 <!-- Dynamic Viewport Group (Pan & Zoomable) -->
                 <g id="dag-viewport"></g>
               </svg>
+
+              <!-- Interactive 3D Architecture Topology Canvas (Step 4) -->
+              <canvas id="topology-3d-canvas" style="display: none; width: 100%; height: 560px; border-radius: 8px; cursor: grab; background: radial-gradient(circle at center, #0B1528 0%, #030712 100%);"></canvas>
+
+              <!-- Time-Travel Execution Scrubber Bar (Direction B) -->
+              <div id="dag-timeline-scrubber" class="dag-timeline-scrubber" style="display: flex; align-items: center; justify-content: space-between; padding: 6px 14px; background: rgba(5, 10, 24, 0.9); border-top: 1px solid rgba(56, 189, 248, 0.15); gap: 12px; z-index: 10;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 11px; font-weight: 700; color: #38BDF8; display: flex; align-items: center; gap: 4px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    Time-Travel:
+                  </span>
+                  <button class="btn btn-ghost btn-sm" id="btn-scrub-prev" style="padding: 2px 7px; font-size: 11px;" title="Step Backward">⏮</button>
+                  <button class="btn btn-ghost btn-sm" id="btn-scrub-play" style="padding: 2px 7px; font-size: 11px;" title="Play Replay">▶</button>
+                  <button class="btn btn-ghost btn-sm" id="btn-scrub-next" style="padding: 2px 7px; font-size: 11px;" title="Step Forward">⏭</button>
+                </div>
+                <div style="flex: 1; display: flex; align-items: center; gap: 10px; max-width: 500px;">
+                  <input type="range" id="dag-step-slider" min="0" max="0" value="0" step="1" style="flex: 1; cursor: pointer; accent-color: #38BDF8;" title="Drag timeline slider to scrub execution history" />
+                  <span id="dag-step-label" class="badge-tag font-mono" style="font-size: 10px; color: #93C5FD; min-width: 80px; text-align: center;">Step 0 / 0</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <button class="btn btn-secondary btn-sm" id="btn-fork-mission" style="padding: 3px 10px; font-size: 11px; border-color: rgba(168, 85, 247, 0.4); color: #C084FC;" title="Fork mission from this step into a new session">
+                    <span>🍴 Fork Mission at Step</span>
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <!-- Right Node Inspector -->
+            <!-- Right Node Inspector (Detail & Live Editable) -->
             <div class="dag-inspector" id="dag-node-inspector">
-              <div class="inspector-title">
-                <span id="inspector-node-name">tdd-guide</span>
-                <span class="badge-tag" id="inspector-model-badge" style="color: var(--brand-blue);">Model: Sonnet 3.7</span>
+              <div class="inspector-title" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(56, 189, 248, 0.14); padding-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="status-dot" id="inspector-status-dot" style="width: 8px; height: 8px;"></span>
+                  <span id="inspector-node-name" style="font-size: 14px; font-weight: 700; color: #F8FAFC;">tdd-guide</span>
+                  <span class="badge-tag font-mono" id="inspector-status-badge" style="font-size: 10px; color: #38BDF8; padding: 2px 6px;">RUNNING</span>
+                </div>
+                <select id="inspector-node-status-select" style="background: rgba(5, 9, 20, 0.9); border: 1px solid rgba(56, 189, 248, 0.25); color: #94A3B8; font-size: 10px; padding: 3px 6px; border-radius: 4px; cursor: pointer;" title="Change node lifecycle state">
+                  <option value="running">RUNNING</option>
+                  <option value="queued">QUEUED</option>
+                  <option value="completed">COMPLETED</option>
+                  <option value="paused">PAUSED</option>
+                  <option value="failed">FAILED</option>
+                </select>
               </div>
-              <div class="inspector-content">
-                <div>
-                  <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">ACTIVE RESPONSIBILITY:</span>
-                  <p id="inspector-node-role" style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Enforce 80%+ test coverage with red-green TDD test cycles.</p>
+
+              <div class="inspector-content" style="gap: 12px; overflow-y: auto;">
+                <!-- 1. Reasoning Model Selection -->
+                <div class="inspector-section">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label class="inspector-label" for="inspector-model-select">REASONING ENGINE / MODEL</label>
+                    <span id="inspector-model-badge" class="badge-tag" style="font-size: 9.5px; padding: 1px 6px; color: #38BDF8;">Claude 3.7 Sonnet</span>
+                  </div>
+                  <select id="inspector-model-select" class="inspector-input" style="padding: 5px 8px; cursor: pointer;">
+                    <option value="Claude 3.7 Sonnet">Claude 3.7 Sonnet (Hybrid Reasoning + CoT)</option>
+                    <option value="Claude 3.7 Opus">Claude 3.7 Opus (Deep Architecture Synthesis)</option>
+                    <option value="Claude 3.5 Haiku">Claude 3.5 Haiku (Fast Micro-Tasks)</option>
+                    <option value="GPT-4o">GPT-4o (Cross-Harness Adapter)</option>
+                    <option value="DeepSeek R1">DeepSeek R1 (Math & Formal Proofs)</option>
+                    <option value="qwen2.5-coder:7b">Qwen 2.5 Coder 7B (Local Ollama)</option>
+                    <option value="llama3.3">Llama 3.3 (Local Ollama)</option>
+                    <option value="ollama-engine">Ollama Local Engine (Auto-Detect)</option>
+                  </select>
                 </div>
 
-                <div>
-                  <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">CHAIN-OF-THOUGHT STREAM:</span>
-                  <div class="cot-block" id="inspector-cot-text">
-                    [tdd-guide] Formulating unit & integration tests in tests/full-platform-api.test.js. Asserting knowledge graph and filesystem integrity...
+                <!-- 2. Active Responsibility / Domain Role (Editable) -->
+                <div class="inspector-section">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label class="inspector-label" for="inspector-node-role-input">ACTIVE RESPONSIBILITY</label>
+                    <span style="font-size: 9.5px; color: var(--text-muted);">Editable</span>
+                  </div>
+                  <textarea id="inspector-node-role-input" class="inspector-textarea" rows="2" placeholder="Agent domain responsibility..."></textarea>
+                  <!-- Legacy p element for backward compatibility -->
+                  <p id="inspector-node-role" style="display: none;"></p>
+                </div>
+
+                <!-- 3. Chain-of-Thought Stream (Editable Live Stream) -->
+                <div class="inspector-section">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label class="inspector-label" for="inspector-cot-input">CHAIN-OF-THOUGHT STREAM</label>
+                    <button class="btn btn-secondary" id="btn-copy-cot" style="padding: 1px 6px; font-size: 9px; height: 18px;" title="Copy CoT to Clipboard">Copy</button>
+                  </div>
+                  <textarea id="inspector-cot-input" class="inspector-textarea font-mono" rows="4" style="font-size: 11px; line-height: 1.5; color: #93C5FD;" placeholder="Agent reasoning stream..."></textarea>
+                  <!-- Legacy cot block for backward compatibility -->
+                  <div class="cot-block" id="inspector-cot-text" style="display: none;"></div>
+                </div>
+
+                <!-- 4. Active Tool Invocation & Metrics (Editable) -->
+                <div class="inspector-section">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label class="inspector-label" for="inspector-tool-input">ACTIVE TOOL INVOCATION</label>
+                    <button class="btn btn-secondary" id="btn-run-simulated-tool" style="padding: 1px 6px; font-size: 9px; height: 18px; color: #34D399; border-color: rgba(52, 211, 153, 0.3);" title="Simulate tool execution">Run Tool</button>
+                  </div>
+                  <textarea id="inspector-tool-input" class="inspector-textarea font-mono" rows="3" style="font-size: 11px; line-height: 1.5; color: #A7F3D0;" placeholder="tool: ..."></textarea>
+                  <!-- Legacy tool block for backward compatibility -->
+                  <div class="cot-block font-mono" id="inspector-tool-block" style="display: none;"></div>
+                </div>
+
+                <!-- 5. Node Live Performance Telemetry -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: rgba(5, 9, 20, 0.6); padding: 8px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.1);">
+                  <div>
+                    <span style="font-size: 9px; color: var(--text-muted); display: block;">EXECUTION DURATION</span>
+                    <span id="inspector-metric-duration" style="font-size: 12px; font-weight: 700; color: #38BDF8;" class="font-mono">85ms</span>
+                  </div>
+                  <div>
+                    <span style="font-size: 9px; color: var(--text-muted); display: block;">INSPECTION STATUS</span>
+                    <span id="inspector-metric-status" style="font-size: 12px; font-weight: 700; color: #34D399;" class="font-mono">ACTIVE (SSE)</span>
                   </div>
                 </div>
 
-                <div>
-                  <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">ACTIVE TOOL INVOCATION:</span>
-                  <div class="cot-block font-mono" id="inspector-tool-block">
-                    tool: write_to_file<br>
-                    path: "tests/full-platform-api.test.js"<br>
-                    execution_time: 48ms
-                  </div>
+                <!-- Save & Apply Changes -->
+                <div style="display: flex; gap: 6px; margin-top: 2px;">
+                  <button class="btn btn-primary" id="btn-save-agent-params" style="flex: 1; font-size: 11px; justify-content: center; height: 28px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    <span>Apply & Save Node</span>
+                  </button>
                 </div>
 
-                <div style="margin-top: auto; display: flex; gap: 8px;">
-                  <button class="btn btn-secondary" style="flex: 1; font-size: 11px;" id="btn-inspector-diff">View Diff</button>
-                  <button class="btn btn-primary" style="flex: 1; font-size: 11px;" id="btn-inspector-intervene">Intervene</button>
+                <div style="display: flex; gap: 8px; margin-top: auto;">
+                  <button class="btn btn-secondary" style="flex: 1; font-size: 11px; justify-content: center;" id="btn-inspector-diff">View Diff</button>
+                  <button class="btn btn-secondary" style="flex: 1; font-size: 11px; justify-content: center; color: #F59E0B; border-color: rgba(245, 158, 11, 0.3);" id="btn-inspector-intervene">Intervene</button>
                 </div>
               </div>
             </div>
@@ -179,52 +334,144 @@
         </section>
 
         <!-- VIEW 2: STREAMING WORKSPACE & VIRTUAL TERMINAL -->
-        <section class="view-panel" id="view-workspace">
-          <div class="workspace-container" style="display: grid; grid-template-columns: 240px 1fr 1fr; gap: 12px; height: 100%;">
+        <section class="view-panel" id="view-workspace" aria-label="Live Streaming Workspace">
+          <div class="workspace-container" style="display: grid; grid-template-columns: 240px 1.15fr 1.15fr; gap: 12px; height: 100%;">
             <!-- 1. Left: Workspace Filesystem Explorer -->
             <div class="fs-explorer-pane" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); display: flex; flex-direction: column; overflow: hidden;">
               <div class="pane-header" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--border-subtle);">
                 <span style="font-size: 12px; font-weight: 700; color: var(--text-primary);">Workspace Files</span>
-                <button class="btn btn-secondary" id="btn-refresh-fs" style="padding: 2px 6px; font-size: 10px;" title="Refresh Files">↺</button>
+                <div style="display: flex; gap: 4px; align-items: center;">
+                  <button class="btn btn-secondary" id="btn-create-file" style="padding: 2px 6px; font-size: 9.5px;" title="Create New File">+ File</button>
+                  <button class="btn btn-secondary" id="btn-create-folder" style="padding: 2px 6px; font-size: 9.5px;" title="Create New Folder">+ Dir</button>
+                  <button class="btn btn-secondary" id="btn-refresh-fs" style="padding: 2px 6px; font-size: 10px;" title="Refresh Files">↺</button>
+                </div>
               </div>
               <div style="padding: 8px 10px; border-bottom: 1px solid var(--border-subtle);">
                 <input type="text" id="fs-search-input" class="search-input" style="padding: 4px 8px; font-size: 11px; width: 100%; box-sizing: border-box;" placeholder="Filter files...">
               </div>
-              <div class="fs-tree-scroll" id="fs-tree-container" style="flex: 1; overflow-y: auto; padding: 8px 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px;">
+              <div class="fs-tree-scroll" id="fs-tree-container" tabindex="0" aria-label="Workspace files" style="flex: 1; overflow-y: auto; padding: 8px 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px;">
                 <div style="color: var(--text-muted); padding: 8px; text-align: center;">Loading file tree...</div>
               </div>
             </div>
 
-            <!-- 2. Center: Agent Thought Stream -->
-            <div class="thought-stream-pane" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); display: flex; flex-direction: column; overflow: hidden;">
+            <!-- 2. Center: Agent Thought Stream & Mission Dispatcher -->
+            <div class="thought-stream-pane" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); display: flex; flex-direction: column; overflow: hidden; position: relative;">
               <div class="pane-header" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--border-subtle);">
-                <span style="font-size: 12px; font-weight: 700;">Agent Thought Stream</span>
-                <span class="badge-tag" style="color: var(--status-active);">Live (SSE Connected)</span>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 12px; font-weight: 700;">Agent Thought Stream</span>
+                  <span id="agent-active-badge" class="badge-tag" style="font-size: 9.5px; color: #38BDF8;">planner active</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="badge-tag font-mono" id="stream-step-count" style="font-size: 9.5px; color: #94A3B8;">0 Steps</span>
+                  <span class="badge-tag" style="color: var(--status-active);">Live (SSE)</span>
+                </div>
               </div>
-              <div class="stream-scroll" id="thought-stream-content" style="flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+
+              <!-- Stream scroll area -->
+              <div class="stream-scroll" id="thought-stream-content" style="flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
                 <!-- Dynamically populated by loadSessionSteps(activeSessionId) -->
+              </div>
+
+              <!-- Integrated Control Dock (Clean, In-Flow, Non-Overlapping) -->
+              <div class="workspace-action-dock" style="display: flex; gap: 5px; padding: 6px 12px; background: rgba(5, 9, 20, 0.95); border-top: 1px solid var(--border-subtle); flex-wrap: wrap; align-items: center;">
+                <button class="btn btn-primary btn-sm dock-btn active" id="dock-run-loop" style="font-size: 10px; padding: 3px 9px; display: inline-flex; align-items: center; gap: 4px;">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  <span>Run Loop</span>
+                </button>
+                <button class="btn btn-secondary btn-sm dock-btn" id="dock-pause" style="font-size: 10px; padding: 3px 7px; display: inline-flex; align-items: center; gap: 4px;">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                  <span>Pause</span>
+                </button>
+                <button class="btn btn-secondary btn-sm dock-btn" id="dock-intervene" style="font-size: 10px; padding: 3px 7px; display: inline-flex; align-items: center; gap: 4px; color: #F59E0B; border-color: rgba(245, 158, 11, 0.3);">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  <span>Intervene</span>
+                </button>
+                <button class="btn btn-secondary btn-sm dock-btn" id="dock-compact" style="font-size: 10px; padding: 3px 7px; display: inline-flex; align-items: center; gap: 4px;">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/></svg>
+                  <span>Compact</span>
+                </button>
+                <button class="btn btn-secondary btn-sm dock-btn" id="dock-rollback" style="font-size: 10px; padding: 3px 7px; display: inline-flex; align-items: center; gap: 4px;">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                  <span>Rollback</span>
+                </button>
+              </div>
+
+              <!-- Quick Starter Action Chips -->
+              <div class="mission-chips-bar" style="display: flex; gap: 4px; padding: 5px 12px; background: rgba(8, 14, 28, 0.85); overflow-x: auto; border-top: 1px solid rgba(56, 189, 248, 0.1);">
+                <button class="pill mission-chip" data-prompt="Run full TDD cycle for pending capabilities and verify 80%+ test coverage" style="font-size: 9.5px; padding: 2px 7px;">⚡ TDD Loop</button>
+                <button class="pill mission-chip" data-prompt="Run comprehensive security scan with AgentShield and Snyk rules" style="font-size: 9.5px; padding: 2px 7px;">🛡️ Security Audit</button>
+                <button class="pill mission-chip" data-prompt="Diagnose and resolve all TypeScript/Node build errors" style="font-size: 9.5px; padding: 2px 7px;">🛠️ Build & Fix</button>
+                <button class="pill mission-chip" data-prompt="Refactor code for strict immutability and clean architecture" style="font-size: 9.5px; padding: 2px 7px;">✨ Refactor Code</button>
+                <button class="pill mission-chip" data-prompt="Update documentation, codemaps, and architectural blueprints" style="font-size: 9.5px; padding: 2px 7px;">📦 Update Docs</button>
+              </div>
+
+              <!-- Agent Mission Prompt Composer -->
+              <div class="agent-prompt-composer" style="padding: 8px 12px; background: rgba(5, 9, 20, 0.98); border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 9.5px; font-weight: 700; color: #93C5FD; display: flex; align-items: center; gap: 4px;">
+                    <span style="width: 6px; height: 6px; border-radius: 50%; background: #38BDF8; display: inline-block;"></span>
+                    AGENT MISSION COMPOSER
+                  </span>
+                  <select id="agent-model-select" aria-label="Agent model" style="background: #0F172A; border: 1px solid rgba(56, 189, 248, 0.25); color: #38BDF8; font-size: 9.5px; padding: 1px 6px; border-radius: 4px;">
+                    <option value="Claude 3.7 Sonnet">Claude 3.7 Sonnet (Default)</option>
+                    <option value="Claude 3.7 Opus">Claude 3.7 Opus</option>
+                    <option value="GPT-4o">GPT-4o</option>
+                    <option value="qwen2.5-coder:7b">Qwen 2.5 Coder 7B (Local Ollama)</option>
+                    <option value="OAS Local">OAS Local Engine</option>
+                  </select>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: flex-end;">
+                  <textarea id="agent-mission-input" rows="2" aria-label="Agent mission prompt" style="flex: 1; background: #060B18; border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; padding: 6px 10px; font-family: 'Inter', sans-serif; font-size: 11px; color: #F1F5F9; resize: none; outline: none; line-height: 1.4;" placeholder="Direct active agent (e.g. 'Implement Redis caching with fallback' or click a quick chip above)..."></textarea>
+                  <button class="btn btn-primary" id="btn-send-mission" style="padding: 6px 12px; font-size: 11px; height: 32px; display: inline-flex; align-items: center; gap: 4px;" title="Execute mission with active agent">
+                    <span>Send</span>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  </button>
+                </div>
               </div>
             </div>
 
             <!-- 3. Right: File Code & Unified Diff Viewer + Terminal -->
             <div class="diff-terminal-pane" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); display: flex; flex-direction: column; overflow: hidden; position: relative;">
-              <div class="pane-header" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--border-subtle);">
+              <div class="pane-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--border-subtle); flex-wrap: wrap; gap: 6px;">
                 <div style="display: flex; gap: 6px; align-items: center;">
-                  <button class="btn btn-secondary active" id="tab-code-viewer" style="font-size: 11px; padding: 3px 8px;">Code Viewer</button>
-                  <button class="btn btn-secondary" id="tab-diff-viewer" style="font-size: 11px; padding: 3px 8px;">Terminal / Diff</button>
+                  <button class="btn btn-secondary active" id="tab-code-viewer" style="font-size: 10.5px; padding: 2px 7px;">Code Viewer</button>
+                  <button class="btn btn-secondary" id="tab-diff-viewer" style="font-size: 10.5px; padding: 2px 7px;">Terminal / Diff</button>
+                  <select id="workspace-worktree-select" style="background: #0B1120; border: 1px solid var(--border-subtle); color: #38BDF8; font-size: 10px; padding: 2px 6px; border-radius: 4px; cursor: pointer;" title="Switch Git Worktree / Branch">
+                    <option value="main">Worktree: main (HEAD)</option>
+                  </select>
                 </div>
-                <span class="badge-tag font-mono" id="code-viewer-file-badge" style="font-size: 10px;">package.json</span>
+                <div style="display: flex; gap: 5px; align-items: center;">
+                  <span class="badge-tag font-mono" id="code-viewer-stats" style="font-size: 9.5px; color: var(--text-muted); display: none;">Lines: --</span>
+                  <button class="btn btn-secondary" id="btn-edit-workspace-file" style="font-size: 10px; padding: 2px 6px; color: #38BDF8; border-color: rgba(56, 189, 248, 0.3);" title="Edit file directly in browser">✏️ Edit</button>
+                  <button class="btn btn-primary" id="btn-save-workspace-file" style="display: none; font-size: 10px; padding: 2px 7px; background: #059669; border-color: #10B981;" title="Save file changes (⌘S)">💾 Save</button>
+                  <button class="btn btn-ghost" id="btn-cancel-edit-workspace-file" style="display: none; font-size: 10px; padding: 2px 6px;" title="Cancel edit">Cancel</button>
+                  <span class="badge-tag font-mono" id="code-viewer-file-badge" style="font-size: 10px;">package.json</span>
+                </div>
               </div>
 
-              <!-- Code Content Display -->
-              <div id="workspace-code-display" style="flex: 1; overflow: auto; background: #050914; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #CBD5E1; line-height: 1.5; white-space: pre;">
-// Select a file from the workspace tree on the left to inspect its contents.
+              <!-- Code Content Display with Line Numbers -->
+              <div id="workspace-code-display" tabindex="0" aria-label="File contents" style="flex: 1; overflow: auto; background: #050914; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #CBD5E1; line-height: 1.5; white-space: pre;">
+// Loading workspace file...
               </div>
+
+              <!-- In-Browser Code Editor Textarea (Direction A) -->
+              <textarea id="workspace-file-editor" class="code-editor-textarea" style="display: none; flex: 1; overflow: auto; background: #070D1E; border: none; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #E2E8F0; line-height: 1.5; resize: none; outline: none; width: 100%; box-sizing: border-box;" spellcheck="false"></textarea>
 
               <!-- Diff Content Display (hidden by default) -->
               <div class="diff-viewer" id="workspace-diff-viewer" style="display: none; flex: 1; overflow: auto; background: #050914; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #38BDF8; line-height: 1.5; white-space: pre-wrap;">
 oas virtual terminal initialized. Workspace: /Operating Agent System
 Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands below.
+              </div>
+
+              <!-- Quick Terminal Command Chips -->
+              <div class="terminal-quick-chips" style="display: flex; gap: 4px; padding: 4px 12px; background: rgba(6, 11, 24, 0.95); border-top: 1px solid rgba(56, 189, 248, 0.1); overflow-x: auto; align-items: center;">
+                <span style="font-size: 9px; color: var(--text-muted); margin-right: 2px;">Quick:</span>
+                <button class="btn btn-ghost btn-sm term-chip" data-cmd="npm test" style="font-size: 9px; padding: 1px 6px;">npm test</button>
+                <button class="btn btn-ghost btn-sm term-chip" data-cmd="git status" style="font-size: 9px; padding: 1px 6px;">git status</button>
+                <button class="btn btn-ghost btn-sm term-chip" data-cmd="node -v" style="font-size: 9px; padding: 1px 6px;">node -v</button>
+                <button class="btn btn-ghost btn-sm term-chip" data-cmd="/security" style="font-size: 9px; padding: 1px 6px;">/security</button>
+                <button class="btn btn-ghost btn-sm term-chip" data-cmd="/tcas" style="font-size: 9px; padding: 1px 6px;">/tcas</button>
+                <button class="btn btn-ghost btn-sm term-chip" data-cmd="clear" style="font-size: 9px; padding: 1px 6px;">clear</button>
               </div>
 
               <!-- Terminal CLI & Slash Autocomplete -->
@@ -237,30 +484,6 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
                 <button class="btn btn-primary" id="btn-terminal-exec" style="padding: 6px 14px; font-size: 12px;">Run</button>
               </div>
             </div>
-
-            <!-- Floating Action Dock -->
-            <div class="floating-dock">
-              <button class="dock-btn active" id="dock-run-loop">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                <span>Run Loop</span>
-              </button>
-              <button class="dock-btn" id="dock-pause">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-                <span>Pause</span>
-              </button>
-              <button class="dock-btn" id="dock-intervene">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                <span>Intervene</span>
-              </button>
-              <button class="dock-btn" id="dock-compact">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/></svg>
-                <span>Compact Context</span>
-              </button>
-              <button class="dock-btn" id="dock-rollback">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                <span>Rollback</span>
-              </button>
-            </div>
           </div>
         </section>
 
@@ -269,9 +492,9 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
           <div class="kg-view-container" style="display: flex; gap: 12px; height: 100%;">
             <div class="kg-canvas-area" style="flex: 1; background: #050914; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); display: flex; flex-direction: column; overflow: hidden; position: relative;">
               <!-- Toolbar -->
-              <div class="kg-toolbar" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(11, 17, 32, 0.9); border-bottom: 1px solid var(--border-subtle); z-index: 10;">
-                <div style="display: flex; gap: 8px; align-items: center;">
-                  <input type="text" id="kg-search-input" class="search-input" style="width: 220px; padding: 5px 10px; font-size: 11px;" placeholder="Search 483 nodes (agents, skills)...">
+              <div class="kg-toolbar" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; background: rgba(11, 17, 32, 0.95); border-bottom: 1px solid var(--border-subtle); z-index: 10; flex-wrap: wrap; gap: 8px;">
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                  <input type="text" id="kg-search-input" class="search-input" style="width: 220px; padding: 5px 10px; font-size: 11px;" placeholder="Search 483 nodes or enter intent...">
                   <div class="kg-filter-group" style="display: flex; gap: 4px;">
                     <button class="pill active" data-kg-filter="all" style="font-size: 10px; padding: 3px 8px;">All (483)</button>
                     <button class="pill" data-kg-filter="agent" style="font-size: 10px; padding: 3px 8px;">Agents (68)</button>
@@ -280,32 +503,134 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
                     <button class="pill" data-kg-filter="mcp" style="font-size: 10px; padding: 3px 8px;">MCPs (35)</button>
                   </div>
                 </div>
-                <div style="display: flex; gap: 6px; align-items: center;">
-                  <button class="btn btn-secondary" id="btn-kg-zoom-in" style="font-size: 11px; padding: 4px 8px;">+</button>
-                  <button class="btn btn-secondary" id="btn-kg-zoom-out" style="font-size: 11px; padding: 4px 8px;">-</button>
-                  <button class="btn btn-secondary" id="btn-kg-reset" style="font-size: 11px; padding: 4px 8px;">Reset</button>
-                  <button class="btn btn-primary" id="btn-kg-layout" style="font-size: 11px; padding: 4px 10px;">Cluster Layout</button>
+
+                <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                  <!-- Multi-Topology Layout Mode Buttons -->
+                  <div class="kg-layout-mode-group" style="display: flex; gap: 3px; background: rgba(5, 9, 20, 0.8); padding: 2px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.2);">
+                    <button class="pill active kg-layout-btn" data-kg-mode="galaxy" style="font-size: 9.5px; padding: 2px 7px;" title="Celestial 3D Spherical Fibonacci Lattice">🌌 Galaxy</button>
+                    <button class="pill kg-layout-btn" data-kg-mode="force" style="font-size: 9.5px; padding: 2px 7px;" title="Organic Barnes-Hut Force-Directed Spring Physics">⚡ Physics</button>
+                    <button class="pill kg-layout-btn" data-kg-mode="hierarchy" style="font-size: 9.5px; padding: 2px 7px;" title="Concentric Radial Orchestration Hierarchy">🏛️ Hierarchy</button>
+                    <button class="pill kg-layout-btn" data-kg-mode="tcas" style="font-size: 9.5px; padding: 2px 7px;" title="TCAS 3D Spatial Deconfliction Airspace">🛡️ TCAS</button>
+                  </div>
+
+                  <button class="btn btn-secondary active" id="btn-kg-orbit" style="font-size: 10.5px; padding: 3px 8px; display: inline-flex; align-items: center; gap: 5px;" title="Toggle 3D Orbit Idle Rotation">
+                    <span class="orbit-indicator-dot" style="width: 6px; height: 6px; border-radius: 50%; background: #38BDF8; display: inline-block;"></span>
+                    3D Orbit
+                  </button>
+
+                  <button class="btn btn-secondary" id="btn-kg-zoom-in" style="font-size: 11px; padding: 3px 7px;" title="Zoom In">+</button>
+                  <button class="btn btn-secondary" id="btn-kg-zoom-out" style="font-size: 11px; padding: 3px 7px;" title="Zoom Out">-</button>
+                  <button class="btn btn-secondary" id="btn-kg-reset" style="font-size: 10.5px; padding: 3px 8px;" title="Reset Camera Perspective">Reset</button>
+
+                  <!-- Turnkey Graph Export Dropdown -->
+                  <select id="kg-export-select" class="btn btn-secondary" style="font-size: 10px; padding: 3px 8px; cursor: pointer; background: #0F172A; border-color: rgba(56, 189, 248, 0.3); color: #93C5FD;" title="Export Knowledge Graph">
+                    <option value="" disabled selected>📥 Export...</option>
+                    <option value="png">📸 High-Res PNG</option>
+                    <option value="dot">📄 Graphviz DOT</option>
+                    <option value="cytoscape">📊 Cytoscape JSON</option>
+                  </select>
                 </div>
+              </div>
+
+              <!-- HUD Telemetry Overlay (Positioned cleanly at bottom-right) -->
+              <div class="kg-hud-telemetry">
+                <span class="kg-hud-tag"><span style="color:#38BDF8;">●</span> SYSTEM: <strong id="kg-hud-mode-label">3D GALAXY CORE</strong></span>
+                <span class="kg-hud-tag">NODES: <strong id="kg-hud-nodes-count">483</strong></span>
+                <span class="kg-hud-tag">SYNAPSES: <strong id="kg-hud-synapses-count">134</strong></span>
+                <span class="kg-hud-tag"><span style="color:#10B981;">●</span> LIVE RUNNING: <strong id="kg-live-active-count">0</strong></span>
+                <span class="kg-hud-tag" style="color: #64748B;">LMB: Orbit • Shift: Pan • Wheel: Zoom</span>
               </div>
 
               <!-- Interactive Canvas -->
               <canvas id="kg-canvas" style="flex: 1; width: 100%; height: 100%; cursor: grab;"></canvas>
 
+              <!-- Floating Interactive Cyber Tooltip -->
+              <div id="kg-tooltip" class="kg-floating-tooltip"></div>
+
               <!-- Canvas Legend -->
-              <div class="kg-legend" style="position: absolute; bottom: 12px; left: 12px; background: rgba(11, 17, 32, 0.85); backdrop-filter: blur(8px); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 6px 12px; display: flex; gap: 12px; font-size: 11px;">
-                <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #3B82F6;"></span> Agent</span>
-                <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #10B981;"></span> Skill</span>
-                <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #F59E0B;"></span> Command</span>
-                <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #8B5CF6;"></span> MCP</span>
+              <div class="kg-legend" style="position: absolute; bottom: 12px; left: 12px; background: rgba(11, 17, 32, 0.88); backdrop-filter: blur(8px); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px; padding: 6px 14px; display: flex; gap: 14px; font-size: 11px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); z-index: 5;">
+                <span style="display: flex; align-items: center; gap: 5px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #38BDF8; box-shadow: 0 0 8px #38BDF8;"></span> Agent</span>
+                <span style="display: flex; align-items: center; gap: 5px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #34D399; box-shadow: 0 0 8px #34D399;"></span> Skill</span>
+                <span style="display: flex; align-items: center; gap: 5px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #FBBF24; box-shadow: 0 0 8px #FBBF24;"></span> Command</span>
+                <span style="display: flex; align-items: center; gap: 5px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #A78BFA; box-shadow: 0 0 8px #A78BFA;"></span> MCP</span>
               </div>
             </div>
 
             <!-- Right Node Inspector -->
-            <div class="kg-inspector-pane" id="kg-inspector" style="width: 280px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 14px; display: flex; flex-direction: column; overflow-y: auto;">
-              <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">NODE INSPECTOR</div>
-              <h3 id="kg-inspector-name" style="font-size: 16px; font-weight: 700; color: #F8FAFC;">tdd-guide</h3>
-              <span id="kg-inspector-type" class="badge-tag" style="align-self: flex-start; margin: 6px 0 12px 0;">Agent Subsystem</span>
-              <p id="kg-inspector-desc" style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
+            <div class="kg-inspector-pane" id="kg-inspector" style="width: 310px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 14px; display: flex; flex-direction: column; overflow-y: auto;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px;">NODE INSPECTOR</div>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                  <span class="status-dot" id="kg-inspector-status-dot" style="width: 7px; height: 7px; background: #34D399;"></span>
+                  <span id="kg-inspector-status-text" style="font-size: 10px; font-weight: 700; color: #34D399;">IDLE</span>
+                </div>
+              </div>
+
+              <h3 id="kg-inspector-name" style="font-size: 16px; font-weight: 700; color: #F8FAFC; margin: 2px 0;">tdd-guide</h3>
+              <span id="kg-inspector-type" class="badge-tag" style="align-self: flex-start; margin: 4px 0 10px 0; color: #38BDF8;">Agent Subsystem</span>
+
+              <!-- Live Telemetry Card -->
+              <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(56, 189, 248, 0.18); border-radius: 6px; padding: 8px 10px; margin-bottom: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 10.5px;">
+                <div><span style="color: var(--text-muted);">Total Missions:</span> <strong id="kg-stat-runs" style="color: #38BDF8;">0</strong></div>
+                <div><span style="color: var(--text-muted);">Avg Latency:</span> <strong id="kg-stat-latency" style="color: #34D399;">1.2s</strong></div>
+              </div>
+
+              <!-- Action Buttons Row -->
+              <div style="display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap;">
+                <button class="btn btn-secondary btn-sm" id="btn-kg-blast-radius" style="font-size: 10px; padding: 4px 8px; color: #F59E0B; border-color: rgba(245, 158, 11, 0.3);" title="Compute Subsystem Blast Radius & Dependency Impact">⚡ Blast Radius</button>
+                <button class="btn btn-secondary btn-sm" id="btn-kg-edit-entity" style="font-size: 10px; padding: 4px 8px; color: #38BDF8;" title="Edit entity description and properties">✏️ Edit Spec</button>
+                <button class="btn btn-secondary btn-sm" id="btn-kg-link-synapse" style="font-size: 10px; padding: 4px 8px; color: #A78BFA;" title="Link a new synapse edge">🔗 Link Synapse</button>
+              </div>
+
+              <!-- Blast Radius Impact Assessment Card (Toggled via button) -->
+              <div id="kg-impact-card" style="display: none; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 6px; padding: 10px; margin-bottom: 12px; flex-direction: column; gap: 6px; font-size: 10.5px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <strong style="color: #FBBF24;">⚡ BLAST RADIUS IMPACT</strong>
+                  <span id="kg-impact-risk-badge" class="badge-tag font-mono" style="font-size: 9px; color: #F59E0B; border-color: rgba(245,158,11,0.4);">RISK: LOW</span>
+                </div>
+                <div style="color: var(--text-muted);">Total Impacted Subsystems: <strong id="kg-impact-total" style="color: #F8FAFC;">0</strong></div>
+                <div id="kg-impact-summary" style="color: #CBD5E1; line-height: 1.4;">Traversing causal call paths...</div>
+                <div id="kg-impact-subsystems-list" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;"></div>
+                <button class="btn btn-ghost btn-sm" id="btn-kg-clear-impact" style="align-self: flex-end; font-size: 9.5px; padding: 2px 6px; margin-top: 4px;">Clear Highlight</button>
+              </div>
+
+              <!-- In-Inspector Editable Spec Form (Toggled via button) -->
+              <div id="kg-editor-form" style="display: none; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 6px; padding: 10px; margin-bottom: 12px; flex-direction: column; gap: 8px;">
+                <div style="font-size: 10.5px; font-weight: 700; color: #38BDF8;">EDIT ENTITY SPECIFICATION</div>
+                <textarea id="kg-edit-desc" rows="3" style="background: #060B18; border: 1px solid rgba(255,255,255,0.15); color: #F1F5F9; font-size: 11px; padding: 6px; border-radius: 4px; resize: vertical; outline: none; line-height: 1.4;"></textarea>
+                <div style="display: flex; justify-content: flex-end; gap: 6px;">
+                  <button class="btn btn-secondary btn-sm" id="btn-kg-cancel-edit" style="font-size: 10px; padding: 2px 8px;">Cancel</button>
+                  <button class="btn btn-primary btn-sm" id="btn-kg-save-edit" style="font-size: 10px; padding: 2px 10px;">Save Changes</button>
+                </div>
+              </div>
+
+              <!-- In-Inspector Synapse Link Form (Toggled via button) -->
+              <div id="kg-link-form" style="display: none; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(167, 139, 250, 0.35); border-radius: 6px; padding: 10px; margin-bottom: 12px; flex-direction: column; gap: 8px;">
+                <div style="font-size: 10.5px; font-weight: 700; color: #A78BFA;">ESTABLISH SYNAPSE LINK</div>
+                <div style="font-size: 10px; color: var(--text-muted);">From: <strong id="kg-link-from-label" style="color: #38BDF8;">tdd-guide</strong></div>
+                <div>
+                  <label style="font-size: 9.5px; color: var(--text-secondary); display: block; margin-bottom: 2px;">Target Entity:</label>
+                  <select id="kg-link-target-select" style="width: 100%; background: #060B18; border: 1px solid rgba(255,255,255,0.15); color: #F1F5F9; font-size: 10.5px; padding: 4px 6px; border-radius: 4px; outline: none;">
+                    <option value="">Select target entity...</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="font-size: 9.5px; color: var(--text-secondary); display: block; margin-bottom: 2px;">Relation Type:</label>
+                  <select id="kg-link-relation-select" style="width: 100%; background: #060B18; border: 1px solid rgba(255,255,255,0.15); color: #F1F5F9; font-size: 10.5px; padding: 4px 6px; border-radius: 4px; outline: none;">
+                    <option value="delegates to">delegates to</option>
+                    <option value="uses skill">uses skill</option>
+                    <option value="triggered by">triggered by</option>
+                    <option value="integrates with">integrates with</option>
+                    <option value="monitors">monitors</option>
+                  </select>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 6px; margin-top: 2px;">
+                  <button class="btn btn-secondary btn-sm" id="btn-kg-cancel-link" style="font-size: 10px; padding: 2px 8px;">Cancel</button>
+                  <button class="btn btn-primary btn-sm" id="btn-kg-save-link" style="font-size: 10px; padding: 2px 10px; background: #7C3AED; border-color: #8B5CF6;">Create Link</button>
+                </div>
+              </div>
+
+              <p id="kg-inspector-desc" style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px;">
                 Test-driven development specialist enforcing RED-GREEN-REFACTOR cycles and 80%+ coverage.
               </p>
               
@@ -317,7 +642,7 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
               </div>
 
               <div style="margin-top: auto; padding-top: 14px;">
-                <button class="btn btn-primary" id="btn-kg-run-entity" style="width: 100%; justify-content: center; font-size: 11px;">Execute Entity</button>
+                <button class="btn btn-primary" id="btn-kg-run-entity" style="width: 100%; justify-content: center; font-size: 11px; height: 34px;">🚀 Launch Mission with Agent</button>
               </div>
             </div>
           </div>
@@ -327,10 +652,34 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
         <section class="view-panel" id="view-plan-canvas">
           <div class="plan-canvas-container">
             <div class="plan-document-pane">
-              <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 12px;">Capability Plan: Enterprise Control Plane v2.2.1</h2>
-              <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.6; margin-bottom: 20px;">
-                This plan formalizes the end-to-end full-stack integration for the OAS operating platform. Click on any section to leave human-in-the-loop annotations or toggle phase readiness.
-              </p>
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                <div>
+                  <h2 style="font-size: 20px; font-weight: 800; margin: 0 0 6px 0;">Capability Plan: Enterprise Control Plane v2.2.1</h2>
+                  <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.6; margin: 0;">
+                    This plan formalizes the end-to-end full-stack integration for the OAS operating platform. Click on any section to leave human-in-the-loop annotations, toggle phase readiness, or inspect deliverables.
+                  </p>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0; margin-left: 16px;">
+                  <button class="btn btn-secondary btn-sm" id="btn-open-add-phase" style="font-size: 11px; padding: 5px 12px; gap: 5px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span>Add Phase</span>
+                  </button>
+                  <button class="btn btn-secondary btn-sm" id="btn-reset-canonical-plan" style="font-size: 11px; padding: 5px 10px; color: var(--text-muted);" title="Reset roadmap to canonical 5 enterprise phases">
+                    <span>Reset</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Roadmap Progress Meter -->
+              <div class="plan-progress-bar-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <span style="font-size: 11px; font-weight: 700; color: #38BDF8; letter-spacing: 0.5px;">ROADMAP COMPLETION PROGRESS</span>
+                  <span id="plan-progress-percent" class="badge-tag font-mono" style="color: #34D399; font-weight: 700;">100% (5/5 Phases Passed)</span>
+                </div>
+                <div style="background: rgba(3, 6, 15, 0.8); height: 7px; border-radius: 9999px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
+                  <div id="plan-progress-fill" style="width: 100%; height: 100%; background: linear-gradient(90deg, #38BDF8 0%, #34D399 100%); transition: width 0.3s ease; box-shadow: 0 0 8px #38BDF8;"></div>
+                </div>
+              </div>
 
               <div id="plan-phases-list" style="display: flex; flex-direction: column; gap: 12px;">
                 <!-- Dynamically populated via loadPlanCanvas() from /api/artifacts -->
@@ -342,7 +691,16 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
                 <div class="stat-label">Plan Execution Status</div>
                 <div class="stat-value" id="plan-status-badge" style="color: var(--status-active);">READY</div>
                 <p id="plan-status-desc" style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Capability plan loaded from durable artifact store.</p>
-                <button class="btn btn-primary" id="btn-execute-plan" style="margin-top: 10px; width: 100%;">Approve & Execute All</button>
+                <div id="plan-executing-meter" style="display: none; margin-top: 8px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-bottom: 4px;">
+                    <span>Dispatching DAG steps...</span>
+                    <span id="plan-exec-step">Step 1/5</span>
+                  </div>
+                  <div style="height: 4px; background: #050B18; border-radius: 4px; overflow: hidden;">
+                    <div id="plan-exec-bar" style="width: 20%; height: 100%; background: #38BDF8;"></div>
+                  </div>
+                </div>
+                <button class="btn btn-primary" id="btn-execute-plan" style="margin-top: 10px; width: 100%;">Approve &amp; Execute All</button>
               </div>
 
               <div class="stat-card" style="flex: 1; display: flex; flex-direction: column;">
@@ -350,8 +708,20 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
                 <div id="plan-annotations-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; max-height: 240px; overflow-y: auto;">
                   <!-- Dynamically populated from artifact annotations and session interventions -->
                 </div>
-                <textarea class="search-input" id="plan-new-annotation" placeholder="Type annotation or comment..." style="margin-top: auto; height: 70px; resize: none;"></textarea>
-                <button class="btn btn-secondary" id="btn-add-annotation" style="margin-top: 8px;">Post Annotation</button>
+                <div style="margin-top: auto; display: flex; flex-direction: column; gap: 6px;">
+                  <div style="display: flex; gap: 6px; align-items: center;">
+                    <label style="font-size: 10.5px; color: var(--text-muted); font-weight: 600;">ROLE PERSONA:</label>
+                    <select id="plan-annotation-role" class="search-input" style="flex: 1; height: 28px; padding: 2px 8px; font-size: 11px; background: #0B1120;">
+                      <option value="architect">architect (System Architect)</option>
+                      <option value="security-reviewer">security-reviewer (Security Guard)</option>
+                      <option value="qa-lead">qa-lead (Quality &amp; Testing)</option>
+                      <option value="product-owner">product-owner (Capability Planner)</option>
+                      <option value="developer">developer (Lead Engineer)</option>
+                    </select>
+                  </div>
+                  <textarea class="search-input" id="plan-new-annotation" placeholder="Type annotation or comment..." style="height: 65px; resize: none;"></textarea>
+                  <button class="btn btn-secondary" id="btn-add-annotation" style="margin-top: 2px;">Post Annotation</button>
+                </div>
               </div>
             </div>
           </div>
@@ -369,6 +739,23 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
                 <div class="pill" data-filter="commands">Commands (94)</div>
                 <div class="pill" data-filter="mcp">MCPs (35)</div>
               </div>
+              <select id="catalog-sort-select" class="search-input" style="width: 130px; flex: none; height: 36px; padding: 4px 8px; font-size: 11px; background: #0B1120;">
+                <option value="az">Sort: A-Z</option>
+                <option value="type">Sort: Type</option>
+                <option value="cluster">Sort: Cluster</option>
+              </select>
+            </div>
+            
+            <div class="profile-filter-row" style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; background: rgba(8, 14, 28, 0.6); padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid rgba(56, 189, 248, 0.12);">
+              <span style="font-size: 10px; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px;">INSTALL PROFILE:</span>
+              <button class="pill active" data-profile="all" style="font-size: 10px; padding: 2px 8px;">All</button>
+              <button class="pill" data-profile="minimal" style="font-size: 10px; padding: 2px 8px;">Minimal (Core 47)</button>
+              <button class="pill" data-profile="standard" style="font-size: 10px; padding: 2px 8px;">Standard (181)</button>
+              <button class="pill" data-profile="security" style="font-size: 10px; padding: 2px 8px;">Security</button>
+              <button class="pill" data-profile="frontend" style="font-size: 10px; padding: 2px 8px;">Frontend</button>
+              <button class="pill" data-profile="backend" style="font-size: 10px; padding: 2px 8px;">Backend</button>
+              <button class="pill" data-profile="science" style="font-size: 10px; padding: 2px 8px;">Science</button>
+              <span id="catalog-profile-indicator" style="margin-left: auto; font-size: 11px; color: #38BDF8; font-family: monospace;">Viewing: All Entities (484)</span>
             </div>
 
             <div class="catalog-grid" id="catalog-grid-cards">
@@ -403,15 +790,72 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
               </div>
             </div>
 
+            <!-- OAS 2.0 HUD Status & Control Plane Row -->
+            <div class="hud-status-live-panel" style="background: rgba(8, 14, 28, 0.85); border: 1px solid rgba(56, 189, 248, 0.16); border-radius: var(--radius-lg); padding: 14px 18px; margin-top: 14px; display: flex; flex-direction: column; gap: 10px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <span class="badge-tag font-mono" style="background: rgba(56, 189, 248, 0.15); color: #38BDF8; font-weight: 700;">oas.hud-status.v1</span>
+                  <span style="font-size: 12px; font-weight: 700; color: #F1F5F9;">Operator Statusline &amp; Session Controls</span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button class="btn btn-secondary" id="btn-run-doctor" style="font-size: 11px; padding: 4px 10px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                    <span>Run Diagnostics</span>
+                  </button>
+                  <button class="btn btn-secondary" id="btn-run-security-scan" style="font-size: 11px; padding: 4px 10px; color: #34D399;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    <span>AgentShield Audit</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="hud-metrics-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+                <div style="background: rgba(15, 23, 42, 0.6); padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
+                  <div style="font-size: 10px; color: var(--text-muted); font-weight: 600;">SESSION SPEND / BUDGET</div>
+                  <div style="font-size: 14px; font-weight: 700; color: #38BDF8; font-family: monospace;" id="hud-spend-val">$0.84 / $10.00</div>
+                  <div style="font-size: 10px; color: #34D399;" id="hud-trend-val">● within-budget</div>
+                </div>
+                <div style="background: rgba(15, 23, 42, 0.6); padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
+                  <div style="font-size: 10px; color: var(--text-muted); font-weight: 600;">RISK POSTURE</div>
+                  <div style="font-size: 14px; font-weight: 700; color: #34D399; font-family: monospace;" id="hud-risk-val">SAFE</div>
+                  <div style="font-size: 10px; color: var(--text-secondary);" id="hud-conflicts-val">0 conflicts • clean worktree</div>
+                </div>
+                <div style="background: rgba(15, 23, 42, 0.6); padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
+                  <div style="font-size: 10px; color: var(--text-muted); font-weight: 600;">GITHUB QUEUES</div>
+                  <div style="font-size: 14px; font-weight: 700; color: #FBBF24; font-family: monospace;" id="hud-queues-val">0 PRs • 0 Issues</div>
+                  <div style="font-size: 10px; color: var(--text-secondary);" id="hud-merge-queue-val">Merge queue empty</div>
+                </div>
+                <div style="background: rgba(15, 23, 42, 0.6); padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
+                  <div style="font-size: 10px; color: var(--text-muted); font-weight: 600;">PROGRESS SYNC</div>
+                  <div style="font-size: 14px; font-weight: 700; color: #A78BFA; font-family: monospace;" id="hud-sync-val">Linear: onTrack</div>
+                  <div style="font-size: 10px; color: #34D399;" id="hud-handoff-val">● Handoff written</div>
+                </div>
+              </div>
+
+              <!-- Diagnostic Output Container (hidden unless run) -->
+              <div id="diagnostics-result-panel" style="display: none; background: rgba(5, 9, 20, 0.9); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 10px 14px; margin-top: 4px; font-size: 11px;">
+                <div id="diagnostics-result-content"></div>
+              </div>
+            </div>
+
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; margin-bottom: 12px;">
               <div>
                 <h3 style="font-size: 16px; font-weight: 700; margin: 0;">Durable Memory Vault</h3>
-                <span style="font-size: 12px; color: var(--text-muted);">Scoped persistent memory with SHA-256 integrity verification</span>
+                <span style="font-size: 12px; color: var(--text-muted);">Scoped persistent memory with Vector Semantic Search &amp; SHA-256 integrity verification</span>
               </div>
               <div style="display: flex; gap: 8px; align-items: center;">
-                <input type="text" id="memory-search-input" class="search-input" style="width: 240px; padding: 6px 12px; font-size: 12px;" placeholder="Search memory vault...">
+                <input type="text" id="memory-search-input" class="search-input" style="width: 240px; padding: 6px 12px; font-size: 12px;" placeholder="Semantic search memory (e.g. test, security)...">
                 <button class="btn btn-primary" id="btn-open-add-memory" style="padding: 6px 14px; font-size: 12px;">+ Add Memory</button>
               </div>
+            </div>
+
+            <!-- Semantic Keyword Chips (Direction C) -->
+            <div id="memory-semantic-chips" style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;">
+              <span class="badge-tag semantic-chip active" data-query="" style="cursor: pointer; padding: 3px 8px; font-size: 11px;">All</span>
+              <span class="badge-tag semantic-chip" data-query="test" style="cursor: pointer; padding: 3px 8px; font-size: 11px; color: #38BDF8; border-color: rgba(56, 189, 248, 0.3);">🔍 TDD / Coverage</span>
+              <span class="badge-tag semantic-chip" data-query="security" style="cursor: pointer; padding: 3px 8px; font-size: 11px; color: #34D399; border-color: rgba(52, 211, 153, 0.3);">🛡️ Sandbox / Guard</span>
+              <span class="badge-tag semantic-chip" data-query="architecture" style="cursor: pointer; padding: 3px 8px; font-size: 11px; color: #F59E0B; border-color: rgba(245, 158, 11, 0.3);">🏛️ Immutability / Contract</span>
+              <span class="badge-tag semantic-chip" data-query="spec" style="cursor: pointer; padding: 3px 8px; font-size: 11px; color: #A78BFA; border-color: rgba(167, 139, 250, 0.3);">📋 SRS / Brownfield</span>
             </div>
 
             <div class="memory-items-grid" id="memory-grid">
@@ -419,12 +863,26 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
             </div>
           </div>
         </section>
+
         <!-- VIEW 6: STUDIO BUILDER (CUSTOM AGENT & SKILL CREATOR) -->
         <section class="view-panel" id="view-builder">
           <div style="display: flex; flex-direction: column; gap: 16px; height: 100%;">
-            <div style="display: flex; gap: 12px; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
-              <div class="pill active" id="builder-tab-agent">Agent Designer</div>
-              <div class="pill" id="builder-tab-skill">Skill Designer</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
+              <div style="display: flex; gap: 12px; align-items: center;">
+                <div class="pill active" id="builder-tab-agent">Agent Designer</div>
+                <div class="pill" id="builder-tab-skill">Skill Designer</div>
+              </div>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">TEMPLATE PRESET:</span>
+                <select id="builder-preset-select" class="search-input" style="width: 220px; height: 32px; padding: 2px 8px; font-size: 11px; background: #0B1120;">
+                  <option value="custom">-- Custom Blank Agent --</option>
+                  <option value="planner">Architecture Planner Agent</option>
+                  <option value="reviewer">Code Quality Reviewer Agent</option>
+                  <option value="build_resolver">Build &amp; Type Error Resolver</option>
+                  <option value="security">Security &amp; Vulnerability Auditor</option>
+                  <option value="tdd_guide">TDD &amp; Test Coverage Specialist</option>
+                </select>
+              </div>
             </div>
 
             <!-- Agent Designer Section -->
@@ -432,17 +890,20 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
               <!-- Left Form -->
               <div style="flex: 1; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 8px;">
                 <div>
-                  <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">AGENT IDENTIFIER (SLUG):</label>
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">AGENT IDENTIFIER (SLUG):</label>
+                    <span id="builder-agent-slug-status" style="font-size: 10px; color: #34D399; font-family: monospace;">Valid format</span>
+                  </div>
                   <input type="text" id="builder-agent-id" class="search-input" style="margin-top: 4px;" placeholder="e.g. distributed-tracer">
                 </div>
                 <div style="display: flex; gap: 12px;">
                   <div style="flex: 1;">
                     <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">CLUSTER:</label>
                     <select id="builder-agent-cluster" class="search-input" style="margin-top: 4px; background: #0B1120;">
-                      <option value="architecture_and_planning">Architecture & Planning</option>
-                      <option value="quality_and_review">Quality & Review</option>
+                      <option value="architecture_and_planning">Architecture &amp; Planning</option>
+                      <option value="quality_and_review">Quality &amp; Review</option>
                       <option value="build_resolvers">Build Resolvers</option>
-                      <option value="operations_and_meta">Operations & Meta</option>
+                      <option value="operations_and_meta">Operations &amp; Meta</option>
                       <option value="specialized_domains">Specialized Domains</option>
                     </select>
                   </div>
@@ -456,23 +917,42 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
                   </div>
                 </div>
                 <div>
-                  <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">TOOLS ALLOWED:</label>
-                  <input type="text" id="builder-agent-tools" class="search-input" style="margin-top: 4px;" value="Read, Write, Edit, Grep, Glob, Bash">
+                  <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: flex; justify-content: space-between;">
+                    <span>ALLOWED TOOLS (CLICK TO TOGGLE):</span>
+                    <span id="builder-tools-count-badge" style="font-size: 10px; color: #38BDF8;">6 Active</span>
+                  </label>
+                  <div class="tool-chips-picker" id="builder-tools-picker" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;">
+                    <button type="button" class="tool-chip active" data-tool="Read">Read</button>
+                    <button type="button" class="tool-chip active" data-tool="Write">Write</button>
+                    <button type="button" class="tool-chip active" data-tool="Edit">Edit</button>
+                    <button type="button" class="tool-chip active" data-tool="Grep">Grep</button>
+                    <button type="button" class="tool-chip active" data-tool="Glob">Glob</button>
+                    <button type="button" class="tool-chip active" data-tool="Bash">Bash</button>
+                    <button type="button" class="tool-chip" data-tool="WebSearch">WebSearch</button>
+                    <button type="button" class="tool-chip" data-tool="McpCall">McpCall</button>
+                  </div>
+                  <input type="hidden" id="builder-agent-tools" value="Read, Write, Edit, Grep, Glob, Bash">
                 </div>
                 <div>
                   <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">ROLE DESCRIPTION:</label>
-                  <textarea id="builder-agent-desc" class="search-input" style="margin-top: 4px; height: 60px; resize: none;" placeholder="Brief description of agent specialization..."></textarea>
+                  <textarea id="builder-agent-desc" class="search-input" style="margin-top: 4px; height: 55px; resize: none;" placeholder="Brief description of agent specialization..."></textarea>
                 </div>
                 <div style="flex: 1; display: flex; flex-direction: column;">
-                  <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">SYSTEM INSTRUCTIONS / PROMPT:</label>
-                  <textarea id="builder-agent-prompt" class="search-input" style="margin-top: 4px; flex: 1; min-height: 120px; resize: none;" placeholder="Enter step-by-step instructions, constraints, and operational patterns..."></textarea>
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">SYSTEM INSTRUCTIONS / PROMPT:</label>
+                    <span id="builder-agent-prompt-count" style="font-size: 10px; color: var(--text-muted);">0 chars</span>
+                  </div>
+                  <textarea id="builder-agent-prompt" class="search-input" style="margin-top: 4px; flex: 1; min-height: 120px; resize: none; font-family: 'JetBrains Mono', monospace; font-size: 11px;" placeholder="Enter step-by-step instructions, constraints, and operational patterns..."></textarea>
                 </div>
-                <button class="btn btn-primary" id="btn-export-agent" style="margin-top: 8px;">Export & Register Agent (agents/*.md)</button>
+                <button class="btn btn-primary" id="btn-export-agent" style="margin-top: 4px;">Export &amp; Register Agent (agents/*.md)</button>
               </div>
 
               <!-- Right Preview -->
               <div style="flex: 1; background: #050914; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 16px; display: flex; flex-direction: column;">
-                <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">LIVE FILE PREVIEW (YAML Frontmatter + Markdown)</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span style="font-size: 12px; font-weight: 600; color: var(--text-muted);">LIVE FILE PREVIEW (YAML Frontmatter + Markdown)</span>
+                  <button class="btn btn-secondary btn-sm" id="btn-copy-agent-preview" style="font-size: 10px; padding: 2px 8px;">Copy YAML</button>
+                </div>
                 <pre id="builder-agent-preview" class="font-mono" style="flex: 1; overflow-y: auto; font-size: 11px; color: #93C5FD; line-height: 1.5;"></pre>
               </div>
             </div>
@@ -482,18 +962,21 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
               <!-- Left Form -->
               <div style="flex: 1; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 8px;">
                 <div>
-                  <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">SKILL IDENTIFIER (DIRECTORY NAME):</label>
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">SKILL IDENTIFIER (DIRECTORY NAME):</label>
+                    <span id="builder-skill-slug-status" style="font-size: 10px; color: #34D399; font-family: monospace;">Valid format</span>
+                  </div>
                   <input type="text" id="builder-skill-id" class="search-input" style="margin-top: 4px;" placeholder="e.g. distributed-tracing-patterns">
                 </div>
                 <div>
                   <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">DOMAIN CATEGORY:</label>
                   <select id="builder-skill-domain" class="search-input" style="margin-top: 4px; background: #0B1120;">
                     <option value="Engineering Workflows">Engineering Workflows</option>
-                    <option value="Testing & Evals">Testing & Evals</option>
+                    <option value="Testing &amp; Evals">Testing &amp; Evals</option>
                     <option value="Agentic Infrastructure">Agentic Infrastructure</option>
-                    <option value="Frontend & Design">Frontend & Design</option>
-                    <option value="Backend & APIs">Backend & APIs</option>
-                    <option value="Data & Storage">Data & Storage</option>
+                    <option value="Frontend &amp; Design">Frontend &amp; Design</option>
+                    <option value="Backend &amp; APIs">Backend &amp; APIs</option>
+                    <option value="Data &amp; Storage">Data &amp; Storage</option>
                   </select>
                 </div>
                 <div>
@@ -502,18 +985,24 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
                 </div>
                 <div>
                   <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">DESCRIPTION:</label>
-                  <textarea id="builder-skill-desc" class="search-input" style="margin-top: 4px; height: 60px; resize: none;" placeholder="Summary of what this skill enables..."></textarea>
+                  <textarea id="builder-skill-desc" class="search-input" style="margin-top: 4px; height: 55px; resize: none;" placeholder="Summary of what this skill enables..."></textarea>
                 </div>
                 <div style="flex: 1; display: flex; flex-direction: column;">
-                  <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">WORKFLOW INSTRUCTIONS (SKILL.md):</label>
-                  <textarea id="builder-skill-prompt" class="search-input" style="margin-top: 4px; flex: 1; min-height: 120px; resize: none;" placeholder="Detailed execution protocol and step-by-step guidance..."></textarea>
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">WORKFLOW INSTRUCTIONS (SKILL.md):</label>
+                    <span id="builder-skill-prompt-count" style="font-size: 10px; color: var(--text-muted);">0 chars</span>
+                  </div>
+                  <textarea id="builder-skill-prompt" class="search-input" style="margin-top: 4px; flex: 1; min-height: 120px; resize: none; font-family: 'JetBrains Mono', monospace; font-size: 11px;" placeholder="Detailed execution protocol and step-by-step guidance..."></textarea>
                 </div>
-                <button class="btn btn-primary" id="btn-export-skill" style="margin-top: 8px;">Export & Register Skill (skills/*/SKILL.md)</button>
+                <button class="btn btn-primary" id="btn-export-skill" style="margin-top: 4px;">Export &amp; Register Skill (skills/*/SKILL.md)</button>
               </div>
 
               <!-- Right Preview -->
               <div style="flex: 1; background: #050914; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 16px; display: flex; flex-direction: column;">
-                <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">LIVE FILE PREVIEW (SKILL.md)</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span style="font-size: 12px; font-weight: 600; color: var(--text-muted);">LIVE FILE PREVIEW (SKILL.md)</span>
+                  <button class="btn btn-secondary btn-sm" id="btn-copy-skill-preview" style="font-size: 10px; padding: 2px 8px;">Copy Markdown</button>
+                </div>
                 <pre id="builder-skill-preview" class="font-mono" style="flex: 1; overflow-y: auto; font-size: 11px; color: #A7F3D0; line-height: 1.5;"></pre>
               </div>
             </div>
@@ -521,124 +1010,135 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
         </section>
       </div>
     </main>
+  </div> <!-- /app-container -->
 
-    <!-- Modal for Entity Details & Prompt Playground -->
-    <div class="modal-overlay" id="entity-modal">
-      <div class="modal-dialog">
-        <div class="modal-header">
-          <div>
-            <h3 id="modal-title" style="font-size: 16px; font-weight: 700;">Agent Specification</h3>
-            <span id="modal-subtitle" class="badge-tag" style="margin-top: 4px;">Model: Sonnet 3.7</span>
-          </div>
-          <button class="btn btn-secondary" id="modal-close" style="padding: 4px 8px;">✕</button>
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- 1. Modal for Entity Details & Prompt Playground -->
+  <div class="modal-overlay" id="entity-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div>
+          <h3 id="modal-title" style="font-size: 16px; font-weight: 700;">Agent Specification</h3>
+          <span id="modal-subtitle" class="badge-tag" style="margin-top: 4px;">Model: Sonnet 3.7</span>
         </div>
-        <div class="modal-body">
-          <div>
-            <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">DESCRIPTION:</span>
-            <p id="modal-desc" style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;"></p>
-          </div>
-          <div>
-            <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">SYSTEM PROMPT / INSTRUCTIONS:</span>
-            <pre id="modal-prompt" style="background: #050914; border: 1px solid var(--border-subtle); padding: 12px; border-radius: 6px; font-size: 11px; max-height: 200px; overflow-y: auto; color: #CBD5E1;"></pre>
-          </div>
-          <div>
-            <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">PROMPT TEST RUNNER:</span>
-            <textarea id="modal-test-input" class="search-input" style="height: 60px; margin-top: 4px; resize: none;" placeholder="Enter test prompt to evaluate agent response..."></textarea>
-          </div>
+        <button class="btn btn-secondary" id="modal-close" style="padding: 4px 8px;">✕</button>
+      </div>
+      <div class="modal-body">
+        <div>
+          <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">DESCRIPTION:</span>
+          <p id="modal-desc" style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;"></p>
         </div>
-        <div class="modal-footer">
-    <!-- Slide-Out Multi-Session Drawer -->
-    <div class="drawer-overlay" id="session-drawer-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; backdrop-filter: blur(4px);">
-      <div class="drawer-content" id="session-drawer" style="position: absolute; top: 0; left: 0; bottom: 0; width: 360px; background: #0B1120; border-right: 1px solid var(--border-subtle); display: flex; flex-direction: column; box-shadow: 10px 0 30px rgba(0,0,0,0.5);">
-        <div style="padding: 16px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <h3 style="font-size: 15px; font-weight: 700; color: #F8FAFC;">Multi-Agent Sessions</h3>
-            <span style="font-size: 11px; color: var(--text-muted);">Active & Archived Workflows</span>
-          </div>
-          <button class="btn btn-secondary" id="btn-close-sessions" style="padding: 4px 8px;">✕</button>
+        <div>
+          <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">SYSTEM PROMPT / INSTRUCTIONS:</span>
+          <pre id="modal-prompt" style="background: #050914; border: 1px solid var(--border-subtle); padding: 12px; border-radius: 6px; font-size: 11px; max-height: 200px; overflow-y: auto; color: #CBD5E1;"></pre>
         </div>
-        <div style="padding: 12px; border-bottom: 1px solid var(--border-subtle);">
-          <button class="btn btn-primary" id="btn-new-session" style="width: 100%; justify-content: center; font-size: 12px;">+ New Agent Session</button>
+        <div>
+          <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">PROMPT TEST RUNNER:</span>
+          <textarea id="modal-test-input" class="search-input" style="height: 60px; margin-top: 4px; resize: none;" placeholder="Enter test prompt to evaluate agent response..."></textarea>
         </div>
-        <div id="session-list-container" style="flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px;"></div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button class="btn btn-secondary" id="modal-close-footer" style="padding: 6px 14px; font-size: 12px;">Close</button>
       </div>
     </div>
+  </div>
 
-    <!-- Platform Settings & LLM Provider Hub Modal -->
-    <div class="modal-overlay" id="settings-modal" style="display: none;">
-      <div class="modal-dialog" style="max-width: 600px;">
-        <div class="modal-header">
-          <div>
-            <h3 style="font-size: 16px; font-weight: 700;">Platform Settings & LLM Provider Hub</h3>
-            <span class="badge-tag" style="margin-top: 4px;">Universal Model Gateway</span>
-          </div>
-          <button class="btn btn-secondary" id="settings-modal-close" style="padding: 4px 8px;">✕</button>
+  <!-- 2. Slide-Out Multi-Session Drawer -->
+  <div class="drawer-overlay" id="session-drawer-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 10000; backdrop-filter: blur(8px);">
+    <div class="drawer-content" id="session-drawer" style="position: absolute; top: 0; left: 0; bottom: 0; width: 380px; background: #0B1120; border-right: 1px solid rgba(56, 189, 248, 0.25); display: flex; flex-direction: column; box-shadow: 10px 0 35px rgba(0,0,0,0.7);">
+      <div style="padding: 16px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 style="font-size: 15px; font-weight: 700; color: #F8FAFC;">Multi-Agent Sessions</h3>
+          <span style="font-size: 11px; color: var(--text-muted);">Active & Archived Workflows</span>
         </div>
-        <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px;">
+        <button class="btn btn-secondary" id="btn-close-sessions" style="padding: 4px 8px;">✕</button>
+      </div>
+      <div style="padding: 12px; border-bottom: 1px solid var(--border-subtle);">
+        <button class="btn btn-primary" id="btn-new-session" style="width: 100%; justify-content: center; font-size: 12px;">+ New Agent Session</button>
+      </div>
+      <div id="session-list-container" style="flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px;"></div>
+    </div>
+  </div>
+
+  <!-- 3. Platform Settings & LLM Provider Hub Modal -->
+  <div class="modal-overlay" id="settings-modal" style="display: none; z-index: 10000;" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+    <div class="modal-dialog" style="max-width: 600px;">
+      <div class="modal-header">
+        <div>
+          <h3 id="settings-modal-title" style="font-size: 16px; font-weight: 700;">Platform Settings & LLM Provider Hub</h3>
+          <span class="badge-tag" style="margin-top: 4px;">Universal Model Gateway</span>
+        </div>
+        <button class="btn btn-secondary" id="settings-modal-close" style="padding: 4px 8px;" aria-label="Close settings">✕</button>
+      </div>
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px;">
+        <div>
+          <label for="settings-provider-select" style="font-size: 11px; font-weight: 600; color: var(--text-muted);">ACTIVE LLM PROVIDER:</label>
+          <select id="settings-provider-select" class="session-dropdown" style="width: 100%; margin-top: 4px; padding: 8px; background: #050914; border: 1px solid var(--border-subtle); color: #F8FAFC; border-radius: 6px;">
+            <option value="anthropic">Anthropic (Claude 3.7 Sonnet / Opus)</option>
+            <option value="openai">OpenAI (GPT-4o / o3-mini)</option>
+            <option value="gemini">Google Gemini (Gemini 2.5 Pro)</option>
+            <option value="ollama">Ollama Local Engine (Qwen 2.5 Coder / Llama / DeepSeek)</option>
+          </select>
+        </div>
+
+        <div id="settings-keys-group" style="display: flex; flex-direction: column; gap: 10px;">
           <div>
-            <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">ACTIVE LLM PROVIDER:</label>
-            <select id="settings-provider-select" class="session-dropdown" style="width: 100%; margin-top: 4px; padding: 8px; background: #050914; border: 1px solid var(--border-subtle); color: #F8FAFC; border-radius: 6px;">
-              <option value="mock">High-Fidelity Deterministic Simulator (Offline / Dev)</option>
-              <option value="anthropic">Anthropic (Claude 3.7 Sonnet / Opus)</option>
-              <option value="openai">OpenAI (GPT-4o / o3-mini)</option>
-              <option value="gemini">Google Gemini (Gemini 2.5 Pro)</option>
-              <option value="ollama">Ollama Local Engine (Llama 3.3 / Qwen)</option>
-            </select>
+            <label for="settings-anthropic-key" style="font-size: 11px; font-weight: 600; color: var(--text-muted);">ANTHROPIC API KEY:</label>
+            <input type="password" id="settings-anthropic-key" class="search-input" style="width: 100%; margin-top: 4px; box-sizing: border-box;" placeholder="sk-ant-...">
           </div>
-
-          <div id="settings-keys-group" style="display: flex; flex-direction: column; gap: 10px;">
-            <div>
-              <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">ANTHROPIC API KEY:</label>
-              <input type="password" id="settings-anthropic-key" class="search-input" style="width: 100%; margin-top: 4px; box-sizing: border-box;" placeholder="sk-ant-...">
-            </div>
-            <div>
-              <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">OPENAI API KEY:</label>
-              <input type="password" id="settings-openai-key" class="search-input" style="width: 100%; margin-top: 4px; box-sizing: border-box;" placeholder="sk-proj-...">
-            </div>
-            <div>
-              <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">GOOGLE GEMINI API KEY:</label>
-              <input type="password" id="settings-gemini-key" class="search-input" style="width: 100%; margin-top: 4px; box-sizing: border-box;" placeholder="AIzaSy...">
-            </div>
-            <div>
-              <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">OLLAMA HOST ENDPOINT:</label>
-              <input type="text" id="settings-ollama-host" class="search-input" style="width: 100%; margin-top: 4px; box-sizing: border-box;" value="http://localhost:11434">
-            </div>
+          <div>
+            <label for="settings-openai-key" style="font-size: 11px; font-weight: 600; color: var(--text-muted);">OPENAI API KEY:</label>
+            <input type="password" id="settings-openai-key" class="search-input" style="width: 100%; margin-top: 4px; box-sizing: border-box;" placeholder="sk-proj-...">
           </div>
-
-          <div style="border-top: 1px solid var(--border-subtle); padding-top: 12px; display: flex; flex-direction: column; gap: 10px;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <div style="font-size: 13px; font-weight: 600;">Sandbox Command Blocker</div>
-                <div style="font-size: 11px; color: var(--text-muted);">Neutralize destructive commands and credential leaks</div>
-              </div>
-              <input type="checkbox" id="settings-sandbox-toggle" checked style="transform: scale(1.2); cursor: pointer;">
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <div style="font-size: 13px; font-weight: 600;">Git Worktree Subagent Isolation</div>
-                <div style="font-size: 11px; color: var(--text-muted);">Execute parallel agents in isolated worktree branches</div>
-              </div>
-              <input type="checkbox" id="settings-worktree-toggle" checked style="transform: scale(1.2); cursor: pointer;">
-            </div>
+          <div>
+            <label for="settings-gemini-key" style="font-size: 11px; font-weight: 600; color: var(--text-muted);">GOOGLE GEMINI API KEY:</label>
+            <input type="password" id="settings-gemini-key" class="search-input" style="width: 100%; margin-top: 4px; box-sizing: border-box;" placeholder="AIzaSy...">
+          </div>
+          <div>
+            <label for="settings-ollama-host" style="font-size: 11px; font-weight: 600; color: var(--text-muted);">OLLAMA HOST ENDPOINT:</label>
+            <input type="text" id="settings-ollama-host" class="search-input" style="width: 100%; margin-top: 4px; box-sizing: border-box;" value="http://localhost:11434">
+          </div>
+          <div>
+            <label for="settings-ollama-model" style="font-size: 11px; font-weight: 600; color: var(--text-muted);">OLLAMA MODEL (e.g. qwen2.5-coder:7b):</label>
+            <input type="text" id="settings-ollama-model" class="search-input" style="width: 100%; margin-top: 4px; box-sizing: border-box;" value="qwen2.5-coder:7b" placeholder="qwen2.5-coder:7b">
           </div>
         </div>
-        <div class="modal-footer" style="display: flex; justify-content: space-between;">
-          <button class="btn btn-secondary" id="btn-test-provider" style="font-size: 12px;">Test Connection</button>
-          <div style="display: flex; gap: 8px;">
-            <button class="btn btn-secondary" id="settings-modal-cancel">Cancel</button>
-            <button class="btn btn-primary" id="settings-modal-save">Save Settings</button>
+
+        <div style="border-top: 1px solid var(--border-subtle); padding-top: 12px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <label for="settings-sandbox-toggle" style="font-size: 13px; font-weight: 600;">Sandbox Command Blocker</label>
+              <div style="font-size: 11px; color: var(--text-muted);">Neutralize destructive commands and credential leaks</div>
+            </div>
+            <input type="checkbox" id="settings-sandbox-toggle" checked style="transform: scale(1.2); cursor: pointer;">
           </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <label for="settings-worktree-toggle" style="font-size: 13px; font-weight: 600;">Git Worktree Subagent Isolation</label>
+              <div style="font-size: 11px; color: var(--text-muted);">Execute parallel agents in isolated worktree branches</div>
+            </div>
+            <input type="checkbox" id="settings-worktree-toggle" checked style="transform: scale(1.2); cursor: pointer;">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between;">
+        <button class="btn btn-secondary" id="btn-test-provider" style="font-size: 12px;">Test Connection</button>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary" id="settings-modal-cancel">Cancel</button>
+          <button class="btn btn-primary" id="settings-modal-save">Save Settings</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Add Durable Memory Modal -->
-  <div class="modal-backdrop" id="modal-add-memory" style="display: none;">
+  <!-- 4. Add Durable Memory Modal -->
+  <div class="modal-backdrop" id="modal-add-memory" style="display: none; z-index: 10000;" role="dialog" aria-modal="true" aria-labelledby="add-memory-title-heading">
     <div class="modal-card" style="max-width: 520px; border: 1px solid var(--border-focus);">
       <div class="modal-header">
         <div class="modal-title-group">
-          <span class="modal-title">Record Durable Memory</span>
+          <span class="modal-title" id="add-memory-title-heading">Record Durable Memory</span>
           <span class="modal-subtitle">Save project or team policy into OAS Memory Vault with SHA-256 integrity</span>
         </div>
         <button class="modal-close" id="btn-close-add-memory">&times;</button>
@@ -681,6 +1181,668 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <!-- 5. Universal Command Palette (⌘K / Ctrl+K) -->
+  <div class="command-palette-backdrop" id="command-palette-modal" style="display: none; z-index: 10000;" role="dialog" aria-modal="true" aria-labelledby="palette-search-label">
+    <div class="command-palette-dialog">
+      <div class="command-palette-header">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--brand-blue);"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <label id="palette-search-label" class="sr-only">Search agents, skills, and commands</label>
+        <input type="text" id="palette-search-input" class="command-palette-input" placeholder="Type a command, agent, or skill... (Esc to exit)" autocomplete="off" spellcheck="false">
+        <span class="kbd-pill">ESC</span>
+      </div>
+      <div class="command-palette-body" id="palette-results-list" role="listbox">
+        <!-- Dynamically injected items -->
+      </div>
+      <div class="command-palette-footer">
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <span><span class="kbd-pill">↑</span> <span class="kbd-pill">↓</span> Navigate</span>
+          <span><span class="kbd-pill">↵</span> Select</span>
+          <span><span class="kbd-pill">1-7</span> Switch View</span>
+        </div>
+        <div>
+          <span>OAS Control Plane v2.2.1</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Quick Run Pipeline Dialog Modal -->
+  <div class="hitl-modal-overlay" id="pipeline-runner-modal" style="display: none; z-index: 10000;" role="dialog" aria-modal="true" aria-labelledby="pipeline-runner-title">
+    <div class="hitl-modal-dialog" style="max-width: 680px;">
+      <div class="hitl-modal-header" style="border-bottom: 1px solid rgba(56, 189, 248, 0.25);">
+        <div class="hitl-title-row">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <div>
+            <h3 id="pipeline-runner-title" style="font-size: 15px; font-weight: 700; color: #F8FAFC;">Autonomous Pipeline Launcher</h3>
+            <span style="font-size: 11px; color: var(--text-muted);">Execute multi-agent orchestration workflows across targets</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" id="btn-close-pipeline-modal" style="padding: 4px 10px; font-size: 12px;">✕ Close</button>
+      </div>
+      <div class="hitl-body" style="padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+        <div>
+          <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">SELECT PIPELINE ARCHETYPE:</label>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+            <button type="button" class="btn btn-secondary pipeline-preset-btn active" data-pipeline-type="feature_lifecycle" data-intent="Deploy feature and verify full contract integrity" style="text-align: left; padding: 10px; border-color: rgba(56, 189, 248, 0.4);">
+              <div style="font-weight: 700; color: #38BDF8; font-size: 12px;">Feature Lifecycle</div>
+              <div style="font-size: 10px; color: var(--text-muted);">Planner → Architect → TDD → Code Review</div>
+            </button>
+            <button type="button" class="btn btn-secondary pipeline-preset-btn" data-pipeline-type="security_audit" data-intent="Execute zero-day IOC scan and supply-chain dependency audit" style="text-align: left; padding: 10px;">
+              <div style="font-weight: 700; color: #34D399; font-size: 12px;">Security & Supply Chain</div>
+              <div style="font-size: 10px; color: var(--text-muted);">AgentShield → Static AST → Lockfile verification</div>
+            </button>
+            <button type="button" class="btn btn-secondary pipeline-preset-btn" data-pipeline-type="tdd_autonomous" data-intent="Run Red-Green TDD battery and enforce 80%+ branch coverage" style="text-align: left; padding: 10px;">
+              <div style="font-weight: 700; color: #F59E0B; font-size: 12px;">TDD Autonomous Fix</div>
+              <div style="font-size: 10px; color: var(--text-muted);">tdd-guide → test runner → refactor cleaner</div>
+            </button>
+            <button type="button" class="btn btn-secondary pipeline-preset-btn" data-pipeline-type="spec_miner" data-intent="Extract Brownfield architecture invariants and OpenRPC contracts" style="text-align: left; padding: 10px;">
+              <div style="font-weight: 700; color: #A78BFA; font-size: 12px;">Spec Mining & Docs</div>
+              <div style="font-size: 10px; color: var(--text-muted);">spec-miner → doc-updater → OpenAPI spec</div>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label for="pipeline-intent-input" style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">MISSION INTENT / PROMPT:</label>
+          <input type="text" id="pipeline-intent-input" class="search-input" style="width: 100%; box-sizing: border-box;" value="Deploy feature and verify full contract integrity">
+        </div>
+
+        <div style="display: flex; gap: 12px;">
+          <div style="flex: 1;">
+            <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">LEAD AGENT:</label>
+            <select id="pipeline-lead-agent-select" class="session-dropdown" style="width: 100%; padding: 7px; background: #050914; border: 1px solid var(--border-subtle); color: #F8FAFC; border-radius: 6px;">
+              <option value="planner">planner (Implementation Planning)</option>
+              <option value="architect">architect (System Scalability)</option>
+              <option value="tdd-guide" selected>tdd-guide (Test-Driven Development)</option>
+              <option value="security-reviewer">security-reviewer (Vulnerability & IOC)</option>
+            </select>
+          </div>
+          <div style="flex: 1;">
+            <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">TARGET HARNESS:</label>
+            <select id="pipeline-harness-select" class="session-dropdown" style="width: 100%; padding: 7px; background: #050914; border: 1px solid var(--border-subtle); color: #F8FAFC; border-radius: 6px;">
+              <option value="universal" selected>Universal (Claude Code + Codex + Cursor)</option>
+              <option value="claude-code">Claude Code Native</option>
+              <option value="gemini-antigravity">Google Antigravity SDK</option>
+              <option value="opencode">OpenCode / Hermes</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="hitl-modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button class="btn btn-secondary" id="btn-cancel-pipeline">Cancel</button>
+        <button class="btn btn-primary" id="btn-launch-pipeline-action" style="padding: 6px 18px; font-size: 12px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span>Launch Pipeline</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. Human-in-the-Loop (HITL) Security Approval Modal -->
+  <div class="hitl-modal-overlay" id="hitl-modal" style="display: none; z-index: 10000;" role="alertdialog" aria-modal="true" aria-labelledby="hitl-modal-title">
+    <div class="hitl-modal-dialog">
+      <div class="hitl-modal-header">
+        <div class="hitl-title-row">
+          <svg class="hitl-warning-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <div>
+            <h3 id="hitl-modal-title" style="font-size: 15px; font-weight: 700; color: #F8FAFC;">Human-in-the-Loop Approval Required</h3>
+            <span style="font-size: 11px; color: var(--text-muted);">Sandbox Bypass or Sensitive Tool Invocations Intercepted</span>
+          </div>
+        </div>
+        <span class="hitl-risk-badge risk-high" id="hitl-risk-badge">HIGH RISK</span>
+      </div>
+      <div class="hitl-body">
+        <div class="hitl-info-grid">
+          <div>
+            <div class="hitl-meta-label">Invoking Agent</div>
+            <div class="hitl-meta-val" id="hitl-agent-name">security-reviewer</div>
+          </div>
+          <div>
+            <div class="hitl-meta-label">Tool Action</div>
+            <div class="hitl-meta-val" id="hitl-tool-action">run_command</div>
+          </div>
+          <div>
+            <div class="hitl-meta-label">Execution Guard</div>
+            <div class="hitl-meta-val" id="hitl-guard-type">Sandbox Check</div>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">COMMAND / PARAMETER PAYLOAD:</div>
+          <div class="hitl-command-preview" id="hitl-command-preview">run_command --bypass-sandbox "npm audit fix --force"</div>
+        </div>
+
+        <div>
+          <label for="hitl-feedback-text" style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block;">INJECT OPERATOR FEEDBACK / STDIN (OPTIONAL):</label>
+          <input type="text" id="hitl-feedback-text" class="hitl-feedback-input" placeholder="e.g. Reject package deletion, proceed only with patch fixes...">
+        </div>
+      </div>
+      <div class="hitl-modal-footer">
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-hitl-deny" id="btn-hitl-deny">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <span>Deny & Abort [D]</span>
+          </button>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn btn-secondary" id="btn-hitl-feedback">
+            <span>Send Feedback [I]</span>
+          </button>
+          <button class="btn-hitl-approve" id="btn-hitl-approve">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Authorize & Continue [A]</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. Harness Adapter Compliance Scorecard Modal -->
+  <div class="hitl-modal-overlay" id="harness-compliance-modal" style="display: none; z-index: 10000;" role="dialog" aria-modal="true" aria-labelledby="compliance-modal-title">
+    <div class="hitl-modal-dialog" style="max-width: 900px; width: 90%;">
+      <div class="hitl-modal-header" style="border-bottom: 1px solid rgba(56, 189, 248, 0.2);">
+        <div class="hitl-title-row">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <div>
+            <h3 id="compliance-modal-title" style="font-size: 15px; font-weight: 700; color: #F8FAFC;">Harness Adapter Compliance Scorecard</h3>
+            <span style="font-size: 11px; color: var(--text-muted);">12-Target Cross-Harness Matrix (schema_version: oas.harness-adapter-compliance.v1)</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" id="btn-close-compliance" style="padding: 4px 10px; font-size: 12px;">✕ Close</button>
+      </div>
+      <div class="hitl-body" style="max-height: 520px; overflow-y: auto; padding: 16px;">
+        <div id="compliance-scorecard-content">
+          <div style="text-align: center; color: var(--text-muted); padding: 20px;">Loading 12-target harness compliance matrix...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. AgentShield Enterprise Security & Supply Chain Audit Modal -->
+  <div class="hitl-modal-overlay" id="security-audit-modal" style="display: none; z-index: 10000;" role="dialog" aria-modal="true" aria-labelledby="security-modal-title">
+    <div class="hitl-modal-dialog" style="max-width: 820px; width: 90%;">
+      <div class="hitl-modal-header" style="border-bottom: 1px solid rgba(52, 211, 153, 0.2);">
+        <div class="hitl-title-row">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <div>
+            <h3 id="security-modal-title" style="font-size: 15px; font-weight: 700; color: #F8FAFC;">AgentShield Security & Supply Chain Audit</h3>
+            <span style="font-size: 11px; color: var(--text-muted);">Real-time IOC detection, package security, and unencrypted credential scan</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" id="btn-close-security" style="padding: 4px 10px; font-size: 12px;">✕ Close</button>
+      </div>
+      <div class="hitl-body" style="max-height: 520px; overflow-y: auto; padding: 16px;">
+        <div id="security-audit-content">
+          <div style="text-align: center; color: var(--text-muted); padding: 20px;">Loading security posture...</div>
+        </div>
+      </div>
+      <div class="hitl-modal-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div style="display: flex; gap: 6px;">
+          <button class="btn btn-secondary" id="btn-export-sbom" style="font-size: 11px; padding: 6px 12px; color: #34D399; border-color: rgba(52, 211, 153, 0.3);" title="Download standard CycloneDX v1.5 SBOM JSON">📦 Export CycloneDX SBOM</button>
+          <button class="btn btn-secondary" id="btn-export-aipom" style="font-size: 11px; padding: 6px 12px; color: #38BDF8; border-color: rgba(56, 189, 248, 0.3);" title="Download OAS AI Bill of Materials (AIPOM) JSON">🤖 Export AIPOM Spec</button>
+        </div>
+        <button class="btn btn-primary" id="btn-retrigger-security-scan" style="font-size: 11px; padding: 6px 14px;">Re-run Full Security Scan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10. OAS 2.0 HUD Status Modal (docs/architecture/hud-status-session-control.md) -->
+  <div class="hitl-modal-overlay" id="hud-status-modal" style="display: none; z-index: 10000;" role="dialog" aria-modal="true" aria-labelledby="hud-modal-title">
+    <div class="hitl-modal-dialog" style="max-width: 800px; width: 90%;">
+      <div class="hitl-modal-header" style="border-bottom: 1px solid rgba(56, 189, 248, 0.2);">
+        <div class="hitl-title-row">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          <div>
+            <h3 id="hud-modal-title" style="font-size: 15px; font-weight: 700; color: #F8FAFC;">OAS 2.0 HUD Statusline & Session Controls</h3>
+            <span style="font-size: 11px; color: var(--text-muted);">schema_version: oas.hud-status.v1</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" id="btn-close-hud" style="padding: 4px 10px; font-size: 12px;">✕ Close</button>
+      </div>
+      <div class="hitl-body" style="max-height: 520px; overflow-y: auto; padding: 16px;">
+        <div id="hud-status-payload-view" style="font-family: monospace; font-size: 11px; color: #94A3B8; background: #050914; padding: 14px; border-radius: 6px; border: 1px solid var(--border-subtle); white-space: pre-wrap;">
+Loading HUD status payload...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11. TCAS Layer 4 Agent Proximity & Collision Avoidance Modal -->
+  <div class="hitl-modal-overlay" id="tcas-modal" style="display: none; z-index: 10000;" role="dialog" aria-modal="true" aria-labelledby="tcas-modal-title">
+    <div class="hitl-modal-dialog" style="max-width: 840px; width: 92%;">
+      <div class="hitl-modal-header" style="border-bottom: 1px solid rgba(245, 158, 11, 0.25);">
+        <div class="hitl-title-row">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <div>
+            <h3 id="tcas-modal-title" style="font-size: 15px; font-weight: 700; color: #F8FAFC;">TCAS Layer 4 Spatial Deconfliction & Collision Avoidance</h3>
+            <span style="font-size: 11px; color: var(--text-muted);">schema_version: oas.proximity.v1 • Traffic (TA) & Resolution (RA) Advisories</span>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary" id="btn-retrigger-tcas-scan" style="padding: 4px 10px; font-size: 12px; color: #F59E0B;">⟳ Rescan Airspace</button>
+          <button class="btn btn-secondary" id="btn-close-tcas" style="padding: 4px 10px; font-size: 12px;">✕ Close</button>
+        </div>
+      </div>
+      <div class="hitl-body" style="max-height: 520px; overflow-y: auto; padding: 16px;" id="tcas-modal-content">
+        <div style="text-align: center; color: #F59E0B; padding: 24px;">Scanning active agent airspace and computing 3D code-space coordinates...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12. OAS 2.0 Observability Readiness Gate Modal -->
+  <div class="hitl-modal-overlay" id="observability-modal" style="display: none; z-index: 10000;" role="dialog" aria-modal="true" aria-labelledby="obs-modal-title">
+    <div class="hitl-modal-dialog" style="max-width: 820px; width: 90%;">
+      <div class="hitl-modal-header" style="border-bottom: 1px solid rgba(167, 139, 250, 0.25);">
+        <div class="hitl-title-row">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+          <div>
+            <h3 id="obs-modal-title" style="font-size: 15px; font-weight: 700; color: #F8FAFC;">OAS 2.0 Observability Readiness Gate (21/21)</h3>
+            <span style="font-size: 11px; color: var(--text-muted);">Deterministic Repository Signal Model & Pre-Flight Scorecard</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" id="btn-close-observability" style="padding: 4px 10px; font-size: 12px;">✕ Close</button>
+      </div>
+      <div class="hitl-body" style="max-height: 520px; overflow-y: auto; padding: 16px;" id="observability-modal-content">
+        <div style="text-align: center; color: #A78BFA; padding: 24px;">Loading observability readiness verification report...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 13. OAS Multi-Model Arena & Benchmark Lab Modal (Direction D) -->
+  <div class="hitl-modal-overlay" id="arena-benchmark-modal" style="display: none; z-index: 10000;" role="dialog" aria-modal="true" aria-labelledby="arena-modal-title">
+    <div class="hitl-modal-dialog" style="max-width: 960px; width: 95%;">
+      <div class="hitl-modal-header" style="border-bottom: 1px solid rgba(236, 72, 153, 0.25);">
+        <div class="hitl-title-row">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="m10 13-2 2 2 2"/><path d="m14 17 2-2-2-2"/></svg>
+          <div>
+            <h3 id="arena-modal-title" style="font-size: 15px; font-weight: 700; color: #F8FAFC;">⚔️ OAS Multi-Model Arena & Benchmark Lab</h3>
+            <span style="font-size: 11px; color: var(--text-muted);">Side-by-side model evaluation for latency, token throughput, reasoning depth, and spec adherence</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" id="btn-close-arena" style="padding: 4px 10px; font-size: 12px;">✕ Close</button>
+      </div>
+      <div class="hitl-body" style="max-height: 560px; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+        <!-- Prompt and Model Selection Bar -->
+        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.5px;">BENCHMARK PROMPT & TASK INTENT</label>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <span style="font-size: 10px; color: var(--text-muted);">Presets:</span>
+              <select id="arena-prompt-preset" style="background: #0B1120; border: 1px solid var(--border-subtle); color: #93C5FD; font-size: 10.5px; padding: 2px 6px; border-radius: 4px; cursor: pointer;">
+                <option value="rate_limiter" selected>Immutable Rate Limiter (TDD + Spec)</option>
+                <option value="state_reducer">Pure Functional State Reducer</option>
+                <option value="ast_analyzer">AST Security Tokenizer</option>
+                <option value="tcas_resolver">Distributed TCAS Spatial Resolver</option>
+                <option value="custom">Custom Prompt</option>
+              </select>
+            </div>
+          </div>
+          <textarea id="arena-prompt-input" rows="2" style="background: #070D1E; border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; color: #F1F5F9; padding: 8px 10px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; resize: vertical; outline: none; width: 100%; box-sizing: border-box;">Design an immutable thread-safe rate limiter with test-driven coverage.</textarea>
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+              <span style="font-size: 11px; font-weight: 700; color: var(--text-secondary);">MODELS:</span>
+              <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: #E2E8F0; cursor: pointer;">
+                <input type="checkbox" class="arena-model-cb" value="qwen2.5-coder:7b" checked style="accent-color: #38BDF8;"> Qwen 2.5 Coder (Ollama)
+              </label>
+              <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: #E2E8F0; cursor: pointer;">
+                <input type="checkbox" class="arena-model-cb" value="claude-3-7-sonnet" style="accent-color: #38BDF8;"> Claude 3.7 Sonnet
+              </label>
+              <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: #E2E8F0; cursor: pointer;">
+                <input type="checkbox" class="arena-model-cb" value="gpt-4o" style="accent-color: #10B981;"> GPT-4o
+              </label>
+              <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: #E2E8F0; cursor: pointer;">
+                <input type="checkbox" class="arena-model-cb" value="gemini-2.0-flash" style="accent-color: #F59E0B;"> Gemini 2.0 Flash
+              </label>
+              <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: #E2E8F0; cursor: pointer;">
+                <input type="checkbox" class="arena-model-cb" value="o3-mini" style="accent-color: #A78BFA;"> o3-mini
+              </label>
+            </div>
+            <button class="btn btn-primary" id="btn-run-arena-benchmark" style="font-size: 11px; padding: 6px 16px; background: #EC4899; border-color: #F472B6;">
+              <span>⚔️ Run Arena Benchmark</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Winners Banner -->
+        <div id="arena-winners-banner" style="display: none; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+          <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; padding: 8px 12px;">
+            <div style="font-size: 10px; color: #34D399; font-weight: 700;">⚡ SPEED WINNER</div>
+            <div id="arena-winner-speed" style="font-size: 13px; font-weight: 700; color: #F8FAFC;">--</div>
+          </div>
+          <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 8px 12px;">
+            <div style="font-size: 10px; color: #38BDF8; font-weight: 700;">🧠 REASONING & SPEC WINNER</div>
+            <div id="arena-winner-reasoning" style="font-size: 13px; font-weight: 700; color: #F8FAFC;">--</div>
+          </div>
+          <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; padding: 8px 12px;">
+            <div style="font-size: 10px; color: #FBBF24; font-weight: 700;">💰 COST EFFICIENCY WINNER</div>
+            <div id="arena-winner-cost" style="font-size: 13px; font-weight: 700; color: #F8FAFC;">--</div>
+          </div>
+        </div>
+
+        <!-- Side-by-Side Arena Comparison Cards -->
+        <div id="arena-results-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;">
+          <div style="text-align: center; color: var(--text-muted); padding: 40px; grid-column: 1 / -1;">
+            Select models, configure task prompt, and click "Run Arena Benchmark" to evaluate models head-to-head.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 14. Terminal Drawer & Autonomous Self-Healing Runner (Step 1) -->
+  <div id="terminal-drawer" class="terminal-drawer" style="display: none; position: fixed; bottom: 0; left: 0; right: 0; height: 340px; background: rgba(3, 7, 18, 0.98); border-top: 2px solid #F59E0B; z-index: 9000; box-shadow: 0 -8px 30px rgba(0,0,0,0.8); flex-direction: column;">
+    <div class="terminal-drawer-header" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 14px; background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid rgba(245, 158, 11, 0.2);">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 11.5px; font-weight: 700; color: #FBBF24; display: flex; align-items: center; gap: 5px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          OAS In-Browser Live Terminal & Auto-Healer
+        </span>
+        <div style="display: flex; gap: 4px;">
+          <button class="btn btn-ghost btn-sm active" id="tab-term-console" style="padding: 2px 8px; font-size: 10px; color: #F8FAFC;">Console / PTY</button>
+          <button class="btn btn-ghost btn-sm" id="tab-term-healer" style="padding: 2px 8px; font-size: 10px; color: #34D399;">Auto-Healer Interceptor</button>
+        </div>
+      </div>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <button class="btn btn-secondary btn-sm" id="btn-term-clear" style="font-size: 10px; padding: 2px 8px;">Clear</button>
+        <button class="btn btn-ghost btn-sm" id="btn-close-terminal" style="font-size: 11px; padding: 2px 8px;">✕ Minimize</button>
+      </div>
+    </div>
+
+    <!-- Terminal Body: Console View -->
+    <div id="terminal-console-view" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: rgba(8, 14, 30, 0.8); border-bottom: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
+        <span style="font-size: 10px; color: var(--text-muted);">Presets:</span>
+        <button class="btn btn-secondary btn-sm term-preset-btn" data-cmd="/usr/local/bin/node tests/comprehensive-app-e2e.test.js" style="font-size: 10px; padding: 1px 6px;">Run E2E Suite</button>
+        <button class="btn btn-secondary btn-sm term-preset-btn" data-cmd="/usr/local/bin/node --check apps/api/src/server.js apps/web/app.js" style="font-size: 10px; padding: 1px 6px;">Syntax Check</button>
+        <button class="btn btn-secondary btn-sm term-preset-btn" data-cmd="git status --short" style="font-size: 10px; padding: 1px 6px;">Git Status</button>
+        <button class="btn btn-secondary btn-sm term-preset-btn" data-cmd="node -e 'throw new TypeError(\"Rate limiter history array expected\")'" style="font-size: 10px; padding: 1px 6px; color: #F87171;">Simulate Crash</button>
+      </div>
+
+      <pre id="terminal-output" style="flex: 1; margin: 0; padding: 10px 14px; background: #030712; color: #A7F3D0; font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.45; overflow-y: auto; white-space: pre-wrap; word-break: break-all;">[OAS Cloud Control Plane Terminal v2.2.1 initialized]
+Ready for sandboxed task execution. Enter a command below or select a preset.</pre>
+
+      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: rgba(15, 23, 42, 0.9); border-top: 1px solid rgba(255,255,255,0.08);">
+        <span style="color: #F59E0B; font-family: monospace; font-weight: bold; font-size: 12px;">$</span>
+        <input type="text" id="terminal-cmd-input" placeholder="Enter sandboxed command (e.g., node test.js)..." style="flex: 1; background: transparent; border: none; color: #F8FAFC; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; outline: none;" />
+        <button class="btn btn-primary btn-sm" id="btn-term-run" style="font-size: 10.5px; padding: 4px 12px; background: #F59E0B; border-color: #FBBF24; color: #000; font-weight: 700;">Run Command</button>
+      </div>
+    </div>
+
+    <!-- Terminal Body: Healer View -->
+    <div id="terminal-healer-view" style="flex: 1; display: none; padding: 12px 16px; overflow-y: auto; flex-direction: column; gap: 10px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 6px; padding: 8px 12px;">
+        <div>
+          <span style="font-size: 11px; font-weight: 700; color: #34D399;">🚑 AUTONOMOUS ERROR INTERCEPTOR & HEALING LOOP</span>
+          <p style="margin: 2px 0 0; font-size: 10.5px; color: var(--text-muted);">Monitors stderr, captures stack traces, and synthesizes verifiable surgical diff patches.</p>
+        </div>
+        <button class="btn btn-primary btn-sm" id="btn-trigger-self-heal" style="font-size: 10.5px; padding: 4px 12px; background: #10B981; border-color: #34D399;">Analyze & Auto-Heal</button>
+      </div>
+      <div id="terminal-healer-result" style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="color: var(--text-muted); font-size: 11px; text-align: center; padding: 30px;">
+          No active errors captured. When a test or command fails with an exception, the healer will present a verified diff patch here.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 15. Council of Agents Multi-Agent Consensus Modal (Step 2) -->
+  <div class="hitl-modal-overlay" id="council-debate-modal" style="display: none; z-index: 10000;" role="dialog" aria-modal="true" aria-labelledby="council-modal-title">
+    <div class="hitl-modal-dialog" style="max-width: 960px; width: 95%;">
+      <div class="hitl-modal-header" style="border-bottom: 1px solid rgba(56, 189, 248, 0.25);">
+        <div class="hitl-title-row">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <div>
+            <h3 id="council-modal-title" style="font-size: 15px; font-weight: 700; color: #F8FAFC;">🏛️ Council of Agents Deliberation Chamber</h3>
+            <span style="font-size: 11px; color: var(--text-muted);">Multi-agent engineering debate across Architect, Security Reviewer, TDD Guide, and Planner</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" id="btn-close-council" style="padding: 4px 10px; font-size: 12px;">✕ Close</button>
+      </div>
+      <div class="hitl-body" style="max-height: 560px; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+        <!-- Council Setup Header -->
+        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <label style="font-size: 11px; font-weight: 700; color: #38BDF8;">DELIBERATION TOPIC & ARCHITECTURAL QUESTION</label>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <span style="font-size: 10px; color: var(--text-muted);">Mode:</span>
+              <select id="council-mode-select" style="background: #0B1120; border: 1px solid var(--border-subtle); color: #93C5FD; font-size: 10.5px; padding: 2px 6px; border-radius: 4px;">
+                <option value="architecture" selected>Architecture & Repository Pattern</option>
+                <option value="security">Security Ingress & Token Boundary</option>
+                <option value="refactor">Decoupled State Machine Refactor</option>
+                <option value="custom">Custom Engineering Topic</option>
+              </select>
+            </div>
+          </div>
+          <input type="text" id="council-topic-input" value="Transition from monolithic state to distributed immutable event store" style="background: #070D1E; border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; color: #F1F5F9; padding: 8px 10px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; width: 100%; box-sizing: border-box;" />
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; gap: 10px; align-items: center; font-size: 11px; color: var(--text-muted);">
+              <span>Participants:</span>
+              <span style="color: #38BDF8;">🏛️ Architect</span> &bull;
+              <span style="color: #34D399;">🛡️ Security Reviewer</span> &bull;
+              <span style="color: #FBBF24;">🧪 TDD Guide</span> &bull;
+              <span style="color: #A78BFA;">📋 Planner</span>
+            </div>
+            <button class="btn btn-primary" id="btn-run-council-debate" style="font-size: 11px; padding: 6px 16px; background: #0284C7; border-color: #38BDF8;">
+              <span>🏛️ Concurrently Convene Council</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Consensus Meter -->
+        <div id="council-consensus-banner" style="display: none; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 10px 14px; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 42px; height: 42px; border-radius: 50%; background: #0284C7; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800; color: #fff;" id="council-score-badge">96%</div>
+            <div>
+              <div style="font-size: 12px; font-weight: 700; color: #F8FAFC;">COUNCIL RATIFICATION REACHED</div>
+              <div style="font-size: 10.5px; color: var(--text-muted);" id="council-status-text">All 4 domain specialists concurred on architectural invariants and test strategy.</div>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btn-adopt-council-plan" style="font-size: 11px; padding: 5px 14px; background: #10B981; border-color: #34D399;">✓ Adopt Consensus Plan</button>
+        </div>
+
+        <!-- Deliberation Stream -->
+        <div id="council-rounds-container" style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="text-align: center; color: var(--text-muted); padding: 40px;">
+            Click "Concurrently Convene Council" to initiate multi-agent structured debate.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 16. Git Cloud Bridge & GitHub PR Generator Modal (Step 3) -->
+  <div class="hitl-modal-overlay" id="github-pr-modal" style="display: none; z-index: 10000;" role="dialog" aria-modal="true" aria-labelledby="github-pr-modal-title">
+    <div class="hitl-modal-dialog" style="max-width: 840px; width: 95%;">
+      <div class="hitl-modal-header" style="border-bottom: 1px solid rgba(96, 165, 250, 0.25);">
+        <div class="hitl-title-row">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
+          <div>
+            <h3 id="github-pr-modal-title" style="font-size: 15px; font-weight: 700; color: #F8FAFC;">🚀 Git Cloud Bridge & GitHub PR Generator</h3>
+            <span style="font-size: 11px; color: var(--text-muted);">Package session diffs, test evidence, and SBOM into a verified Conventional Commit Pull Request</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" id="btn-close-github-pr" style="padding: 4px 10px; font-size: 12px;">✕ Close</button>
+      </div>
+      <div class="hitl-body" style="max-height: 540px; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <label style="font-size: 10.5px; font-weight: 700; color: var(--text-secondary);">TARGET BRANCH</label>
+            <input type="text" id="pr-branch-input" value="feat/oas-frontier-enhancements" style="background: #0B1120; border: 1px solid var(--border-subtle); color: #F8FAFC; padding: 6px 10px; border-radius: 6px; width: 100%; box-sizing: border-box; font-family: monospace; font-size: 11px;" />
+          </div>
+          <div>
+            <label style="font-size: 10.5px; font-weight: 700; color: var(--text-secondary);">CONVENTIONAL COMMIT TYPE</label>
+            <select id="pr-type-select" style="background: #0B1120; border: 1px solid var(--border-subtle); color: #93C5FD; padding: 6px 10px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 11px;">
+              <option value="feat" selected>feat: New feature</option>
+              <option value="fix">fix: Bug fix</option>
+              <option value="refactor">refactor: Code refactoring</option>
+              <option value="perf">perf: Performance enhancement</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label style="font-size: 10.5px; font-weight: 700; color: var(--text-secondary);">PR TITLE</label>
+          <input type="text" id="pr-title-input" value="Advance OAS Studio with Self-Healing, Council Debate, and 3D Topology" style="background: #0B1120; border: 1px solid var(--border-subtle); color: #F8FAFC; padding: 6px 10px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 11.5px;" />
+        </div>
+        <div>
+          <label style="font-size: 10.5px; font-weight: 700; color: var(--text-secondary);">PR BODY MARKDOWN</label>
+          <textarea id="pr-body-preview" rows="9" style="background: #050B18; border: 1px solid rgba(56, 189, 248, 0.15); color: #E2E8F0; padding: 8px 10px; border-radius: 6px; width: 100%; box-sizing: border-box; font-family: 'JetBrains Mono', monospace; font-size: 11px; resize: vertical;"></textarea>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.6); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-subtle);">
+          <div style="display: flex; gap: 8px; font-size: 10.5px;">
+            <span class="badge-tag" style="color: #34D399; border-color: rgba(52, 211, 153, 0.3);">✓ SBOM Attached</span>
+            <span class="badge-tag" style="color: #38BDF8; border-color: rgba(56, 189, 248, 0.3);">✓ AIPOM Verified</span>
+            <span class="badge-tag" style="color: #FBBF24; border-color: rgba(245, 158, 11, 0.3);">✓ 40/40 E2E Passing</span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-secondary btn-sm" id="btn-copy-pr-markdown">Copy Markdown</button>
+            <button class="btn btn-primary btn-sm" id="btn-submit-github-pr" style="background: #2563EB; border-color: #60A5FA;">Create Pull Request</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 17. Cryptographic Compliance Vault Modal (Step 5) -->
+  <div class="hitl-modal-overlay" id="compliance-vault-modal" style="display: none; z-index: 10000;" role="dialog" aria-modal="true" aria-labelledby="compliance-modal-title">
+    <div class="hitl-modal-dialog" style="max-width: 940px; width: 95%;">
+      <div class="hitl-modal-header" style="border-bottom: 1px solid rgba(16, 185, 129, 0.25);">
+        <div class="hitl-title-row">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <div>
+            <h3 id="compliance-modal-title" style="font-size: 15px; font-weight: 700; color: #F8FAFC;">📜 Cryptographic Compliance Vault & Audit Trail</h3>
+            <span style="font-size: 11px; color: var(--text-muted);">Immutable SHA-256 hash-chain verification & SOC-2 / ISO-27001 executive compliance dossier</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" id="btn-close-compliance-vault" style="padding: 4px 10px; font-size: 12px;">✕ Close</button>
+      </div>
+      <div class="hitl-body" style="max-height: 560px; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+        <!-- Stats Row -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+          <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 6px; padding: 10px;">
+            <div style="font-size: 10px; color: #34D399; font-weight: 700;">CHAIN INTEGRITY</div>
+            <div id="compliance-status-badge" style="font-size: 14px; font-weight: 700; color: #F8FAFC;">100% VALID</div>
+          </div>
+          <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px; padding: 10px;">
+            <div style="font-size: 10px; color: #38BDF8; font-weight: 700;">BLOCKS SEALED</div>
+            <div id="compliance-block-count" style="font-size: 14px; font-weight: 700; color: #F8FAFC;">0</div>
+          </div>
+          <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 6px; padding: 10px; display: flex; align-items: center; justify-content: center;">
+            <button class="btn btn-secondary btn-sm" id="btn-verify-compliance" style="font-size: 11px; padding: 6px 12px; width: 100%; border-color: #38BDF8; color: #38BDF8;">🛡️ Verify Chain</button>
+          </div>
+          <div style="background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.25); border-radius: 6px; padding: 10px; display: flex; align-items: center; justify-content: center;">
+            <button class="btn btn-primary btn-sm" id="btn-export-dossier" style="font-size: 11px; padding: 6px 12px; background: #10B981; border-color: #34D399; width: 100%;">Download Dossier</button>
+          </div>
+        </div>
+
+        <!-- Merkle Root Display -->
+        <div style="background: #050B18; border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between;">
+          <span style="font-size: 10.5px; color: var(--text-muted); font-weight: 600;">MERKLE ROOT HASH:</span>
+          <code id="compliance-merkle-root" style="font-family: monospace; font-size: 11px; color: #38BDF8;">Calculating...</code>
+        </div>
+
+        <!-- Visual Hash Chain Explorer -->
+        <div>
+          <label style="font-size: 10.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px; display: block;">CRYPTOGRAPHIC HASH CHAIN BLOCKS</label>
+          <div id="compliance-chain-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto;">
+            <div style="text-align: center; color: var(--text-muted); padding: 30px;">Loading cryptographic audit trail...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 18. Add Roadmap Phase Modal -->
+  <div class="hitl-modal-overlay" id="modal-add-phase" style="display: none; z-index: 10000;" role="dialog" aria-modal="true" aria-labelledby="add-phase-modal-title">
+    <div class="hitl-modal-dialog" style="max-width: 580px; width: 95%;">
+      <div class="hitl-modal-header">
+        <div class="hitl-title-row">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          <div>
+            <h3 id="add-phase-modal-title" style="font-size: 15px; font-weight: 700; color: #F8FAFC;">Add Capability Roadmap Phase</h3>
+            <span style="font-size: 11px; color: var(--text-muted);">Append a verifiable milestone with assigned agent and deliverables to capability plan</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" id="btn-close-add-phase" style="padding: 4px 10px; font-size: 12px;">✕</button>
+      </div>
+      <div class="hitl-body" style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px;">
+          <div>
+            <label style="font-size: 10.5px; font-weight: 700; color: var(--text-secondary);">PHASE ID</label>
+            <input type="text" id="add-phase-id" class="search-input" style="width: 100%; margin-top: 4px; box-sizing: border-box;" placeholder="e.g. p5">
+          </div>
+          <div>
+            <label style="font-size: 10.5px; font-weight: 700; color: var(--text-secondary);">PHASE TITLE</label>
+            <input type="text" id="add-phase-title" class="search-input" style="width: 100%; margin-top: 4px; box-sizing: border-box;" placeholder="e.g. Phase 5: Production Rollout & Gateways">
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <label style="font-size: 10.5px; font-weight: 700; color: var(--text-secondary);">ASSIGNED SPECIALIST AGENT</label>
+            <select id="add-phase-agent" class="search-input" style="width: 100%; margin-top: 4px; background: #0B1120; box-sizing: border-box;">
+              <option value="architect">architect</option>
+              <option value="planner">planner</option>
+              <option value="tdd-guide">tdd-guide</option>
+              <option value="security-reviewer">security-reviewer</option>
+              <option value="code-reviewer">code-reviewer</option>
+              <option value="loop-operator">loop-operator</option>
+              <option value="build-error-resolver">build-error-resolver</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 10.5px; font-weight: 700; color: var(--text-secondary);">INITIAL STATUS</label>
+            <select id="add-phase-status" class="search-input" style="width: 100%; margin-top: 4px; background: #0B1120; box-sizing: border-box;">
+              <option value="PASSED">PASSED (Ready / Verified)</option>
+              <option value="IN_PROGRESS" selected>IN_PROGRESS (Active)</option>
+              <option value="PENDING">PENDING (Queued)</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label style="font-size: 10.5px; font-weight: 700; color: var(--text-secondary);">DELIVERABLES / VERIFICATION CRITERIA</label>
+          <textarea id="add-phase-desc" class="search-input" style="width: 100%; height: 75px; margin-top: 4px; resize: vertical; box-sizing: border-box; line-height: 1.5;" placeholder="Concrete specifications, test files, and verification targets..."></textarea>
+        </div>
+      </div>
+      <div style="padding: 12px 16px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end; gap: 8px;">
+        <button class="btn btn-secondary" id="btn-cancel-add-phase">Cancel</button>
+        <button class="btn btn-primary" id="btn-save-add-phase">Append to Roadmap</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 19. View / Inspect Durable Memory Modal -->
+  <div class="hitl-modal-overlay" id="modal-view-memory" style="display: none; z-index: 10000;" role="dialog" aria-modal="true" aria-labelledby="view-memory-modal-title">
+    <div class="hitl-modal-dialog" style="max-width: 680px; width: 95%;">
+      <div class="hitl-modal-header">
+        <div class="hitl-title-row">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          <div>
+            <h3 id="view-memory-modal-title" style="font-size: 15px; font-weight: 700; color: #F8FAFC;">Durable Memory Invariant</h3>
+            <span style="font-size: 11px; color: var(--text-muted);">Scoped persistent rule verified by cryptographic SHA-256 hash</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" id="btn-close-view-memory" style="padding: 4px 10px; font-size: 12px;">✕</button>
+      </div>
+      <div class="hitl-body" style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <span id="view-memory-scope" class="badge-tag font-mono" style="color: #A78BFA; background: rgba(167, 139, 250, 0.15);">scope: project</span>
+          <span id="view-memory-kind" class="badge-tag" style="color: #38BDF8; background: rgba(56, 189, 248, 0.15);">kind: convention</span>
+          <span id="view-memory-hash" class="badge-tag font-mono" style="color: #34D399; background: rgba(52, 211, 153, 0.15); cursor: pointer;" title="Click to copy hash">SHA-256: calculating...</span>
+        </div>
+        <div>
+          <label style="font-size: 10.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; display: block;">INVARIANT SPECIFICATION / POLICY BODY</label>
+          <pre id="view-memory-body" style="background: #050B18; border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; padding: 14px; font-size: 12px; color: #BAE6FD; line-height: 1.6; max-height: 260px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; font-family: 'JetBrains Mono', monospace;"></pre>
+        </div>
+      </div>
+      <div style="padding: 12px 16px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
+        <button class="btn btn-danger btn-sm" id="btn-delete-view-memory" style="color: #F43F5E; border-color: rgba(244, 63, 94, 0.3);">Delete Memory</button>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary btn-sm" id="btn-copy-view-memory">Copy Text</button>
+          <button class="btn btn-primary btn-sm" id="btn-done-view-memory">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=2.2.3"></script>
 </body>
 </html>

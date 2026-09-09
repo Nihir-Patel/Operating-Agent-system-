@@ -110,4 +110,9 @@ assets/images/security/badrudi-exploit.mp4
 
 # OAS Studio local runtime
 .oas-store.json
+.oas-database.sqlite
+.oas-database.sqlite-shm
+.oas-database.sqlite-wal
 .oas-worktrees/
+.tmp-validator-*.js
+tests/scratch/

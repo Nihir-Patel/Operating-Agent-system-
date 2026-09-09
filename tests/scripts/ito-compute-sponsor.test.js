@@ -380,7 +380,7 @@ function main() {
       assertHonestComputeCopy(read('.kimi/README.md'));
     }],
     ['integration record keeps the thesis and real client boundary honest', () => {
-      const record = read('docs/design/oas-ito-compute-integration.md');
+      const record = read('docs/design/ecc-ito-compute-integration.md');
       assert.match(record, /-> any open-source model/);
       assert.doesNotMatch(record, /public Kimi|Moonshot|video and sponsorship/i);
       assert.match(record, /Status: \*\*Implemented local CLI bridge/i);

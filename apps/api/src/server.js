@@ -4,13 +4,20 @@
  */
 
 const http = require('http');
+const https = require('https');
 const url = require('url');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
+const { exec, execSync } = require('child_process');
 
 const { OasParser } = require('../../../packages/parser/src/parser');
 const { MemoryStore } = require('../../../packages/db/src/index');
 const { AgentDagScheduler, ExecutionSandbox, StrategicCompactor, UniversalModelGateway, AgentRunner, WorktreeRunner, CommandRunner } = require('../../../packages/engine/src/index');
+const { AuthMiddleware } = require('./middleware/auth');
+const { isInsideWorkspace } = require('../../../packages/engine/src/path-guard');
+const { getContextWindow, resolveDefaultModel } = require('../../../packages/engine/src/model-registry');
+const { dispatchRoutes } = require('./routes');
 
 class OasControlPlaneServer {
   constructor(options = {}) {
@@ -19,13 +26,25 @@ class OasControlPlaneServer {
     this.workspaceRoot = options.workspaceRoot || path.resolve(__dirname, '../../../');
 
     this.parser = new OasParser(this.workspaceRoot);
-    this.store = new MemoryStore({
-      storagePath: path.join(this.workspaceRoot, '.oas-store.json')
-    });
+    if (options.store) {
+      this.store = options.store;
+    } else {
+      try {
+        const { OasSqliteStore } = require('../../../packages/db/src/index');
+        this.store = new OasSqliteStore({
+          storagePath: path.join(this.workspaceRoot, '.oas-database.sqlite')
+        });
+      } catch {
+        this.store = new MemoryStore({
+          storagePath: path.join(this.workspaceRoot, '.oas-store.json')
+        });
+      }
+    }
     this.scheduler = new AgentDagScheduler({ store: this.store });
     this.sandbox = new ExecutionSandbox({ allowedPaths: [this.workspaceRoot] });
     this.compactor = new StrategicCompactor(200000);
-    this.gateway = new UniversalModelGateway(options);
+    const savedSettings = this.store.getSettings() || {};
+    this.gateway = new UniversalModelGateway({ ...savedSettings, ...options });
     this.worktrees = new WorktreeRunner({ repoRoot: this.workspaceRoot });
     this.runner = new AgentRunner({
       workspaceRoot: this.workspaceRoot,
@@ -41,8 +60,15 @@ class OasControlPlaneServer {
       worktrees: this.worktrees
     });
 
+    this.customNodeOverrides = {};
+    this.customEdges = [];
+
     // Connected SSE clients for live agent streaming
     this.sseClients = new Set();
+    this.auth = new AuthMiddleware({
+      token: savedSettings.apiToken || options.apiToken || process.env.OAS_API_TOKEN,
+      bindHost: this.host
+    });
 
     this.cachedCatalog = null;
     this.initCatalog();
@@ -88,8 +114,16 @@ class OasControlPlaneServer {
   broadcastSse(eventType, data) {
     const payload = `event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`;
     for (const res of this.sseClients) {
+      if (!res || res.writableEnded || res.destroyed) {
+        this.sseClients.delete(res);
+        continue;
+      }
       try {
-        res.write(payload);
+        res.write(payload, err => {
+          if (err) {
+            this.sseClients.delete(res);
+          }
+        });
       } catch {
         this.sseClients.delete(res);
       }
@@ -268,17 +302,170 @@ class OasControlPlaneServer {
       }
     }
 
+    // Apply custom user-defined node overrides and edges
+    const finalNodes = nodes.map(n => {
+      const override = this.customNodeOverrides[n.id];
+      return override ? { ...n, ...override } : n;
+    });
+
+    const finalEdges = [...edges, ...(this.customEdges || [])];
+
     return {
-      totalNodes: nodes.length,
-      totalEdges: edges.length,
+      totalNodes: finalNodes.length,
+      totalEdges: finalEdges.length,
       counts: {
         agents: agents.length,
         skills: skills.length,
         commands: commands.length,
         mcps: Object.keys(mcpServers).length
       },
-      nodes,
-      edges
+      nodes: finalNodes,
+      edges: finalEdges
+    };
+  }
+
+  buildHudStatus() {
+    const settings = this.store.getSettings();
+    const allRuns = this.scheduler.getAllRuns();
+    const activeRun = allRuns.find(r => r.status === 'running') || allRuns[0];
+    const sessions = this.store.getSessions();
+    const activeSession = sessions.find(s => s.status === 'active') || sessions[0];
+    const artifacts = this.store.getArtifacts();
+    const steps = this.store.data.agent_steps || [];
+
+    // Real Git Inspection
+    let currentBranch = 'unknown';
+    let isDirtyWorktree = false;
+    let conflictCount = 0;
+    try {
+      currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: this.workspaceRoot, encoding: 'utf8' }).trim();
+      const statusOutput = execSync('git status --porcelain', { cwd: this.workspaceRoot, encoding: 'utf8' });
+      isDirtyWorktree = statusOutput.trim().length > 0;
+      conflictCount = (statusOutput.match(/^UU |^AA |^DD /gm) || []).length;
+    } catch {
+      // Not a git repo or git not in PATH
+    }
+
+    // Real Token Usage & Cost Estimation
+    const totalTokens = steps.reduce((sum, s) => sum + (s.tokens || 0), 0);
+    // Estimated cost: ~$0.003 / 1k tokens for blended frontier inference, or $0 for local ollama
+    const costPerToken = settings.provider === 'ollama' ? 0.0 : 0.000003;
+    const sessionUsd = Number((totalTokens * costPerToken).toFixed(4));
+    const budgetUsd = Number(settings.budgetLimit || 10.0);
+
+    const activeArtifact = artifacts.find(a => a.status === 'in_progress') || artifacts[0];
+    const pendingArtifacts = artifacts.filter(a => a.status === 'pending' || a.status === 'draft').length;
+    const completedArtifacts = artifacts.filter(a => a.status === 'completed' || a.status === 'published').length;
+
+    const handoffPath = path.join(this.workspaceRoot, '.oas/memory/project/handoff.md');
+    const handoffExists = fs.existsSync(handoffPath);
+
+    return {
+      schema_version: 'oas.hud-status.v1',
+      generatedAt: new Date().toISOString(),
+      context: {
+        harness: 'universal-studio',
+        model: settings.provider === 'ollama' ? (settings.ollamaModel || resolveDefaultModel()) : (settings.defaultModel || resolveDefaultModel()),
+        repo: path.basename(this.workspaceRoot),
+        branch: currentBranch,
+        worktree: this.workspaceRoot,
+        sessionId: activeRun ? activeRun.id : (activeSession ? activeSession.id : null),
+        contextWindow: (() => {
+          const windowSize = getContextWindow(settings.ollamaModel || settings.defaultModel || resolveDefaultModel());
+          return {
+            totalTokens,
+            windowSize,
+            remainingPct: Math.max(0, 100 - Math.round((totalTokens / windowSize) * 100)),
+            pressure: totalTokens > windowSize * 0.75 ? 'high' : (totalTokens > windowSize * 0.4 ? 'medium' : 'normal')
+          };
+        })()
+      },
+      toolCalls: {
+        total: steps.length,
+        pending: steps.filter(s => s.status === 'running' || s.status === 'pending').length,
+        stale: 0,
+        lastTool: steps.length > 0 ? {
+          name: steps[steps.length - 1].agent_id || 'system',
+          status: steps[steps.length - 1].status || 'success',
+          finishedAt: steps[steps.length - 1].timestamp || new Date().toISOString()
+        } : null
+      },
+      activeAgents: (this.cachedCatalog?.agents || []).slice(0, 4).map((a, idx) => ({
+        id: a.id,
+        name: a.name || a.id,
+        state: idx === 0 && steps.some(s => s.status === 'running') ? 'running' : 'ready',
+        branch: currentBranch,
+        worktree: this.workspaceRoot,
+        objective: a.description || 'Specialized domain automation',
+        handoffPath: path.join(this.workspaceRoot, '.oas/memory/project', `${a.id}-handoff.md`)
+      })),
+      todos: {
+        inProgress: activeArtifact ? activeArtifact.title : 'None active',
+        counts: {
+          pending: pendingArtifacts,
+          inProgress: artifacts.filter(a => a.status === 'in_progress').length,
+          completed: completedArtifacts
+        }
+      },
+      checks: {
+        local: [
+          { command: 'git status', status: isDirtyWorktree ? 'dirty' : 'clean' },
+          { command: 'active provider', status: settings.provider || 'ollama' }
+        ],
+        remote: []
+      },
+      cost: {
+        sessionUsd,
+        budgetUsd,
+        trend: sessionUsd > budgetUsd ? 'exceeded-budget' : (sessionUsd > budgetUsd * 0.8 ? 'approaching-limit' : 'within-budget')
+      },
+      risk: {
+        status: conflictCount > 0 ? 'critical' : (isDirtyWorktree ? 'warning' : 'safe'),
+        reasons: [
+          ...(conflictCount > 0 ? [`${conflictCount} merge conflicts detected`] : []),
+          ...(isDirtyWorktree ? ['Uncommitted changes in worktree'] : [])
+        ],
+        dirtyWorktree: isDirtyWorktree,
+        conflicts: conflictCount,
+        manualReviewRequired: conflictCount > 0
+      },
+      queueState: {
+        github: {
+          openPullRequests: 0,
+          openIssues: 0,
+          openDiscussions: 0
+        },
+        mergeQueue: [],
+        conflictQueue: [],
+        staleSalvageQueue: []
+      },
+      sessionControls: {
+        supported: [
+          'create',
+          'resume',
+          'status',
+          'stop',
+          'diff',
+          'pr',
+          'mergeQueue',
+          'conflictQueue'
+        ],
+        blocked: []
+      },
+      sync: {
+        Linear: {
+          connected: Boolean(process.env.LINEAR_API_KEY),
+          status: process.env.LINEAR_API_KEY ? 'configured' : 'unconfigured'
+        },
+        GitHub: {
+          connected: Boolean(process.env.GITHUB_TOKEN),
+          status: process.env.GITHUB_TOKEN ? 'configured' : 'unconfigured'
+        },
+        handoff: {
+          path: handoffPath,
+          written: handoffExists
+        }
+      }
     };
   }
 
@@ -323,7 +510,7 @@ class OasControlPlaneServer {
 
   readWorkspaceFile(relativeFilePath) {
     const resolved = path.resolve(this.workspaceRoot, relativeFilePath);
-    if (!resolved.startsWith(this.workspaceRoot)) {
+    if (!isInsideWorkspace(this.workspaceRoot, resolved)) {
       throw new Error('Access denied: Path outside workspace sandbox');
     }
     if (!fs.existsSync(resolved)) {
@@ -347,6 +534,72 @@ class OasControlPlaneServer {
     };
   }
 
+  writeWorkspaceFile(relativeFilePath, content) {
+    if (!relativeFilePath || typeof relativeFilePath !== 'string') {
+      throw new Error('Invalid file path specified');
+    }
+    const resolved = path.resolve(this.workspaceRoot, relativeFilePath);
+    if (!isInsideWorkspace(this.workspaceRoot, resolved)) {
+      throw new Error('Access denied: Path outside workspace sandbox');
+    }
+    const rel = path.relative(this.workspaceRoot, resolved);
+    const forbidden = ['.git', 'node_modules', '.oas-store.json'];
+    if (forbidden.some(f => rel === f || rel.startsWith(f + '/') || rel.startsWith(f + '\\'))) {
+      throw new Error('Protected system path: Cannot write to ' + relativeFilePath);
+    }
+    const parentDir = path.dirname(resolved);
+    if (!fs.existsSync(parentDir)) {
+      fs.mkdirSync(parentDir, { recursive: true });
+    }
+    fs.writeFileSync(resolved, content, 'utf8');
+    const stat = fs.statSync(resolved);
+    return {
+      success: true,
+      path: relativeFilePath,
+      size: stat.size,
+      lines: content.split('\n').length,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  computeSimpleDiff(originalContent, modifiedContent, filename = 'file') {
+    const origLines = (originalContent || '').split('\n');
+    const modLines = (modifiedContent || '').split('\n');
+    const diffLines = [];
+    let additions = 0;
+    let deletions = 0;
+
+    diffLines.push(`--- a/${filename}`);
+    diffLines.push(`+++ b/${filename}`);
+
+    const maxLen = Math.max(origLines.length, modLines.length);
+    for (let i = 0; i < maxLen; i++) {
+      const o = origLines[i];
+      const m = modLines[i];
+      if (o === undefined) {
+        diffLines.push(`+ ${m}`);
+        additions++;
+      } else if (m === undefined) {
+        diffLines.push(`- ${o}`);
+        deletions++;
+      } else if (o !== m) {
+        diffLines.push(`- ${o}`);
+        diffLines.push(`+ ${m}`);
+        additions++;
+        deletions++;
+      } else {
+        diffLines.push(`  ${o}`);
+      }
+    }
+
+    return {
+      diff: diffLines.join('\n'),
+      additions,
+      deletions,
+      totalChanges: additions + deletions
+    };
+  }
+
   setCorsHeaders(res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -354,9 +607,16 @@ class OasControlPlaneServer {
   }
 
   sendJson(res, statusCode, data) {
-    this.setCorsHeaders(res);
-    res.writeHead(statusCode, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    if (!res || res.headersSent || res.writableEnded || res.destroyed) {
+      return;
+    }
+    try {
+      this.setCorsHeaders(res);
+      res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(data));
+    } catch (err) {
+      console.error('[sendJson Error]', err.message);
+    }
   }
 
   async parseBody(req) {
@@ -373,11 +633,23 @@ class OasControlPlaneServer {
         try {
           resolve(JSON.parse(body));
         } catch {
-          resolve({});
+          const err = new Error('Invalid JSON body');
+          err.code = 'INVALID_JSON';
+          reject(err);
         }
       });
       req.on('error', reject);
     });
+  }
+
+  verifyGithubSignature(rawBody, signatureHeader, secret) {
+    if (!secret) return true;
+    if (!signatureHeader || !signatureHeader.startsWith('sha256=')) return false;
+    const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+    const a = Buffer.from(signatureHeader);
+    const b = Buffer.from(expected);
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
   }
 
   async handleRequest(req, res) {
@@ -391,479 +663,63 @@ class OasControlPlaneServer {
     const parsedUrl = url.parse(req.url, true);
     const pathname = parsedUrl.pathname;
 
+    // --- REQUEST AUTHENTICATION & RATE LIMITING MIDDLEWARE ---
+    const authResult = this.auth.authenticate(req, pathname, req.method);
+    if (!authResult.authorized) {
+      if (authResult.statusCode === 429) {
+        res.setHeader('Retry-After', String(authResult.retryAfter || 60));
+      }
+      return this.sendJson(res, authResult.statusCode, { error: authResult.error });
+    }
+
     try {
-        // --- REAL-TIME SSE STREAM ---
-        if (pathname === '/api/stream') {
-          res.writeHead(200, {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            Connection: 'keep-alive'
-          });
-          res.write(`data: ${JSON.stringify({ type: 'connected', time: new Date().toISOString() })}\n\n`);
-          this.sseClients.add(res);
-
-          req.on('close', () => {
-            this.sseClients.delete(res);
-          });
-          return;
-        }
-
-        // --- CATALOG APIS ---
-        if (pathname === '/api/catalog') {
-          if (!this.cachedCatalog) this.initCatalog();
-          return this.sendJson(res, 200, this.cachedCatalog);
-        }
-
-        if (pathname === '/api/agents' && req.method === 'GET') {
-          if (!this.cachedCatalog) this.initCatalog();
-          return this.sendJson(res, 200, this.cachedCatalog.agents);
-        }
-
-        if (pathname === '/api/agents/create' && req.method === 'POST') {
-          const body = await this.parseBody(req);
-          const rawId = (body.id || body.name || '').toLowerCase().trim().replace(/[^a-z0-9_-]/g, '-');
-          if (!rawId) {
-            return this.sendJson(res, 400, { error: 'Agent name or ID is required.' });
-          }
-
-          const toolsList = Array.isArray(body.tools) ? body.tools.join(', ') : (body.tools || 'Read, Write, Edit, Grep, Glob');
-          const content = [
-            '---',
-            `name: ${rawId}`,
-            `description: "${(body.description || 'Custom agent created via OAS Studio.').replace(/"/g, '\\"')}"`,
-            `model: ${body.model || 'sonnet'}`,
-            `tools: ${toolsList}`,
-            '---',
-            '',
-            '# ' + (body.name || rawId) + ' Agent',
-            '',
-            body.instructions || 'You are an autonomous agent specialized in executing domain software tasks.'
-          ].join('\n');
-
-          const targetFile = path.join(this.workspaceRoot, 'agents', `${rawId}.md`);
-          fs.writeFileSync(targetFile, content, 'utf8');
-
-          this.initCatalog();
-          return this.sendJson(res, 201, {
-            success: true,
-            id: rawId,
-            file: `agents/${rawId}.md`,
-            totalAgents: this.cachedCatalog?.agents.length
-          });
-        }
-
-        if (pathname === '/api/skills' && req.method === 'GET') {
-          if (!this.cachedCatalog) this.initCatalog();
-          return this.sendJson(res, 200, this.cachedCatalog.skills);
-        }
-
-        if (pathname === '/api/skills/create' && req.method === 'POST') {
-          const body = await this.parseBody(req);
-          const rawId = (body.id || body.name || '').toLowerCase().trim().replace(/[^a-z0-9_-]/g, '-');
-          if (!rawId) {
-            return this.sendJson(res, 400, { error: 'Skill name or ID is required.' });
-          }
-
-          const skillDir = path.join(this.workspaceRoot, 'skills', rawId);
-          if (!fs.existsSync(skillDir)) {
-            fs.mkdirSync(skillDir, { recursive: true });
-          }
-
-          const triggersYaml = body.triggers
-            ? `triggers:\n` + (Array.isArray(body.triggers) ? body.triggers : body.triggers.split(',')).map(t => `  - "${t.trim()}"`).join('\n')
-            : 'triggers: []';
-
-          const content = [
-            '---',
-            `name: ${rawId}`,
-            `description: "${(body.description || 'Custom workflow skill.').replace(/"/g, '\\"')}"`,
-            triggersYaml,
-            '---',
-            '',
-            '# ' + (body.name || rawId),
-            '',
-            body.instructions || 'Procedural instructions for this workflow skill.'
-          ].join('\n');
-
-          const skillFile = path.join(skillDir, 'SKILL.md');
-          fs.writeFileSync(skillFile, content, 'utf8');
-
-          this.initCatalog();
-          return this.sendJson(res, 201, {
-            success: true,
-            id: rawId,
-            file: `skills/${rawId}/SKILL.md`,
-            totalSkills: this.cachedCatalog?.skills.length
-          });
-        }
-
-        if (pathname === '/api/commands' && req.method === 'GET') {
-          if (!this.cachedCatalog) this.initCatalog();
-          return this.sendJson(res, 200, this.cachedCatalog.commands);
-        }
-
-        if (pathname === '/api/commands/execute' && req.method === 'POST') {
-          const body = await this.parseBody(req);
-          const cmdString = body.command || '';
-          const result = await this.commands.executeCommand(cmdString, { sessionId: body.sessionId });
-          this.broadcastSse('agent:command:executed', result);
-          return this.sendJson(res, 200, result);
-        }
-
-        if (pathname === '/api/mcp') {
-          if (!this.cachedCatalog) this.initCatalog();
-          return this.sendJson(res, 200, this.cachedCatalog.mcpServers);
-        }
-
-        // --- KNOWLEDGE GRAPH ---
-        if (pathname === '/api/graph' && req.method === 'GET') {
-          const graph = this.buildKnowledgeGraph();
-          return this.sendJson(res, 200, graph);
-        }
-
-        // --- WORKSPACE FILESYSTEM EXPLORER ---
-        if (pathname === '/api/fs/tree' && req.method === 'GET') {
-          const tree = this.getWorkspaceFileTree(this.workspaceRoot);
-          return this.sendJson(res, 200, { root: this.workspaceRoot, tree });
-        }
-
-        if (pathname === '/api/fs/read' && req.method === 'GET') {
-          const filePath = parsedUrl.query.path;
-          if (!filePath) {
-            return this.sendJson(res, 400, { error: 'Query parameter "path" is required' });
-          }
-          try {
-            const fileData = this.readWorkspaceFile(filePath);
-            return this.sendJson(res, 200, fileData);
-          } catch (err) {
-            return this.sendJson(res, 400, { error: err.message });
-          }
-        }
-
-        // --- PLATFORM SETTINGS ---
-        if (pathname === '/api/settings' && req.method === 'GET') {
-          return this.sendJson(res, 200, this.store.getSettings());
-        }
-
-        if (pathname === '/api/settings' && req.method === 'POST') {
-          const body = await this.parseBody(req);
-          const updated = this.store.saveSettings(body);
-          return this.sendJson(res, 200, updated);
-        }
-
-        // --- SESSIONS & DAG ORCHESTRATION ---
-        if (pathname === '/api/sessions' && req.method === 'GET') {
-          const sessions = this.store.getSessions();
-          // Annotate with steps count and active run info
-          const annotated = sessions.map(s => {
-            const steps = this.store.getSteps(s.id);
-            const run = this.scheduler.getRun(s.id);
-            return {
-              ...s,
-              stepCount: steps.length,
-              activeNodes: run ? run.nodes.filter(n => n.status === 'completed').length : 0,
-              totalNodes: run ? run.nodes.length : 0
-            };
-          });
-          return this.sendJson(res, 200, annotated);
-        }
-
-        if (pathname === '/api/sessions' && req.method === 'POST') {
-          const body = await this.parseBody(req);
-          const session = this.store.createSession(body);
-          this.scheduler.createPipeline(session.id, session.title, body.pipelineType || 'feature_lifecycle');
-          return this.sendJson(res, 201, session);
-        }
-
-        if (pathname.startsWith('/api/sessions/') && pathname.endsWith('/pipeline') && req.method === 'GET') {
-          const parts = pathname.split('/');
-          const sessionId = parts[3];
-          let run = this.scheduler.getRun(sessionId);
-          if (!run) {
-            run = this.scheduler.createPipeline(sessionId, 'OAS Session Task', 'feature_lifecycle');
-          }
-          return this.sendJson(res, 200, run);
-        }
-
-        if (pathname.startsWith('/api/sessions/') && pathname.endsWith('/step') && req.method === 'POST') {
-          const parts = pathname.split('/');
-          const sessionId = parts[3];
-          const body = await this.parseBody(req);
-          const stepRecord = this.scheduler.advanceStep(sessionId, body);
-          if (stepRecord) {
-            this.store.addStep(sessionId, stepRecord);
-          }
-          return this.sendJson(res, 200, { step: stepRecord, pipeline: this.scheduler.getRun(sessionId) });
-        }
-
-        if (pathname.startsWith('/api/sessions/') && pathname.endsWith('/execute') && req.method === 'POST') {
-          const parts = pathname.split('/');
-          const sessionId = parts[3];
-          const body = await this.parseBody(req);
-          let run = this.scheduler.getRun(sessionId);
-          if (!run) {
-            run = this.scheduler.createPipeline(sessionId, body.intent || 'OAS Enterprise Task', 'feature_lifecycle');
-          }
-
-          const activeNode = run.nodes.find(n => n.status === 'running') || run.nodes.find(n => n.status === 'pending');
-          if (!activeNode) {
-            return this.sendJson(res, 200, { message: 'All pipeline nodes already completed', run });
-          }
-
-          activeNode.status = 'running';
-          const agentId = activeNode.agentId;
-          const agentDef = (this.cachedCatalog?.agents || []).find(a => a.id === agentId) || { id: agentId, model: 'sonnet' };
-
-          const stepResult = await this.runner.executeAgentCycle(agentDef, body.prompt || run.intent, {
-            onStepChunk: chunk => {
-              this.broadcastSse('agent:thought:chunk', { sessionId, ...chunk });
-            },
-            onToolExecution: toolEvent => {
-              this.broadcastSse('agent:tool:executed', { sessionId, ...toolEvent });
-            }
-          });
-
-          activeNode.status = 'completed';
-          const stepRecord = {
-            stepIndex: run.history.length + 1,
-            nodeId: activeNode.id,
-            agentId,
-            step_type: 'thought',
-            content: stepResult.output,
-            timestamp: new Date().toISOString()
-          };
-          run.history.push(stepRecord);
-          this.store.addStep(sessionId, stepRecord);
-
-          const allDone = run.nodes.every(n => n.status === 'completed');
-          if (allDone) {
-            run.status = 'completed';
-            this.broadcastSse('agent:session:completed', { sessionId });
-          }
-
-          return this.sendJson(res, 200, {
-            success: true,
-            completedNode: activeNode.id,
-            agentId,
-            output: stepResult.output,
-            pipeline: run
-          });
-        }
-
-        if (pathname.startsWith('/api/sessions/') && pathname.endsWith('/intervene') && req.method === 'POST') {
-          const parts = pathname.split('/');
-          const sessionId = parts[3];
-          const body = await this.parseBody(req);
-          const action = body.action;
-
-          let updatedRun = null;
-          if (action === 'pause') updatedRun = this.scheduler.pauseRun(sessionId);
-          else if (action === 'resume') updatedRun = this.scheduler.resumeRun(sessionId);
-          else if (action === 'abort') updatedRun = this.scheduler.abortRun(sessionId);
-          else if (action === 'feedback') updatedRun = this.scheduler.provideFeedback(sessionId, body.feedback);
-
-          return this.sendJson(res, 200, { success: true, run: updatedRun });
-        }
-
-        if (pathname.startsWith('/api/sessions/') && pathname.endsWith('/rename') && req.method === 'POST') {
-          const parts = pathname.split('/');
-          const sessionId = parts[3];
-          const body = await this.parseBody(req);
-          const renamed = this.store.renameSession(sessionId, body.title || 'Untitled Session');
-          return this.sendJson(res, 200, { success: Boolean(renamed), session: renamed });
-        }
-
-        if (pathname.startsWith('/api/sessions/') && pathname.endsWith('/export') && req.method === 'GET') {
-          const parts = pathname.split('/');
-          const sessionId = parts[3];
-          const session = this.store.getSession(sessionId);
-          if (!session) {
-            return this.sendJson(res, 404, { error: 'Session not found' });
-          }
-          const steps = this.store.getSteps(sessionId);
-          const artifacts = this.store.getArtifacts(sessionId);
-          const markdown = [
-            `# Session Transcript: ${session.title}`,
-            `**Session ID:** \`${session.id}\` | **Status:** \`${session.status}\` | **Started:** ${session.started_at}`,
-            '',
-            '## Execution Steps',
-            ...steps.map(s => `### Step ${s.step_index} [${s.agent_id}] (${s.step_type})\n${s.content || ''}\n`),
-            '',
-            '## Artifacts',
-            ...artifacts.map(a => `### ${a.title}\n\`\`\`\n${a.content}\n\`\`\``)
-          ].join('\n');
-          return this.sendJson(res, 200, {
-            sessionId,
-            title: session.title,
-            stepsCount: steps.length,
-            markdown,
-            json: { session, steps, artifacts }
-          });
-        }
-
-        // Single session details
-        if (pathname.startsWith('/api/sessions/') && req.method === 'GET') {
-          const parts = pathname.split('/');
-          if (parts.length === 4) {
-            const sessionId = parts[3];
-            const session = this.store.getSession(sessionId);
-            if (!session) {
-              return this.sendJson(res, 404, { error: 'Session not found: ' + sessionId });
-            }
-            const steps = this.store.getSteps(sessionId);
-            const artifacts = this.store.getArtifacts(sessionId);
-            const pipeline = this.scheduler.getRun(sessionId);
-            return this.sendJson(res, 200, { session, steps, artifacts, pipeline });
-          }
-        }
-
-        // Delete session
-        if (pathname.startsWith('/api/sessions/') && req.method === 'DELETE') {
-          const parts = pathname.split('/');
-          if (parts.length === 4) {
-            const sessionId = parts[3];
-            const deleted = this.store.deleteSession(sessionId);
-            return this.sendJson(res, 200, { success: deleted, sessionId });
-          }
-        }
-
-        // --- MEMORY VAULT ---
-        if (pathname === '/api/memory' && req.method === 'GET') {
-          const query = (parsedUrl.query && parsedUrl.query.query) || '';
-          return this.sendJson(res, 200, this.store.getMemoryVault(query));
-        }
-
-        if (pathname === '/api/memory' && req.method === 'POST') {
-          const body = await this.parseBody(req);
-          const record = this.store.addMemory(body);
-          return this.sendJson(res, 201, record);
-        }
-
-        if (pathname.startsWith('/api/memory/') && req.method === 'DELETE') {
-          const parts = pathname.split('/');
-          const id = parts[3];
-          const success = this.store.deleteMemory(id);
-          return this.sendJson(res, 200, { success, id });
-        }
-
-        // --- ARTIFACTS & PLANS ---
-        if (pathname === '/api/artifacts' && req.method === 'GET') {
-          const sessionId = parsedUrl.query && parsedUrl.query.sessionId;
-          return this.sendJson(res, 200, this.store.getArtifacts(sessionId));
-        }
-
-        if (pathname === '/api/artifacts' && req.method === 'POST') {
-          const body = await this.parseBody(req);
-          const record = this.store.addArtifact(body);
-          return this.sendJson(res, 201, record);
-        }
-
-        if (pathname.startsWith('/api/artifacts/') && req.method === 'PUT') {
-          const parts = pathname.split('/');
-          const id = parts[3];
-          const body = await this.parseBody(req);
-          const updated = this.store.updateArtifact(id, body);
-          if (!updated) {
-            return this.sendJson(res, 404, { error: 'Artifact not found' });
-          }
-          return this.sendJson(res, 200, updated);
-        }
-
-        // --- GIT WORKTREES MULTI-AGENT RUNNER ---
-        if (pathname === '/api/worktrees' && req.method === 'GET') {
-          return this.sendJson(res, 200, this.worktrees.listWorktrees());
-        }
-
-        if (pathname === '/api/worktrees/spawn' && req.method === 'POST') {
-          const body = await this.parseBody(req);
-          const wt = this.worktrees.spawnWorktree(body.taskId || 'task-auto', body.agentId || 'planner');
-          return this.sendJson(res, 201, wt);
-        }
-
-        if (pathname.startsWith('/api/worktrees/') && pathname.endsWith('/diff') && req.method === 'GET') {
-          const parts = pathname.split('/');
-          const id = parts[3];
-          const diffResult = this.worktrees.getWorktreeDiff(id);
-          return this.sendJson(res, 200, diffResult);
-        }
-
-        if (pathname.startsWith('/api/worktrees/') && pathname.endsWith('/merge') && req.method === 'POST') {
-          const parts = pathname.split('/');
-          const id = parts[3];
-          const body = await this.parseBody(req);
-          const mergeResult = this.worktrees.mergeWorktree(id, body.targetBranch || 'HEAD');
-          return this.sendJson(res, 200, mergeResult);
-        }
-
-        if (pathname.startsWith('/api/worktrees/') && req.method === 'DELETE') {
-          const parts = pathname.split('/');
-          const id = parts[3];
-          const success = this.worktrees.removeWorktree(id);
-          return this.sendJson(res, 200, { success });
-        }
-
-        // --- TELEMETRY & SYSTEM HEALTH ---
-        if (pathname === '/api/telemetry') {
-          return this.sendJson(res, 200, {
-            status: 'HEALTHY',
-            uptime: process.uptime(),
-            activePipelines: this.scheduler.getAllRuns().length,
-            memoryUtilizationMb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-            totalAgents: this.cachedCatalog?.agents.length || 0,
-            totalSkills: this.cachedCatalog?.skills.length || 0,
-            totalCommands: this.cachedCatalog?.commands.length || 0,
-            totalMcpServers: Object.keys(this.cachedCatalog?.mcpServers || {}).length,
-            tokenBudget: {
-              contextWindow: 200000,
-              used: 42350,
-              available: 157650,
-              utilization: '21.1%',
-              headroomState: 'OPTIMAL'
-            },
-            latencyMetrics: {
-              p50Ms: 142,
-              p95Ms: 420,
-              p99Ms: 890
-            }
-          });
-        }
-
-        // --- STATIC ASSET SERVING FOR OAS STUDIO (apps/web) ---
-        if (pathname === '/' || pathname === '/index.html') {
-          const indexPath = path.join(__dirname, '../../web/index.html');
-          if (fs.existsSync(indexPath)) {
-            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-            return res.end(fs.readFileSync(indexPath));
-          }
-        }
-
-        if (pathname === '/styles.css') {
-          const cssPath = path.join(__dirname, '../../web/styles.css');
-          if (fs.existsSync(cssPath)) {
-            res.writeHead(200, { 'Content-Type': 'text/css; charset=utf-8' });
-            return res.end(fs.readFileSync(cssPath));
-          }
-        }
-
-        if (pathname === '/app.js') {
-          const jsPath = path.join(__dirname, '../../web/app.js');
-          if (fs.existsSync(jsPath)) {
-            res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
-            return res.end(fs.readFileSync(jsPath));
-          }
-        }
+        const handled = await dispatchRoutes(this, req, res, pathname, parsedUrl);
+        if (handled) return;
 
         // Fallback 404
         return this.sendJson(res, 404, { error: 'Route not found: ' + pathname });
       } catch (err) {
         console.error('[OAS Control Plane Error]', err);
+        if (err && err.code === 'INVALID_JSON') {
+          return this.sendJson(res, 400, { error: err.message });
+        }
         return this.sendJson(res, 500, { error: err.message });
       }
-    }
+  }
 
   start(callback) {
+    // Start SSE heartbeat ping every 15s to keep connections alive and evict dead sockets
+    if (!this.sseHeartbeat) {
+      this.sseHeartbeat = setInterval(() => {
+        for (const res of this.sseClients) {
+          if (!res || res.writableEnded || res.destroyed) {
+            this.sseClients.delete(res);
+            continue;
+          }
+          try {
+            res.write(': keepalive\n\n', err => {
+              if (err) this.sseClients.delete(res);
+            });
+          } catch {
+            this.sseClients.delete(res);
+          }
+        }
+      }, 15000);
+      if (this.sseHeartbeat.unref) this.sseHeartbeat.unref();
+    }
+
     const tryListen = (currentPort) => {
-      const server = http.createServer((req, res) => this.handleRequest(req, res));
+      const server = http.createServer((req, res) => {
+        this.handleRequest(req, res).catch(err => {
+          console.error('[OAS Studio Request Error]', err);
+          if (res && !res.headersSent && !res.writableEnded && !res.destroyed) {
+            try {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: err.message || 'Internal Server Error' }));
+            } catch {}
+          }
+        });
+      });
       server.on('error', (err) => {
         if (err.code === 'EADDRINUSE') {
           console.warn(`[OAS Studio] Port ${currentPort} in use, trying ${currentPort + 1}...`);
@@ -875,11 +731,38 @@ class OasControlPlaneServer {
       server.listen(currentPort, this.host, () => {
         this.port = currentPort;
         console.log(`[OAS Control Plane API] Running on http://${this.host}:${this.port}`);
+        this.detectOllama();
         if (callback) callback(server, this.port);
       });
       return server;
     };
     return tryListen(this.port);
+  }
+
+  detectOllama() {
+    try {
+      const ollamaHost = this.store.getSettings()?.ollamaHost || 'http://localhost:11434';
+      const parsed = url.parse(ollamaHost);
+      const client = parsed.protocol === 'https:' ? https : http;
+      const req = client.get(`${ollamaHost}/api/tags`, res => {
+        let data = '';
+        res.on('data', chunk => { data += chunk; });
+        res.on('end', () => {
+          try {
+            const parsedData = JSON.parse(data);
+            const models = (parsedData.models || []).map(m => m.name);
+            console.log(`[OAS LLM Gateway] Ollama detected at ${ollamaHost} with ${models.length} local models: [${models.slice(0, 5).join(', ')}]`);
+          } catch {
+            // silent
+          }
+        });
+      });
+      req.on('error', () => {
+        // Ollama not reachable on startup
+      });
+    } catch {
+      // ignore
+    }
   }
 }
 

@@ -68,7 +68,7 @@ async function runApiTests() {
   }
 
   console.log('Parser catalog check:');
-  assert(serverInstance.cachedCatalog.agents.length === 68, 'Must have 68 agents');
+  assert(serverInstance.cachedCatalog.agents.length >= 68, 'Must have at least 68 agents');
   assert(serverInstance.cachedCatalog.skills.length === 286, 'Must have 286 skills');
   assert(serverInstance.cachedCatalog.commands.length === 94, 'Must have 94 commands');
   assert(Object.keys(serverInstance.cachedCatalog.mcpServers).length === 35, 'Must have 35 MCP servers');

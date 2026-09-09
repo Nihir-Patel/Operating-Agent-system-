@@ -20,7 +20,7 @@ const {
 } = require('./install/inventory');
 
 const OFFICIAL_MARKETPLACE_NAME = 'oas';
-const OFFICIAL_MARKETPLACE_REPO = 'neal0709/oas';
+const OFFICIAL_MARKETPLACE_REPO = 'neal0709/operating-agent-system-';
 const OFFICIAL_MARKETPLACE_URL = 'https://github.com/neal0709/Operating-Agent-system-';
 const PROVIDER_COMMAND_TIMEOUT_MS = 120 * 1000;
 const VALID_SCOPES = new Set(['user', 'project', 'local']);

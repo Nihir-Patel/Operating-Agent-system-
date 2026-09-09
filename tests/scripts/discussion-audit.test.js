@@ -102,10 +102,10 @@ function runTests() {
 
     try {
       const shimPath = writeGhShim(rootDir, {
-        [discussionEnabledGhKey('neal0709', 'OAS')]: {
+        [discussionEnabledGhKey('neal0709', 'Operating-Agent-system-')]: {
           data: { repository: { hasDiscussionsEnabled: true } }
         },
-        [discussionGhKey('neal0709', 'OAS')]: {
+        [discussionGhKey('neal0709', 'Operating-Agent-system-')]: {
           data: {
             repository: {
               hasDiscussionsEnabled: true,
@@ -165,10 +165,10 @@ function runTests() {
 
     try {
       const shimPath = writeGhShim(rootDir, {
-        [discussionEnabledGhKey('neal0709', 'OAS')]: {
+        [discussionEnabledGhKey('neal0709', 'Operating-Agent-system-')]: {
           data: { repository: { hasDiscussionsEnabled: true } }
         },
-        [discussionGhKey('neal0709', 'OAS')]: {
+        [discussionGhKey('neal0709', 'Operating-Agent-system-')]: {
           data: {
             repository: {
               hasDiscussionsEnabled: true,
@@ -220,10 +220,10 @@ function runTests() {
 
     try {
       const shimPath = writeGhShim(rootDir, {
-        [discussionEnabledGhKey('neal0709', 'OAS')]: {
+        [discussionEnabledGhKey('neal0709', 'Operating-Agent-system-')]: {
           data: { repository: { hasDiscussionsEnabled: true } }
         },
-        [discussionGhKey('neal0709', 'OAS')]: {
+        [discussionGhKey('neal0709', 'Operating-Agent-system-')]: {
           data: {
             repository: {
               hasDiscussionsEnabled: true,

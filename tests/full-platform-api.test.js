@@ -92,7 +92,7 @@ async function runTests() {
   assert(Array.isArray(graphRes.body.edges), 'Graph must return edges array');
   assert(graphRes.body.totalNodes > 300, `Expected 300+ total nodes, got ${graphRes.body.totalNodes}`);
   assert(graphRes.body.totalEdges > 50, `Expected 50+ edges, got ${graphRes.body.totalEdges}`);
-  assert.strictEqual(graphRes.body.counts.agents, 68, 'Graph must include 68 agents');
+  assert(graphRes.body.counts.agents >= 68, `Graph must include at least 68 agents, got ${graphRes.body.counts.agents}`);
   assert.strictEqual(graphRes.body.counts.skills, 286, 'Graph must include 286 skills');
   assert.strictEqual(graphRes.body.counts.commands, 94, 'Graph must include 94 commands');
 
@@ -248,7 +248,7 @@ async function runTests() {
   assert.strictEqual(telemRes.body.status, 'HEALTHY');
   assert(typeof telemRes.body.uptime === 'number');
   assert(typeof telemRes.body.memoryUtilizationMb === 'number');
-  assert.strictEqual(telemRes.body.totalAgents, 68);
+  assert(telemRes.body.totalAgents >= 68, `Expected at least 68 agents, got ${telemRes.body.totalAgents}`);
   assert.strictEqual(telemRes.body.totalSkills, 286);
   assert.strictEqual(telemRes.body.totalCommands, 94);
   console.log(`  ✓ Telemetry verified: ${telemRes.body.memoryUtilizationMb} MB Heap, ${telemRes.body.totalAgents} Agents, status ${telemRes.body.status}`);

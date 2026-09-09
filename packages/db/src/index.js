@@ -5,11 +5,20 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { schemaSql } = require('./schema');
+
+const SECRET_PATTERNS = [
+  /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/,
+  /(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]{36,}/,
+  /xox[baprs]-[A-Za-z0-9-]{10,}/,
+  /sk-(?:live|proj|ant)?[A-Za-z0-9_-]{20,}/
+];
 
 class MemoryStore {
   constructor(options = {}) {
     this.storagePath = options.storagePath || path.join(process.cwd(), '.oas-store.json');
+    this.memoryRoot = options.memoryRoot || path.join(path.dirname(this.storagePath), '.oas', 'memory');
     this.data = {
       organizations: [],
       workspaces: [],
@@ -20,12 +29,13 @@ class MemoryStore {
       memory_vault: [],
       artifacts: [],
       settings: {
-        provider: 'mock',
+        provider: 'ollama',
         anthropicApiKey: '',
         openaiApiKey: '',
         geminiApiKey: '',
         ollamaHost: 'http://localhost:11434',
-        defaultModel: 'sonnet-3.7',
+        ollamaModel: 'qwen2.5-coder:7b',
+        defaultModel: 'qwen2.5-coder:7b',
         sandboxEnabled: true,
         worktreeIsolation: true
       }
@@ -38,114 +48,17 @@ class MemoryStore {
       try {
         const raw = fs.readFileSync(this.storagePath, 'utf8');
         this.data = Object.assign(this.data, JSON.parse(raw));
-      } catch (err) {
+      } catch (_err) {
         // Fallback to fresh store
       }
     }
-
-    // Seed defaults if empty
-    if (!this.data.memory_vault || this.data.memory_vault.length === 0) {
-      this.data.memory_vault = [
-        {
-          id: 'mem_immutability',
-          scope: 'project',
-          kind: 'convention',
-          title: 'Project Immutability Contract',
-          body: 'Always return new object instances instead of in-place mutation. Enforced across state managers, engine schedulers, and AST parsers.',
-          hash: 'a9f81bc2',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 'mem_test_coverage',
-          scope: 'team',
-          kind: 'policy',
-          title: '80%+ Test Coverage Policy',
-          body: 'All feature pull requests require unit, integration, and contract test suites. TDD Red-Green discipline enforced via tdd-guide.',
-          hash: 'd43e21aa',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 'mem_sandbox_guard',
-          scope: 'security',
-          kind: 'security',
-          title: 'Pre-Tool Sandbox Loopback Guard',
-          body: 'Intercepts high-risk shell patterns, prevents secret egress over curl/wget, and forces human approval for destructive mutations.',
-          hash: '78fe5901',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 'mem_spec_miner',
-          scope: 'architecture',
-          kind: 'invariant',
-          title: 'Brownfield Spec Extraction Policy',
-          body: 'Extract formal specifications, invariants, and test coverage matrices prior to refactoring legacy systems.',
-          hash: '3bc941e8',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ];
-      this.save();
-    }
-
-    if (!this.data.artifacts || this.data.artifacts.length === 0) {
-      this.data.artifacts = [
-        {
-          id: 'art_roadmap_default',
-          session_id: 'sess_enterprise_control_plane',
-          artifact_type: 'plan',
-          title: 'Full Platform Capability Roadmap',
-          status: 'in_progress',
-          phases: [
-            {
-              id: 'p0',
-              title: 'Phase 0: Codebase Ontology & Directory Deep-Dive',
-              description: 'Cataloged all 68 agents, 286 skills, 94 commands, and 35 MCP servers into relational knowledge graph.',
-              completed: true
-            },
-            {
-              id: 'p1',
-              title: 'Phase 1: System Architecture & Persistence Layer',
-              description: 'Drizzle ORM schema with pgvector support and localized MemoryStore JSON fallback.',
-              completed: true
-            },
-            {
-              id: 'p2',
-              title: 'Phase 2: Live Workspace & File Tree Integration',
-              description: 'Live file tree explorer, sandbox file reader, and real-time execution thought stream.',
-              completed: true
-            },
-            {
-              id: 'p3',
-              title: 'Phase 3: Multi-Session Execution & Worktree Runner',
-              description: 'Isolated Git worktrees per subagent, multi-session CRUD, and transcript export.',
-              completed: true
-            },
-            {
-              id: 'p4',
-              title: 'Phase 4: Verification Suite & Enterprise Hardening',
-              description: 'Full unit and integration test coverage across all control plane routes.',
-              completed: false
-            }
-          ],
-          annotations: [
-            { author: 'architect', text: 'Monorepo boundaries strictly decouple parser, engine, and UI layers.' },
-            { author: 'security-reviewer', text: 'Sandboxing layer verified against destructive rm -rf and environment leaks.' }
-          ],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ];
-      this.save();
-    }
+    // No seed data — app starts empty. Users create sessions, memories, and artifacts via the UI.
   }
 
   save() {
     try {
       fs.writeFileSync(this.storagePath, JSON.stringify(this.data, null, 2), 'utf8');
-    } catch (err) {
+    } catch (_err) {
       // ignore write error
     }
   }
@@ -222,34 +135,139 @@ class MemoryStore {
 
   getMemoryVault(query) {
     if (!query) return this.data.memory_vault;
-    const q = query.toLowerCase();
-    return this.data.memory_vault.filter(m =>
-      (m.title && m.title.toLowerCase().includes(q)) ||
-      (m.body && m.body.toLowerCase().includes(q)) ||
-      (m.scope && m.scope.toLowerCase().includes(q))
-    );
+    const q = query.toLowerCase().trim();
+    const terms = q.split(/\s+/).filter(Boolean);
+
+    // Semantic conceptual synonym expansions
+    const semanticMap = {
+      'test': ['coverage', 'tdd', 'unit', 'integration', 'assertion'],
+      'security': ['sandbox', 'secret', 'credential', 'auth', 'loopback', 'guard'],
+      'architecture': ['pattern', 'immutability', 'structure', 'modular', 'contract'],
+      'spec': ['brownfield', 'requirement', 'extraction', 'srs', 'invariant'],
+      'error': ['exception', 'fail', 'crash', 'rollback', 'checkpoint']
+    };
+
+    const expandedTerms = new Set(terms);
+    for (const term of terms) {
+      for (const [concept, synonyms] of Object.entries(semanticMap)) {
+        if (concept.includes(term) || term.includes(concept)) {
+          synonyms.forEach(s => expandedTerms.add(s));
+        } else if (synonyms.some(s => s.includes(term) || term.includes(s))) {
+          expandedTerms.add(concept);
+          synonyms.forEach(s => expandedTerms.add(s));
+        }
+      }
+    }
+
+    const scored = this.data.memory_vault.map(m => {
+      let score = 0;
+      const title = (m.title || '').toLowerCase();
+      const body = (m.body || m.content || '').toLowerCase();
+      const scope = (m.scope || '').toLowerCase();
+      const kind = (m.kind || m.category || '').toLowerCase();
+
+      // Exact phrase match
+      if (title.includes(q)) score += 10;
+      if (body.includes(q)) score += 6;
+
+      // Expanded semantic matches
+      for (const term of expandedTerms) {
+        if (title.includes(term)) score += 4;
+        if (body.includes(term)) score += 2;
+        if (scope.includes(term)) score += 3;
+        if (kind.includes(term)) score += 3;
+      }
+
+      return { item: m, score };
+    });
+
+    return scored
+      .filter(s => s.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(s => ({ ...s.item, semanticScore: s.score }));
   }
 
   addMemory(item) {
+    const title = item.title || item.key || 'Untitled Memory';
+    const content = item.body || item.content || '';
+    const fullText = title + '\n' + content;
+    for (const pattern of SECRET_PATTERNS) {
+      if (pattern.test(fullText)) {
+        throw new Error('Secret shape detected: Secret-shaped token detected: Memory rejects storing unencrypted credentials or private keys');
+      }
+    }
+
+    const memoryId = item.id || ('mem_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6));
+    const hash = item.hash || crypto.createHash('sha256').update(content).digest('hex').substring(0, 12);
+    const scope = item.scope || 'project';
+    const kind = item.kind || item.category || 'convention';
+
     const record = {
-      id: 'mem_' + Date.now().toString(36),
-      scope: item.scope || 'project',
-      kind: item.kind || 'convention',
-      title: item.title,
-      body: item.body,
-      hash: item.hash || Math.random().toString(36).substring(2, 10),
-      created_at: new Date().toISOString(),
+      id: memoryId,
+      key: item.key || memoryId,
+      scope,
+      kind,
+      category: kind,
+      title,
+      body: content,
+      content,
+      trust: 'unreviewed',
+      hash,
+      sha256: hash,
+      created_at: item.created_at || new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
+
     this.data.memory_vault.push(record);
     this.save();
+
+    // Persist Markdown file to .oas/memory/<scope>/<id>.md
+    try {
+      const scopeDir = path.join(this.memoryRoot, scope);
+      if (!fs.existsSync(scopeDir)) {
+        fs.mkdirSync(scopeDir, { recursive: true });
+      }
+      const mdContent = [
+        '---',
+        'schema: "oas.memory.v1"',
+        `id: "${record.id}"`,
+        `title: "${record.title.replace(/"/g, '\\"')}"`,
+        `kind: "${record.kind}"`,
+        `scope: "${record.scope}"`,
+        'trust: "unreviewed"',
+        `hash: "${record.hash}"`,
+        `created_at: "${record.created_at}"`,
+        '---',
+        '',
+        `# ${record.title}`,
+        '',
+        record.body
+      ].join('\n');
+      fs.writeFileSync(path.join(scopeDir, `${record.id}.md`), mdContent, 'utf8');
+    } catch {
+      // Fallback silently if filesystem is non-writable
+    }
+
     return record;
   }
 
   deleteMemory(id) {
     const initialLen = this.data.memory_vault.length;
+    const target = this.data.memory_vault.find(m => m.id === id);
     this.data.memory_vault = this.data.memory_vault.filter(m => m.id !== id);
     this.save();
+
+    if (target) {
+      try {
+        const filePath = path.join(this.memoryRoot, target.scope || 'project', `${id}.md`);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch {
+        // Ignore deletion error
+      }
+    }
+
     return this.data.memory_vault.length < initialLen;
   }
 
@@ -263,7 +281,7 @@ class MemoryStore {
   addArtifact(artifact) {
     const record = {
       id: artifact.id || ('art_' + Date.now().toString(36)),
-      session_id: artifact.session_id || 'sess_enterprise_control_plane',
+      session_id: artifact.session_id || null,
       artifact_type: artifact.artifact_type || 'plan',
       title: artifact.title || 'Capability Roadmap',
       status: artifact.status || 'in_progress',
@@ -315,12 +333,12 @@ class MemoryStore {
 
   getSettings() {
     return this.data.settings || {
-      provider: 'mock',
+      provider: 'ollama',
       anthropicApiKey: '',
       openaiApiKey: '',
       geminiApiKey: '',
       ollamaHost: 'http://localhost:11434',
-      defaultModel: 'sonnet-3.7',
+      defaultModel: 'qwen2.5-coder:7b',
       sandboxEnabled: true,
       worktreeIsolation: true
     };
@@ -333,7 +351,10 @@ class MemoryStore {
   }
 }
 
+const { OasSqliteStore } = require('./sqlite-store');
+
 module.exports = {
   MemoryStore,
+  OasSqliteStore,
   schemaSql
 };
