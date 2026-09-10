@@ -442,8 +442,8 @@
     "oas-control-pane": "scripts/control-pane.js",
     "oas-install": "scripts/install-apply.js",
     "oas-memory-mcp": "scripts/memory-mcp.mjs",
-    "oas-studio-mcp": "scripts/oas-studio-mcp.js",
     "oas-plan-canvas": "scripts/plan-canvas.js",
+    "oas-studio-mcp": "scripts/oas-studio-mcp.js",
     "oas-universal": "scripts/oas.js"
   },
   "scripts": {
