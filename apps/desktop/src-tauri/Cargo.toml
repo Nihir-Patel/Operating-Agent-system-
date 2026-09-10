@@ -1,7 +1,7 @@
 [package]
 name = "oas-desktop"
-version = "2.2.1"
-description = "OAS Studio & Cloud Control Plane Native Desktop App"
+version = "0.9.0"
+description = "OAS Local Studio 0.9 desktop shell"
 edition = "2021"
 
 [dependencies]

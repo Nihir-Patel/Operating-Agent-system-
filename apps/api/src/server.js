@@ -1,6 +1,6 @@
 /**
  * @file apps/api/src/server.js
- * OAS Cloud Control Plane & Streaming Engine Server
+ * OAS Local Studio 0.9 streaming engine server
  */
 
 const http = require('http');
@@ -13,7 +13,7 @@ const { exec, execSync } = require('child_process');
 
 const { OasParser } = require('../../../packages/parser/src/parser');
 const { MemoryStore } = require('../../../packages/db/src/index');
-const { AgentDagScheduler, ExecutionSandbox, StrategicCompactor, UniversalModelGateway, AgentRunner, WorktreeRunner, CommandRunner } = require('../../../packages/engine/src/index');
+const { AgentDagScheduler, ExecutionSandbox, StrategicCompactor, UniversalModelGateway, AgentRunner, WorktreeRunner, CommandRunner, summarizeCostLedger, recordInferenceCost, resolveRoute, assertWithinBudget, PathLeaseRegistry, summarizeInbox } = require('../../../packages/engine/src/index');
 const { AuthMiddleware } = require('./middleware/auth');
 const { isInsideWorkspace } = require('../../../packages/engine/src/path-guard');
 const { getContextWindow, resolveDefaultModel } = require('../../../packages/engine/src/model-registry');
@@ -45,23 +45,29 @@ class OasControlPlaneServer {
     this.compactor = new StrategicCompactor(200000);
     const savedSettings = this.store.getSettings() || {};
     this.gateway = new UniversalModelGateway({ ...savedSettings, ...options });
-    this.worktrees = new WorktreeRunner({ repoRoot: this.workspaceRoot });
+    this.worktrees = new WorktreeRunner({ repoRoot: this.workspaceRoot, store: this.store });
+    this.leases = new PathLeaseRegistry({ store: this.store });
+    this.inboxAdapters = options.inboxAdapters || {};
+    this.inboxFetch = options.inboxFetch || null;
     this.runner = new AgentRunner({
       workspaceRoot: this.workspaceRoot,
       sandbox: this.sandbox,
       gateway: this.gateway,
-      store: this.store
+      store: this.store,
+      leases: this.leases
     });
     this.commands = new CommandRunner({
       scheduler: this.scheduler,
       runner: this.runner,
       compactor: this.compactor,
       store: this.store,
-      worktrees: this.worktrees
+      worktrees: this.worktrees,
+      catalog: this.cachedCatalog
     });
 
-    this.customNodeOverrides = {};
-    this.customEdges = [];
+    const graphState = this.store.getGraphState ? this.store.getGraphState() : { customNodeOverrides: {}, customEdges: [] };
+    this.customNodeOverrides = graphState.customNodeOverrides || {};
+    this.customEdges = graphState.customEdges || [];
 
     // Connected SSE clients for live agent streaming
     this.sseClients = new Set();
@@ -80,9 +86,139 @@ class OasControlPlaneServer {
       this.cachedCatalog = this.parser.parseAll();
       this.store.syncAgents(this.cachedCatalog.agents);
       this.store.syncSkills(this.cachedCatalog.skills);
+      if (this.commands) this.commands.catalog = this.cachedCatalog;
     } catch (err) {
       console.error('[OAS Control Plane] Error indexing catalog:', err);
     }
+  }
+
+  persistGraphState() {
+    if (!this.store || typeof this.store.saveGraphState !== 'function') return;
+    this.store.saveGraphState({
+      customNodeOverrides: this.customNodeOverrides,
+      customEdges: this.customEdges
+    });
+  }
+
+  getCostLedger() {
+    const settings = this.store.getSettings() || {};
+    const budgetUsd = Number(settings.budgetLimit || 10);
+    const events = this.store.listCostEvents ? this.store.listCostEvents() : [];
+    return summarizeCostLedger(events, { budgetUsd });
+  }
+
+  async executeActiveNode(sessionId, body = {}) {
+    const ledger = this.getCostLedger();
+    assertWithinBudget(ledger);
+
+    let run = this.scheduler.getRun(sessionId);
+    if (!run) {
+      run = this.scheduler.createPipeline(sessionId, body.intent || 'Local Studio task', 'feature_lifecycle');
+    }
+    if (run.status === 'paused' || run.status === 'aborted') {
+      const err = new Error(run.status === 'paused' ? 'Pipeline is paused; resume before executing' : 'Pipeline was aborted');
+      err.code = 'PIPELINE_BLOCKED';
+      err.statusCode = 409;
+      err.pipeline = run;
+      throw err;
+    }
+
+    const activeNode = this.scheduler.getNextRunnableNode(sessionId);
+    if (!activeNode) {
+      return { message: 'All pipeline nodes already completed', run, done: true };
+    }
+
+    activeNode.status = 'running';
+    run.status = 'running';
+    this.scheduler.persistRun(run);
+    const agentId = activeNode.agentId;
+    const settings = this.store.getSettings() || {};
+    const agentDef = (this.cachedCatalog?.agents || []).find(a => a.id === agentId) || { id: agentId, model: resolveDefaultModel() };
+    const routed = resolveRoute(settings, body.model || agentDef.model, ledger);
+    const executionAgent = { ...agentDef, model: routed.model };
+
+    let stepResult;
+    try {
+      stepResult = await this.runner.executeMultiTurnLoop(
+        executionAgent,
+        body.prompt || run.intent,
+        { sessionId, maxTurns: body.maxTurns || 3 },
+        {
+          onStepChunk: chunk => {
+            this.broadcastSse('agent:thought:chunk', { sessionId, ...chunk });
+          },
+          onToolExecution: toolEvent => {
+            this.broadcastSse('agent:tool:executed', { sessionId, ...toolEvent });
+          }
+        }
+      );
+    } catch (execErr) {
+      activeNode.status = 'failed';
+      run.status = 'failed';
+      this.scheduler.persistRun(run);
+      this.broadcastSse('agent:session:failed', { sessionId, error: execErr.message });
+      throw execErr;
+    }
+
+    const completionTokens = Math.max(1, Math.round(String(stepResult.output || '').length / 4));
+    recordInferenceCost(this.store, {
+      sessionId,
+      provider: routed.provider,
+      model: routed.model,
+      completionTokens,
+      tokens: completionTokens
+    });
+
+    activeNode.status = 'completed';
+    const stepRecord = {
+      stepIndex: run.history.length + 1,
+      nodeId: activeNode.id,
+      agentId,
+      step_type: 'thought',
+      content: stepResult.output,
+      timestamp: new Date().toISOString(),
+      tokens: completionTokens,
+      routed
+    };
+    run.history = [...run.history, stepRecord];
+    this.store.addStep(sessionId, stepRecord);
+
+    const allDone = run.nodes.every(n => n.status === 'completed');
+    if (allDone) {
+      run.status = 'completed';
+      this.broadcastSse('agent:session:completed', { sessionId });
+    }
+    this.scheduler.persistRun(run);
+
+    return {
+      success: true,
+      completedNode: activeNode.id,
+      agentId,
+      step: stepRecord,
+      output: stepResult.output,
+      turns: stepResult.turns,
+      pipeline: run,
+      done: allDone
+    };
+  }
+
+  async runPipeline(sessionId, body = {}) {
+    const maxNodes = Math.min(Number(body.maxNodes) || 16, 32);
+    const results = [];
+    for (let i = 0; i < maxNodes; i++) {
+      const run = this.scheduler.getRun(sessionId) || this.scheduler.createPipeline(sessionId, body.intent || body.prompt || 'Local Studio task', 'feature_lifecycle');
+      if (run.status === 'paused' || run.status === 'aborted') {
+        return { stopped: run.status, results, pipeline: run };
+      }
+      const next = this.scheduler.getNextRunnableNode(sessionId);
+      if (!next) {
+        return { completed: true, results, pipeline: run };
+      }
+      const step = await this.executeActiveNode(sessionId, body);
+      results.push(step);
+      if (step.done || step.pipeline?.status === 'failed') break;
+    }
+    return { results, pipeline: this.scheduler.getRun(sessionId) };
   }
 
   bindEngineEvents() {
@@ -338,20 +474,26 @@ class OasControlPlaneServer {
     let isDirtyWorktree = false;
     let conflictCount = 0;
     try {
-      currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: this.workspaceRoot, encoding: 'utf8' }).trim();
-      const statusOutput = execSync('git status --porcelain', { cwd: this.workspaceRoot, encoding: 'utf8' });
+      currentBranch = execSync('git rev-parse --abbrev-ref HEAD', {
+        cwd: this.workspaceRoot,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore']
+      }).trim();
+      const statusOutput = execSync('git status --porcelain', {
+        cwd: this.workspaceRoot,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore']
+      });
       isDirtyWorktree = statusOutput.trim().length > 0;
       conflictCount = (statusOutput.match(/^UU |^AA |^DD /gm) || []).length;
     } catch {
       // Not a git repo or git not in PATH
     }
 
-    // Real Token Usage & Cost Estimation
-    const totalTokens = steps.reduce((sum, s) => sum + (s.tokens || 0), 0);
-    // Estimated cost: ~$0.003 / 1k tokens for blended frontier inference, or $0 for local ollama
-    const costPerToken = settings.provider === 'ollama' ? 0.0 : 0.000003;
-    const sessionUsd = Number((totalTokens * costPerToken).toFixed(4));
-    const budgetUsd = Number(settings.budgetLimit || 10.0);
+    const ledger = this.getCostLedger();
+    const totalTokens = ledger.totals.tokens || steps.reduce((sum, s) => sum + (s.tokens || 0), 0);
+    const sessionUsd = Number(ledger.totals.usd.toFixed(4));
+    const budgetUsd = ledger.budgetUsd;
 
     const activeArtifact = artifacts.find(a => a.status === 'in_progress') || artifacts[0];
     const pendingArtifacts = artifacts.filter(a => a.status === 'pending' || a.status === 'draft').length;
@@ -359,6 +501,9 @@ class OasControlPlaneServer {
 
     const handoffPath = path.join(this.workspaceRoot, '.oas/memory/project/handoff.md');
     const handoffExists = fs.existsSync(handoffPath);
+    const inboxSummary = summarizeInbox(this.store.listWorkItems ? this.store.listWorkItems() : []);
+    const linearConfigured = Boolean(process.env.LINEAR_API_KEY || (settings.linearApiKey));
+    const githubConfigured = Boolean(process.env.GITHUB_TOKEN || settings.githubToken);
 
     return {
       schema_version: 'oas.hud-status.v1',
@@ -417,6 +562,9 @@ class OasControlPlaneServer {
       cost: {
         sessionUsd,
         budgetUsd,
+        remainingUsd: ledger.remainingUsd,
+        source: 'ledger',
+        byProvider: ledger.totals.byProvider,
         trend: sessionUsd > budgetUsd ? 'exceeded-budget' : (sessionUsd > budgetUsd * 0.8 ? 'approaching-limit' : 'within-budget')
       },
       risk: {
@@ -430,14 +578,11 @@ class OasControlPlaneServer {
         manualReviewRequired: conflictCount > 0
       },
       queueState: {
-        github: {
-          openPullRequests: 0,
-          openIssues: 0,
-          openDiscussions: 0
-        },
-        mergeQueue: [],
-        conflictQueue: [],
-        staleSalvageQueue: []
+        github: inboxSummary.github,
+        mergeQueue: inboxSummary.mergeQueue,
+        conflictQueue: inboxSummary.conflictQueue,
+        staleSalvageQueue: inboxSummary.staleSalvageQueue,
+        source: 'inbox'
       },
       sessionControls: {
         supported: [
@@ -454,12 +599,14 @@ class OasControlPlaneServer {
       },
       sync: {
         Linear: {
-          connected: Boolean(process.env.LINEAR_API_KEY),
-          status: process.env.LINEAR_API_KEY ? 'configured' : 'unconfigured'
+          connected: linearConfigured,
+          status: linearConfigured ? 'configured' : 'unconfigured',
+          health: linearConfigured ? 'configured' : 'unconfigured'
         },
         GitHub: {
-          connected: Boolean(process.env.GITHUB_TOKEN),
-          status: process.env.GITHUB_TOKEN ? 'configured' : 'unconfigured'
+          connected: githubConfigured,
+          status: githubConfigured ? 'configured' : 'unconfigured',
+          health: githubConfigured ? 'configured' : 'unconfigured'
         },
         handoff: {
           path: handoffPath,
@@ -471,7 +618,20 @@ class OasControlPlaneServer {
 
   getWorkspaceFileTree(dirPath, relativePath = '', depth = 0) {
     if (depth > 4) return [];
-    const ignored = new Set(['node_modules', '.git', '.oas-worktrees', '.next', 'dist', 'build', '.DS_Store', '.oas-store.json']);
+    const ignored = new Set([
+      'node_modules',
+      '.git',
+      '.oas-worktrees',
+      '.next',
+      'dist',
+      'build',
+      '.DS_Store',
+      '.oas-store.json',
+      '.oas-database.sqlite',
+      '.oas-database.sqlite-wal',
+      '.oas-database.sqlite-shm',
+      '.oas-database.sqlite-journal'
+    ]);
     const entries = [];
     try {
       const items = fs.readdirSync(dirPath, { withFileTypes: true });
@@ -534,7 +694,7 @@ class OasControlPlaneServer {
     };
   }
 
-  writeWorkspaceFile(relativeFilePath, content) {
+  writeWorkspaceFile(relativeFilePath, content, options = {}) {
     if (!relativeFilePath || typeof relativeFilePath !== 'string') {
       throw new Error('Invalid file path specified');
     }
@@ -542,9 +702,22 @@ class OasControlPlaneServer {
     if (!isInsideWorkspace(this.workspaceRoot, resolved)) {
       throw new Error('Access denied: Path outside workspace sandbox');
     }
-    const rel = path.relative(this.workspaceRoot, resolved);
-    const forbidden = ['.git', 'node_modules', '.oas-store.json'];
-    if (forbidden.some(f => rel === f || rel.startsWith(f + '/') || rel.startsWith(f + '\\'))) {
+    const rel = path.relative(this.workspaceRoot, resolved).replace(/\\/g, '/');
+    if (this.leases) {
+      this.leases.assertWritable(rel, options.holderId || options.agentId);
+    }
+    const forbiddenExact = new Set([
+      '.oas-store.json',
+      '.oas-database.sqlite',
+      '.oas-database.sqlite-wal',
+      '.oas-database.sqlite-shm',
+      '.oas-database.sqlite-journal'
+    ]);
+    const forbiddenPrefixes = ['.git', 'node_modules'];
+    if (
+      forbiddenExact.has(rel) ||
+      forbiddenPrefixes.some(f => rel === f || rel.startsWith(f + '/'))
+    ) {
       throw new Error('Protected system path: Cannot write to ' + relativeFilePath);
     }
     const parentDir = path.dirname(resolved);
@@ -603,43 +776,66 @@ class OasControlPlaneServer {
   setCorsHeaders(res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key');
   }
 
   sendJson(res, statusCode, data) {
-    if (!res || res.headersSent || res.writableEnded || res.destroyed) {
+    if (!res || res.headersSent || res.writableEnded || res.destroyed || res.oasSent) {
       return;
     }
     try {
       this.setCorsHeaders(res);
       res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+      res.oasSent = true;
       res.end(JSON.stringify(data));
     } catch (err) {
       console.error('[sendJson Error]', err.message);
     }
   }
 
-  async parseBody(req) {
-    return new Promise((resolve, reject) => {
-      let body = '';
-      req.on('data', chunk => {
-        body += chunk;
-        if (body.length > 5 * 1024 * 1024) {
-          reject(new Error('Body too large'));
-        }
-      });
-      req.on('end', () => {
-        if (!body) return resolve({});
+  collectBody(req) {
+    if (req._oasBodyPromise) return req._oasBodyPromise;
+    req._oasBodyPromise = new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (raw) => {
+        if (settled) return;
+        settled = true;
+        req._oasRawBody = raw || '';
+        if (!raw) return resolve({});
         try {
-          resolve(JSON.parse(body));
+          resolve(JSON.parse(raw));
         } catch {
           const err = new Error('Invalid JSON body');
           err.code = 'INVALID_JSON';
           reject(err);
         }
+      };
+
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk;
+        if (body.length > 5 * 1024 * 1024) {
+          if (settled) return;
+          settled = true;
+          reject(new Error('Body too large'));
+        }
       });
-      req.on('error', reject);
+      req.on('end', () => finish(body));
+      req.on('error', err => {
+        if (settled) return;
+        settled = true;
+        reject(err);
+      });
+
+      if (req.readableEnded || req.complete) {
+        finish(body);
+      }
     });
+    return req._oasBodyPromise;
+  }
+
+  async parseBody(req) {
+    return this.collectBody(req);
   }
 
   verifyGithubSignature(rawBody, signatureHeader, secret) {
@@ -662,6 +858,12 @@ class OasControlPlaneServer {
 
     const parsedUrl = url.parse(req.url, true);
     const pathname = parsedUrl.pathname;
+    const method = String(req.method || 'GET').toUpperCase();
+    // Attach body listeners before any await. Node runs process.nextTick
+    // before Promise microtasks, so delayed parseBody misses POST payloads.
+    if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+      this.collectBody(req);
+    }
 
     // --- REQUEST AUTHENTICATION & RATE LIMITING MIDDLEWARE ---
     const authResult = this.auth.authenticate(req, pathname, req.method);

@@ -511,6 +511,12 @@ async function runComprehensiveE2EBattery() {
     assert(res.body.error);
   });
 
+  await testAsync('POST /api/fs/write rejects live SQLite database files', async () => {
+    const res = await dispatch(server, 'POST', '/api/fs/write', { path: '.oas-database.sqlite', content: 'pwned' });
+    assert.strictEqual(res.status, 400);
+    assert(String(res.body.error || '').includes('Protected'));
+  });
+
   await testAsync('POST /api/fs/diff computes unified diff between original and modified', async () => {
     const original = 'line 1\nline 2\nline 3\n';
     const modified = 'line 1\nline 2 (edited)\nline 3\nline 4\n';
@@ -590,8 +596,10 @@ async function runComprehensiveE2EBattery() {
   console.log('\n--- 22. Direction D: Arena Multi-Model Benchmarking ---');
   await testAsync('POST /api/arena/compare evaluates models head-to-head with winners', async () => {
     const res = await dispatch(server, 'POST', '/api/arena/compare', {
+      taskId: 'ready-token',
       prompt: 'Reply with the word READY',
-      models: ['qwen2.5-coder:7b']
+      models: ['qwen2.5-coder:7b'],
+      k: 1
     });
     assert.strictEqual(res.status, 200);
     assert(res.body.benchmarkId);
@@ -604,8 +612,9 @@ async function runComprehensiveE2EBattery() {
     const local = res.body.models.find(m => m.modelId === 'qwen2.5-coder:7b');
     assert(local);
     assert(local.latencyMs >= 0);
-    assert.strictEqual(typeof local.scoreReasoning, 'number');
-    assert.strictEqual(local.scoringMethod, 'heuristic_length_latency');
+    assert.strictEqual(typeof local.passAtK, 'number');
+    assert.strictEqual(local.scoringMethod, 'pass_at_k');
+    assert.strictEqual(res.body.capability, 'eval-harness');
     assert(typeof local.codeSnippet === 'string');
   });
 
@@ -620,6 +629,7 @@ async function runComprehensiveE2EBattery() {
     assert.strictEqual(res.status, 200);
     assert.strictEqual(res.body.exitCode, 0);
     assert(res.body.stdout.includes('OAS PTY ACTIVE'));
+    assert(['seatbelt', 'policy-only'].includes(res.body.isolation));
     assert(res.body.durationMs >= 0);
   });
 
@@ -697,6 +707,9 @@ async function runComprehensiveE2EBattery() {
     assert.strictEqual(res.body.action, 'spawned_session');
     assert(res.body.sessionId);
     assert.strictEqual(res.body.assignedAgent, 'build-error-resolver');
+    const session = server.store.getSession(res.body.sessionId);
+    assert.ok(session);
+    assert.strictEqual(session.lead_agent_id, 'build-error-resolver');
   });
 
   // ----------------------------------------------------
@@ -747,7 +760,8 @@ async function runComprehensiveE2EBattery() {
     });
     assert.strictEqual(res.status, 200);
     assert(res.body.dossierId);
-    assert.strictEqual(res.body.complianceStatus, 'PASSED');
+    assert.strictEqual(res.body.complianceStatus, 'SAMPLE');
+    assert.strictEqual(res.body.attestation, 'sample');
     assert(res.body.dossierHtml.includes('Executive Compliance Verification Dossier'));
     assert(res.body.dossierHtml.includes('SOC 2'));
     assert(res.body.dossierHtml.includes('ISO/IEC 27001'));

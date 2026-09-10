@@ -3,11 +3,24 @@
  * Route handlers bound to OasControlPlaneServer via .call(server)
  */
 
+const fs = require('fs');
+const path = require('path');
+
+function readPluginVersion(workspaceRoot) {
+  try {
+    return fs.readFileSync(path.join(workspaceRoot, 'VERSION'), 'utf8').trim();
+  } catch {
+    return 'unknown';
+  }
+}
+
 module.exports = async function corejsRoutes(req, res, pathname, parsedUrl) {
 if (pathname === '/health' && req.method === 'GET') {
   return this.sendJson(res, 200, {
     status: 'ok',
     service: 'oas-studio',
+    studioVersion: '0.9.0',
+    pluginVersion: readPluginVersion(this.workspaceRoot),
     time: new Date().toISOString()
   });
 }

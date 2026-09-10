@@ -1,31 +1,56 @@
 # Working Context
 
-Last updated: 2026-04-08
+Last updated: 2026-09-10
 
 ## Purpose
 
-Public OAS plugin repo for agents, skills, commands, hooks, rules, install surfaces, and OAS 2.0 platform buildout.
+Public OAS plugin repo (agents, skills, commands, hooks, rules, install surfaces) plus in-tree **Local Studio 0.9** operator UI. Studio is a loopback control plane, not a hosted cloud product.
 
 ## Current Truth
 
 - Default branch: `main`
-- Public release surface is aligned at `v1.10.0`
-- Public catalog truth is `47` agents, `79` commands, and `181` skills
-- Public plugin slug is now `oas`; legacy `operating-agent-systems` install paths remain supported for compatibility
-- Release discussion: `#1272`
-- OAS 2.0 exists in-tree and builds, but it is still alpha rather than GA
-- Main active operational work:
-  - keep default branch green
-  - continue issue-driven fixes from `main` now that the public PR backlog is at zero
-  - continue OAS 2.0 control-plane and operator-surface buildout
+- Public plugin release surface: **v2.2.1** (`VERSION`, `oas-universal`, plugin slug `oas@oas`)
+- Public catalog truth: **68 agents**, **94 commands**, **286 skills**
+- **Local Studio 0.9** (`npm run studio`, `apps/web` + `apps/api`, bind `127.0.0.1:3458`) is the operator preview. It is versioned separately from plugin 2.2.1 and is not GA SaaS.
+- `oas2/` Rust control plane remains **alpha**. Park it until Node Studio is honest.
+- Extra local UIs (`scripts/control-pane.js` :8765, `scripts/dashboard-web.js` :3456) overlap Studio; do not advertise them as the product.
+- Auth is loopback-open or a shared `OAS_API_TOKEN`. No user accounts, Stripe, seats, or credits in this repo.
+- Commercial GitHub App checkout is **outside this repo**. `oas.tools/pricing` was HTTP 500 on 2026-09-10; live $19/seat copy currently lives on ecc.tools. Unify brand to OAS before any payment announcement.
+- OAS 2.0 GA sequence remains `docs/OAS-2.0-GA-ROADMAP.md` (MCP read plane → mutation → leases → telemetry).
 
 ## Current Constraints
 
 - No merge by title or commit summary alone.
 - No arbitrary external runtime installs in shipped OAS surfaces.
+- Do not claim AgentShield 102-rule scans, SOC 2/ISO, or cloud control-plane from Local Studio.
+- Do not advertise uncommitted Studio WIP as shipped 2.2.1.
 - Overlapping skills, hooks, or agents should be consolidated when overlap is material and runtime separation is not required.
 
 ## Active Queues
+
+- **Studio 0.9 honesty + local GA:** Auto Run → `/pipeline/run`, BYOK live provider tests, HITL, worktree UI, Playwright on seven views, desktop spawn of the API.
+- **Public money (sibling site / OAS-Tools):** restore `oas.tools/pricing`, one OAS brand, GitHub App seats before any in-app credits.
+- **Not this sprint:** hosted inference credits, fleet dashboard, x402, merging Rust oas2 as GA.
+- Plugin catalog: keep default branch green; skills-first; issue-driven fixes.
+
+## Interfaces
+
+- Public truth: GitHub issues and PRs
+- Internal execution truth: linked Linear work items under the OAS program
+- Studio operator surface: `http://127.0.0.1:3458` after `npm run studio`
+
+## Update Rule
+
+Keep this file detailed for only the current sprint, blockers, and next actions. Summarize completed work into archive or repo docs once it is no longer actively shaping execution.
+
+## Latest Execution Notes
+
+- 2026-09-10: Started Studio 0.9 honesty pass. Relabeled Cloud/Enterprise chrome to Local Studio 0.9, DAG Auto Run now POSTs `/pipeline/run` instead of simulating `/step`, security UI is a lightweight workspace scan (not AgentShield 102-rules), `/api/settings/test` live-probes cloud providers, `/health` reports `studioVersion` 0.9.0 vs plugin `VERSION`.
+
+
+## Historical notes (2026-04, not current catalog truth)
+
+The April 2026 notes below are a salvage/backlog archive. Catalog counts in those bullets are stale; current truth is 68 / 94 / 286 and plugin v2.2.1.
 
 - PR backlog: reduced but active; keep direct-porting only safe OAS-native changes and close overlap, stale generators, and unaudited external-runtime lanes
 - Upstream branch backlog still needs selective mining and cleanup:

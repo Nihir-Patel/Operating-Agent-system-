@@ -6,6 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const { resolveDefaultModel } = require('../../../../packages/engine/src/model-registry');
+const { writeSkillPromotion } = require('../../../../packages/engine/src/skill-promotion');
 
 module.exports = async function catalogRoutes(req, res, pathname, parsedUrl) {
 // --- CATALOG APIS ---
@@ -64,37 +65,35 @@ if (pathname === '/api/skills/create' && req.method === 'POST') {
     return this.sendJson(res, 400, { error: 'Skill name or ID is required.' });
   }
 
-  const skillDir = path.join(this.workspaceRoot, 'skills', rawId);
-  if (!fs.existsSync(skillDir)) {
-    fs.mkdirSync(skillDir, { recursive: true });
+  try {
+    const result = writeSkillPromotion({
+      workspaceRoot: this.workspaceRoot,
+      id: rawId,
+      name: body.name || rawId,
+      description: body.description,
+      instructions: body.instructions,
+      triggers: body.triggers,
+      confirmPromote: body.confirmPromote === true || body.confirmPromote === 'true'
+    });
+    if (result.stage === 'catalog') this.initCatalog();
+    return this.sendJson(res, result.stage === 'catalog' ? 201 : 202, {
+      success: true,
+      id: result.id,
+      file: result.file,
+      stage: result.stage,
+      failures: result.failures,
+      totalSkills: this.cachedCatalog?.skills.length
+    });
+  } catch (err) {
+    if (err.code === 'SKILL_PROMOTION_BLOCKED') {
+      return this.sendJson(res, 409, {
+        error: err.message,
+        errorCode: err.code,
+        failures: err.evaluation && err.evaluation.failures
+      });
+    }
+    return this.sendJson(res, 400, { error: err.message });
   }
-
-  const triggersYaml = body.triggers
-    ? `triggers:\n` + (Array.isArray(body.triggers) ? body.triggers : body.triggers.split(',')).map(t => `  - "${t.trim()}"`).join('\n')
-    : 'triggers: []';
-
-  const content = [
-    '---',
-    `name: ${rawId}`,
-    `description: "${(body.description || 'Custom workflow skill.').replace(/"/g, '\\"')}"`,
-    triggersYaml,
-    '---',
-    '',
-    '# ' + (body.name || rawId),
-    '',
-    body.instructions || 'Procedural instructions for this workflow skill.'
-  ].join('\n');
-
-  const skillFile = path.join(skillDir, 'SKILL.md');
-  fs.writeFileSync(skillFile, content, 'utf8');
-
-  this.initCatalog();
-  return this.sendJson(res, 201, {
-    success: true,
-    id: rawId,
-    file: `skills/${rawId}/SKILL.md`,
-    totalSkills: this.cachedCatalog?.skills.length
-  });
 }
 
 if (pathname === '/api/commands' && req.method === 'GET') {

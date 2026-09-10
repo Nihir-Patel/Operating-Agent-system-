@@ -1,17 +1,17 @@
 {
   "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-config-schema/schema.json",
   "productName": "OAS Studio",
-  "version": "2.2.1",
+  "version": "0.9.0",
   "identifier": "com.oas.studio",
   "build": {
     "frontendDist": "../../web",
-    "devUrl": "http://127.0.0.1:3456"
+    "devUrl": "http://127.0.0.1:3458"
   },
   "app": {
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "OAS Studio & Cloud Control Plane",
+        "title": "OAS Local Studio 0.9",
         "width": 1440,
         "height": 900,
         "minWidth": 1024,
@@ -24,7 +24,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' data: https://cdn.jsdelivr.net; img-src 'self' data: blob:; connect-src 'self' http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:* https://cdn.jsdelivr.net; frame-src 'none'; object-src 'none'; base-uri 'self'"
     }
   },
   "bundle": {

@@ -25,10 +25,17 @@ if (pathname === '/api/fs/read' && req.method === 'GET') {
 if (pathname === '/api/fs/write' && req.method === 'POST') {
   try {
     const body = await this.parseBody(req);
-    const result = this.writeWorkspaceFile(body.path, body.content ?? '');
+    const result = this.writeWorkspaceFile(body.path, body.content ?? '', {
+      holderId: body.holderId || body.agentId
+    });
     return this.sendJson(res, 200, result);
   } catch (err) {
-    return this.sendJson(res, 400, { error: err.message });
+    const status = err.statusCode || (err.code === 'PATH_LEASE_CONFLICT' ? 409 : 400);
+    return this.sendJson(res, status, {
+      error: err.message,
+      errorCode: err.code || 'FS_WRITE_FAILED',
+      conflict: err.conflict || null
+    });
   }
 }
 

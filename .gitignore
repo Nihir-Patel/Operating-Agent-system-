@@ -116,3 +116,4 @@ assets/images/security/badrudi-exploit.mp4
 .oas-worktrees/
 .tmp-validator-*.js
 tests/scratch/
+tests/tmp-wt-*/

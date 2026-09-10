@@ -71,7 +71,7 @@ async function runApiTests() {
   assert(serverInstance.cachedCatalog.agents.length >= 68, 'Must have at least 68 agents');
   assert(serverInstance.cachedCatalog.skills.length === 286, 'Must have 286 skills');
   assert(serverInstance.cachedCatalog.commands.length === 94, 'Must have 94 commands');
-  assert(Object.keys(serverInstance.cachedCatalog.mcpServers).length === 35, 'Must have 35 MCP servers');
+  assert(Object.keys(serverInstance.cachedCatalog.mcpServers).length === 36, 'Must have 36 MCP servers');
 
   console.log('Session store check:');
   const session = serverInstance.store.createSession({ title: 'Test Feature Run', lead_agent_id: 'planner' });

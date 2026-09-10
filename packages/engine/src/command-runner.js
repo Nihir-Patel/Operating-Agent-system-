@@ -10,6 +10,7 @@ class CommandRunner {
     this.compactor = options.compactor;
     this.store = options.store;
     this.worktrees = options.worktrees;
+    this.catalog = options.catalog || { commands: [], agents: [], skills: [] };
   }
 
   async executeCommand(rawCommand, context = {}) {
@@ -50,13 +51,42 @@ class CommandRunner {
           timestamp
         };
       default:
-        return {
-          status: 'unimplemented',
-          command: cmdName,
-          output: `No dedicated handler for /${cmdName}. Known commands: /plan, /tdd, /loop, /build-fix, /code-review, /security-scan, /compact, /checkpoint, /aside.`,
-          timestamp
-        };
+        return this.handleCatalogCommand(cmdName, args, sessionId, timestamp);
     }
+  }
+
+  handleCatalogCommand(cmdName, args, sessionId, timestamp) {
+    const catalog = this.catalog || {};
+    const commands = catalog.commands || [];
+    const agents = catalog.agents || [];
+    const skills = catalog.skills || [];
+    const command = commands.find(c => c.id === cmdName || c.id.replace(/_/g, '-') === cmdName);
+    const agent = agents.find(a => a.id === cmdName || a.id.startsWith(cmdName) || (command && a.id.startsWith(command.id)));
+    const skill = skills.find(s => s.id === cmdName || s.id.includes(cmdName) || (command && s.id.includes(command.id)));
+    const pipelineType = cmdName.includes('build') || cmdName.includes('fix') ? 'build_fix' : 'feature_lifecycle';
+    if (this.scheduler) {
+      const run = this.scheduler.createPipeline(sessionId, args || cmdName, pipelineType);
+      return {
+        status: 'success',
+        command: cmdName,
+        delegated: true,
+        matched: {
+          command: command ? command.id : null,
+          agent: agent ? agent.id : null,
+          skill: skill ? skill.id : null
+        },
+        output: `[/${cmdName}] Mapped to ${agent ? agent.id : (skill ? skill.id : pipelineType)} pipeline. Execute the session to run the next agent.`,
+        pipeline: run,
+        timestamp
+      };
+    }
+    return {
+      status: 'success',
+      command: cmdName,
+      delegated: true,
+      output: `[/${cmdName}] Recorded. No scheduler is configured, so a pipeline was not created.`,
+      timestamp
+    };
   }
 
   handlePlanCommand(sessionId, args) {

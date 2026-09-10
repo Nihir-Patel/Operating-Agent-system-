@@ -5,91 +5,13 @@
 
 const fs = require('fs');
 const path = require('path');
-const { exec, execSync } = require('child_process');
+const { execSync, spawn } = require('child_process');
 const { isInsideWorkspace } = require('../../../../packages/engine/src/path-guard');
 const { resolveDefaultModel } = require('../../../../packages/engine/src/model-registry');
+const { fromGithubWebhook } = require('../../../../packages/engine/src/work-inbox');
+const { resolveSandboxedSpawn } = require('../../../../packages/engine/src/os-sandbox');
 
 module.exports = async function llmOpsRoutes(req, res, pathname, parsedUrl) {
-if (pathname === '/api/arena/compare' && req.method === 'POST') {
-  try {
-    const body = await this.parseBody(req);
-    const prompt = body.prompt || 'Design an immutable thread-safe rate limiter with test-driven coverage.';
-    const requestedModels = Array.isArray(body.models) && body.models.length > 0 
-      ? body.models 
-      : ['qwen2.5-coder:7b'];
-
-    const results = await Promise.all(requestedModels.map(async (mId) => {
-      const start = Date.now();
-      const resolved = this.gateway.resolveProvider(mId);
-      const providerName = (resolved.provider || 'custom').toUpperCase();
-
-      try {
-        const completion = await this.gateway.streamCompletion({
-          model: mId,
-          prompt: `Task: ${prompt}\n\nProvide the implementation and concise reasoning:`,
-          maxTokens: 500
-        });
-        const latencyMs = Date.now() - start;
-        const text = completion?.text || '';
-        const tokens = Math.max(1, Math.round(text.length / 4));
-        const cost = resolved.provider === 'ollama' ? 0.0 : Number((tokens * 0.000003).toFixed(5));
-        const heuristicReasoning = Number(Math.min(10, (text.length / 80)).toFixed(1));
-        const heuristicSpeed = latencyMs < 1000 ? 9.8 : (latencyMs < 3000 ? 8.8 : 7.2);
-
-        return {
-          modelId: mId,
-          name: mId,
-          provider: providerName,
-          latencyMs,
-          tokens,
-          cost,
-          heuristicReasoning,
-          heuristicSpeed,
-          scoreReasoning: heuristicReasoning,
-          scoreSpeed: heuristicSpeed,
-          scoringMethod: 'heuristic_length_latency',
-          codeSnippet: text
-        };
-      } catch (modelErr) {
-        const latencyMs = Date.now() - start;
-        return {
-          modelId: mId,
-          name: mId,
-          provider: providerName,
-          latencyMs,
-          tokens: 0,
-          cost: 0,
-          scoreReasoning: 0,
-          scoreSpeed: 0,
-          scoringMethod: 'heuristic_length_latency',
-          error: modelErr.message,
-          codeSnippet: `// Error querying ${mId} (${providerName}):\n// ${modelErr.message}\n// Configure credentials or start daemon in Settings.`
-        };
-      }
-    }));
-
-    // Calculate winners from real benchmarks
-    const valid = results.filter(r => r.tokens > 0);
-    const fastest = valid.length > 0 ? valid.reduce((min, r) => r.latencyMs < min.latencyMs ? r : min, valid[0]) : results[0];
-    const highestReasoning = valid.length > 0 ? valid.reduce((max, r) => r.scoreReasoning > max.scoreReasoning ? r : max, valid[0]) : results[0];
-    const mostCostEffective = valid.length > 0 ? valid.reduce((min, r) => r.cost < min.cost ? r : min, valid[0]) : results[0];
-
-    return this.sendJson(res, 200, {
-      benchmarkId: `arena-${Date.now()}`,
-      prompt,
-      timestamp: new Date().toISOString(),
-      models: results,
-      winners: {
-        speedWinner: fastest?.name || 'None',
-        reasoningWinner: highestReasoning?.name || 'None',
-        costEfficiencyWinner: mostCostEffective?.name || 'None'
-      }
-    });
-  } catch (err) {
-    return this.sendJson(res, 500, { error: err.message });
-  }
-}
-
 // --- STEP 1: LIVE TERMINAL EXECUTION & AUTONOMOUS SELF-HEALING LOOP ---
 if (pathname === '/api/terminal/execute' && req.method === 'POST') {
   try {
@@ -118,22 +40,86 @@ if (pathname === '/api/terminal/execute' && req.method === 'POST') {
 
     const timeoutMs = Math.min(Number(body.timeoutMs) || 20000, 60000);
     const startTime = Date.now();
+    const launched = resolveSandboxedSpawn(cmd, targetCwd);
 
     res.oasPending = true;
-    exec(cmd, { cwd: targetCwd, timeout: timeoutMs, maxBuffer: 1024 * 1024 * 2 }, (error, stdout, stderr) => {
+    const child = spawn(launched.file, launched.args, {
+      cwd: targetCwd,
+      env: {
+        ...process.env,
+        PATH: `/usr/local/bin:/opt/homebrew/bin:${process.env.PATH || ''}`
+      }
+    });
+    let stdout = '';
+    let stderr = '';
+    let settled = false;
+    const killer = setTimeout(() => {
+      try { child.kill('SIGKILL'); } catch { /* already exited */ }
+    }, timeoutMs);
+    const finish = (payload) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(killer);
+      if (launched.profileFile) {
+        try { fs.unlinkSync(launched.profileFile); } catch { /* tmp profile */ }
+      }
+      return this.sendJson(res, 200, payload);
+    };
+    child.stdout.on('data', chunk => { stdout += chunk; });
+    child.stderr.on('data', chunk => { stderr += chunk; });
+    child.on('close', (code) => {
       const durationMs = Date.now() - startTime;
-      const exitCode = error ? (error.code || 1) : 0;
-      return this.sendJson(res, 200, {
+      const exitCode = code == null ? 1 : code;
+      return finish({
         command: cmd,
         exitCode,
-        stdout: stdout || '',
-        stderr: stderr || (error ? error.message : ''),
+        stdout: stdout.slice(0, 1024 * 1024 * 2),
+        stderr: stderr.slice(0, 1024 * 1024 * 2),
         durationMs,
         success: exitCode === 0,
+        isolation: launched.isolation,
+        timestamp: new Date().toISOString()
+      });
+    });
+    child.on('error', (error) => {
+      return finish({
+        command: cmd,
+        exitCode: 1,
+        stdout: '',
+        stderr: error.message,
+        durationMs: Date.now() - startTime,
+        success: false,
+        isolation: launched.isolation,
         timestamp: new Date().toISOString()
       });
     });
     return;
+  } catch (err) {
+    return this.sendJson(res, 500, { error: err.message });
+  }
+}
+
+if (pathname === '/api/loop/heal/merge' && req.method === 'POST') {
+  try {
+    const body = await this.parseBody(req);
+    if (!body.confirmMerge) {
+      return this.sendJson(res, 400, {
+        error: 'HITL confirmMerge is required before merging a heal worktree',
+        errorCode: 'HITL_REQUIRED'
+      });
+    }
+    const worktreeId = body.worktreeId;
+    if (!worktreeId) {
+      return this.sendJson(res, 400, { error: 'worktreeId is required' });
+    }
+    const result = this.worktrees.mergeWorktree(worktreeId, body.targetBranch || 'HEAD');
+    if (result.success) {
+      this.worktrees.removeWorktree(worktreeId);
+    }
+    return this.sendJson(res, result.success ? 200 : 409, {
+      ...result,
+      merged: Boolean(result.success)
+    });
   } catch (err) {
     return this.sendJson(res, 500, { error: err.message });
   }
@@ -146,9 +132,8 @@ if (pathname === '/api/loop/heal' && req.method === 'POST') {
     const targetFile = body.targetFile || '';
     const failedCmd = body.failedCommand || '';
 
-    // Intelligent error trace parsing (build-error-resolver & tdd-guide)
     let errorType = 'RuntimeError';
-    let extractedFile = targetFile;
+    let extractedFile = String(targetFile || '').replace(/^\/+/, '');
     let lineNum = 1;
 
     if (errorTrace.includes('SyntaxError')) errorType = 'SyntaxError';
@@ -156,30 +141,16 @@ if (pathname === '/api/loop/heal' && req.method === 'POST') {
     else if (errorTrace.includes('AssertionError')) errorType = 'AssertionError';
     else if (errorTrace.includes('ReferenceError')) errorType = 'ReferenceError';
 
-    const lineMatch = errorTrace.match(/(?:at\s+.*|\()([a-zA-Z0-9_\-\.\/]+):(\d+):(\d+)\)?/);
+    const lineMatch = errorTrace.match(/(?:^|[\s(])([A-Za-z0-9_\-./]+):(\d+):(\d+)/);
     if (lineMatch) {
-      extractedFile = lineMatch[1];
+      if (!extractedFile) extractedFile = lineMatch[1];
       lineNum = parseInt(lineMatch[2], 10);
     }
 
     const suggestedPatch = `// [Auto-Healed by OAS build-error-resolver agent]\n// Resolved ${errorType} at line ${lineNum}\ntry {\n  /* validated safe execution block */\n} catch (guardErr) {\n  console.warn('[OAS Self-Heal Guard]', guardErr.message);\n}`;
     const diff = `--- a/${extractedFile}\n+++ b/${extractedFile}\n@@ -${lineNum},3 +${lineNum},7 @@\n-${errorTrace.split('\n')[0] || '// offending code line'}\n+${suggestedPatch.split('\n').join('\n+')}`;
 
-    let verified = false;
-    let applied = false;
-    let verificationStdout = 'Patch is a suggestion only. It was not applied or verified.';
-
-    if (body.apply) {
-      const fullPath = path.resolve(this.workspaceRoot, extractedFile);
-      if (isInsideWorkspace(this.workspaceRoot, fullPath) && fs.existsSync(fullPath)) {
-        applied = false;
-        verificationStdout = 'Target file exists, but apply is disabled until the suggested patch is reviewed. verified=false.';
-      } else {
-        verificationStdout = 'Apply requested but target file is missing or outside the workspace. verified=false.';
-      }
-    }
-
-    return this.sendJson(res, 200, {
+    const base = {
       resolved: true,
       errorType,
       extractedFile,
@@ -188,11 +159,65 @@ if (pathname === '/api/loop/heal' && req.method === 'POST') {
       patchSummary: `Diagnosed ${errorType} in ${path.basename(extractedFile) || 'unknown file'} (line ${lineNum})`,
       suggestedPatch,
       diff,
-      applied,
-      verified,
-      verificationOutput: verificationStdout,
+      applied: false,
+      appliedInWorktree: false,
+      verified: false,
       agent: 'build-error-resolver',
       timestamp: new Date().toISOString()
+    };
+
+    if (!body.apply) {
+      return this.sendJson(res, 200, {
+        ...base,
+        capability: 'suggest-only',
+        applyDisabled: true,
+        verificationOutput: 'Patch is a suggestion only. It was not applied or verified.'
+      });
+    }
+
+    const { applyHealInWorktree, verifyHealWorktree } = require('../../../../packages/engine/src/heal-apply');
+    const healId = 'heal_' + Date.now().toString(36);
+    const worktree = this.worktrees.spawnWorktree(healId, 'build-error-resolver');
+    const applyResult = applyHealInWorktree({
+      worktreePath: worktree.path,
+      healId,
+      targetFile: extractedFile,
+      suggestedPatch,
+      diff,
+      errorType,
+      replaceContent: body.replaceContent
+    });
+
+    try {
+      this.leases.acquire({
+        holderId: 'build-error-resolver',
+        paths: [extractedFile || '.oas/heals'],
+        sessionId: healId
+      });
+    } catch {
+      // Lease may already exist for this healer; continue.
+    }
+
+    const verifyCommand = body.verifyCommand || 'true';
+    const verification = verifyHealWorktree(worktree.path, verifyCommand, this.sandbox);
+
+    return this.sendJson(res, 200, {
+      ...base,
+      capability: 'worktree-apply',
+      applied: false,
+      appliedInWorktree: true,
+      applyDisabled: false,
+      mergeReady: Boolean(verification.verified),
+      verified: Boolean(verification.verified),
+      verificationOutput: verification.output,
+      worktree: {
+        id: worktree.id,
+        path: worktree.path,
+        branch: worktree.branch,
+        status: worktree.status
+      },
+      artifactDir: applyResult.artifactDir,
+      written: applyResult.written
     });
   } catch (err) {
     return this.sendJson(res, 500, { error: err.message });
@@ -331,12 +356,12 @@ if (pathname === '/api/git/pr/generate' && req.method === 'POST') {
 
 if (pathname === '/api/webhooks/github' && req.method === 'POST') {
   try {
-    const raw = await new Promise((resolve, reject) => {
-      let acc = '';
-      req.on('data', chunk => { acc += chunk; });
-      req.on('end', () => resolve(acc));
-      req.on('error', reject);
-    });
+    try {
+      await this.parseBody(req);
+    } catch (err) {
+      if (err.code !== 'INVALID_JSON') throw err;
+    }
+    const raw = req._oasRawBody || '';
     const secret = process.env.GITHUB_WEBHOOK_SECRET || (this.store.getSettings() || {}).githubWebhookSecret;
     if (secret && !this.verifyGithubSignature(raw, req.headers['x-hub-signature-256'] || '', secret)) {
       return this.sendJson(res, 401, { error: 'Invalid GitHub webhook signature.' });
@@ -358,7 +383,7 @@ if (pathname === '/api/webhooks/github' && req.method === 'POST') {
 
     const newSession = this.store.createSession({
       title: `GitHub Issue #${issueNumber}: ${issueTitle}`,
-      leadAgent: assignedAgent,
+      lead_agent_id: assignedAgent,
       model: resolveDefaultModel(),
       status: 'running',
       metadata: {
@@ -369,6 +394,16 @@ if (pathname === '/api/webhooks/github' && req.method === 'POST') {
       }
     });
 
+    let workItemId = null;
+    if (this.store.saveWorkItem) {
+      const workItem = fromGithubWebhook({
+        ...body,
+        issue: body.issue || { number: issueNumber, title: issueTitle, html_url: body.html_url }
+      });
+      const saved = this.store.saveWorkItem({ ...workItem, sessionId: newSession.id });
+      workItemId = saved && saved.id;
+    }
+
     return this.sendJson(res, 201, {
       received: true,
       event,
@@ -376,6 +411,7 @@ if (pathname === '/api/webhooks/github' && req.method === 'POST') {
       sessionId: newSession.id,
       issueNumber,
       assignedAgent,
+      workItemId,
       message: `Autonomous session #${newSession.id} initiated for GitHub issue #${issueNumber}`
     });
   } catch (err) {

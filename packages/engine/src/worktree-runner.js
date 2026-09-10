@@ -12,6 +12,20 @@ class WorktreeRunner {
     this.repoRoot = options.repoRoot || process.cwd();
     this.worktreeBaseDir = options.worktreeBaseDir || path.join(this.repoRoot, '.oas-worktrees');
     this.activeWorktrees = new Map();
+    this.store = options.store;
+    this.hydrateFromStore();
+  }
+
+  persistWorktree(record) {
+    if (!record || !this.store || typeof this.store.saveWorktree !== 'function') return;
+    this.store.saveWorktree(JSON.parse(JSON.stringify(record)));
+  }
+
+  hydrateFromStore() {
+    if (!this.store || typeof this.store.listWorktrees !== 'function') return;
+    for (const record of this.store.listWorktrees() || []) {
+      if (record && record.id) this.activeWorktrees.set(record.id, record);
+    }
   }
 
   isGitRepo() {
@@ -56,6 +70,7 @@ class WorktreeRunner {
         createdAt: new Date().toISOString()
       };
       this.activeWorktrees.set(slug, record);
+      this.persistWorktree(record);
       return record;
     }
 
@@ -74,6 +89,7 @@ class WorktreeRunner {
       createdAt: new Date().toISOString()
     };
     this.activeWorktrees.set(slug, record);
+    this.persistWorktree(record);
     return record;
   }
 
@@ -151,7 +167,60 @@ class WorktreeRunner {
     }
 
     this.activeWorktrees.delete(worktreeId);
+    if (this.store && typeof this.store.deleteWorktree === 'function') {
+      this.store.deleteWorktree(worktreeId);
+    }
     return true;
+  }
+
+  /**
+   * Switch the parent repository HEAD to an existing local branch.
+   */
+  isValidBranchName(name) {
+    if (!name || typeof name !== 'string' || name.length > 255) return false;
+    if (name.startsWith('-') || name.includes('..') || name.includes('\\') || /\s/.test(name)) {
+      return false;
+    }
+    return /^[A-Za-z0-9][A-Za-z0-9._\-\/]*$/.test(name) && !name.endsWith('/') && !name.includes('//');
+  }
+
+  switchBranch(branch) {
+    if (!this.isValidBranchName(branch)) {
+      return { success: false, error: 'Invalid branch name' };
+    }
+    if (!this.isGitRepo()) {
+      return { success: false, error: 'Not a git repository' };
+    }
+
+    const checkout = spawnSync('git', ['checkout', branch], {
+      cwd: this.repoRoot,
+      encoding: 'utf8',
+      timeout: 15000
+    });
+    if (checkout.status !== 0) {
+      return {
+        success: false,
+        error: String(checkout.stderr || checkout.stdout || 'git checkout failed').trim()
+      };
+    }
+
+    const current = spawnSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
+      cwd: this.repoRoot,
+      encoding: 'utf8',
+      timeout: 5000
+    });
+    const head = spawnSync('git', ['rev-parse', 'HEAD'], {
+      cwd: this.repoRoot,
+      encoding: 'utf8',
+      timeout: 5000
+    });
+    const activeBranch = String(current.stdout || branch).trim();
+    return {
+      success: true,
+      activeBranch,
+      head: String(head.stdout || '').trim(),
+      message: `Switched active workspace to branch: ${activeBranch}`
+    };
   }
 
   listWorktrees() {

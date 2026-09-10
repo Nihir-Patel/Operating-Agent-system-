@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * OAS Studio & Cloud Control Plane Launcher
+ * OAS Local Studio 0.9 launcher
  *
  * Usage:
  *   node scripts/oas-studio.js [port]
@@ -23,8 +23,8 @@ const port = parseInt(process.argv[2] || process.env.OAS_STUDIO_PORT || '3458', 
 const host = process.env.OAS_STUDIO_HOST || '127.0.0.1';
 
 console.log('\n======================================================');
-console.log('  OAS ENTERPRISE STUDIO & CLOUD CONTROL PLANE');
-console.log('  Operating Agent Systems v2.2.1');
+console.log('  OAS Local Studio 0.9');
+console.log('  Loopback operator UI (plugin catalog 2.2.1)');
 console.log('======================================================');
 
 try {

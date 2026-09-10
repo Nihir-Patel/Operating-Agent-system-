@@ -10,6 +10,8 @@ const { UniversalModelGateway } = require('./llm-gateway');
 const { ExecutionSandbox } = require('./sandbox');
 const { isInsideWorkspace } = require('./path-guard');
 const { resolveDefaultModel } = require('./model-registry');
+const { OAS_AGENT_TOOLS, extractMarkdownToolCall, normalizeNativeToolCalls } = require('./agent-tools');
+const { resolveSandboxedSpawn } = require('./os-sandbox');
 
 class AgentRunner {
   constructor(options = {}) {
@@ -17,6 +19,7 @@ class AgentRunner {
     this.sandbox = options.sandbox || new ExecutionSandbox({ allowedPaths: [this.workspaceRoot] });
     this.gateway = options.gateway || new UniversalModelGateway(options);
     this.store = options.store;
+    this.leases = options.leases;
   }
 
   /**
@@ -88,11 +91,19 @@ class AgentRunner {
         return { status: 'error', error: 'Path outside workspace root' };
       }
       try {
+        if (this.leases) {
+          this.leases.assertWritable(sanitizedArgs.path, sanitizedArgs.holderId || args.holderId);
+        }
         fs.mkdirSync(path.dirname(targetPath), { recursive: true });
         fs.writeFileSync(targetPath, sanitizedArgs.content || '', 'utf8');
         return { status: 'success', path: sanitizedArgs.path, bytesWritten: (sanitizedArgs.content || '').length };
       } catch (err) {
-        return { status: 'error', error: err.message };
+        return {
+          status: err.code === 'PATH_LEASE_CONFLICT' ? 'blocked' : 'error',
+          error: err.message,
+          code: err.code,
+          conflict: err.conflict || null
+        };
       }
     }
 
@@ -104,22 +115,30 @@ class AgentRunner {
       }
 
       try {
+        const launched = resolveSandboxedSpawn(cmd, this.workspaceRoot);
         const env = {
           ...process.env,
           PATH: `/usr/local/bin:/opt/homebrew/bin:${process.env.PATH || ''}`
         };
-        const proc = spawnSync('sh', ['-c', cmd], {
-          cwd: this.workspaceRoot,
-          encoding: 'utf8',
-          timeout: 15000,
-          env
-        });
-        return {
-          status: 'success',
-          exitCode: proc.status,
-          stdout: proc.stdout?.slice(0, 2000),
-          stderr: proc.stderr?.slice(0, 2000)
-        };
+        try {
+          const proc = spawnSync(launched.file, launched.args, {
+            cwd: this.workspaceRoot,
+            encoding: 'utf8',
+            timeout: 15000,
+            env
+          });
+          return {
+            status: 'success',
+            exitCode: proc.status,
+            stdout: proc.stdout?.slice(0, 2000),
+            stderr: proc.stderr?.slice(0, 2000),
+            isolation: launched.isolation
+          };
+        } finally {
+          if (launched.profileFile) {
+            try { fs.unlinkSync(launched.profileFile); } catch { /* tmp profile */ }
+          }
+        }
       } catch (err) {
         return { status: 'error', error: err.message };
       }
@@ -181,14 +200,8 @@ class AgentRunner {
 
     const systemPrompt = [
       agentDef.systemPrompt || `You are ${agentDef.name || agentDef.id}, an autonomous software agent in OAS.`,
-      'You have access to the following tools:',
-      '- read_file(path)',
-      '- write_file(path, content)',
-      '- run_command(command)',
-      '- grep_search(query, path)',
-      '- list_dir(path)',
-      '',
-      'To use a tool, output a JSON block formatted exactly like:',
+      'You have access to native tools: read_file, write_file, run_command, grep_search, list_dir.',
+      'Prefer native tool calls. If the provider cannot emit native tool calls, output a JSON block formatted exactly like:',
       '```tool_call',
       '{ "tool": "tool_name", "args": { ... } }',
       '```',
@@ -201,7 +214,8 @@ class AgentRunner {
         agentId: agentDef.id,
         model: agentDef.model || resolveDefaultModel(),
         systemPrompt,
-        prompt: currentPrompt
+        prompt: currentPrompt,
+        tools: OAS_AGENT_TOOLS
       }, {
         onToken: token => {
           turnText += token;
@@ -214,25 +228,13 @@ class AgentRunner {
       const responseText = streamResult.text || turnText;
       finalOutput = responseText;
 
-      // Extract tool call
-      const toolCallMatch = responseText.match(/```(?:tool_call|json)?\s*\n?(\{[\s\S]*?"tool"\s*:\s*".*?"[\s\S]*?\})\s*\n?```/);
-      if (!toolCallMatch) {
-        // No tool call detected — agent finished
-        break;
-      }
-
-      let parsedCall = null;
-      try {
-        parsedCall = JSON.parse(toolCallMatch[1]);
-      } catch {
-        // malformed json
-      }
-
+      const nativeCalls = normalizeNativeToolCalls(streamResult.toolCalls);
+      const markdownCall = extractMarkdownToolCall(responseText);
+      const parsedCall = nativeCalls[0] || markdownCall;
       if (!parsedCall || !parsedCall.tool) {
         break;
       }
 
-      // Execute tool
       const toolExecutionResult = this.executeTool(parsedCall.tool, parsedCall.args || {});
       if (callbacks.onToolExecution) {
         callbacks.onToolExecution({

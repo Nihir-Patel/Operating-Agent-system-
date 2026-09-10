@@ -3,6 +3,8 @@
  * OAS Control Plane Authentication & Rate Limiting Middleware
  */
 
+const crypto = require('crypto');
+
 class AuthMiddleware {
   constructor(options = {}) {
     this.token = options.token || process.env.OAS_API_TOKEN || null;
@@ -17,13 +19,14 @@ class AuthMiddleware {
     return host === '127.0.0.1' || host === 'localhost' || host === '::1';
   }
 
+  clientAddress(req) {
+    return (req && req.socket && req.socket.remoteAddress) || '';
+  }
+
   isLoopbackRequest(req) {
     if (this.isLoopbackHost(this.bindHost)) return true;
-    const ip = (req && req.headers && req.headers['x-forwarded-for'])
-      || (req && req.socket && req.socket.remoteAddress)
-      || '127.0.0.1';
-    const first = String(ip).split(',')[0].trim();
-    return first === '127.0.0.1' || first === '::1' || first === '::ffff:127.0.0.1';
+    const remote = this.clientAddress(req);
+    return remote === '127.0.0.1' || remote === '::1' || remote === '::ffff:127.0.0.1';
   }
 
   updateSettings(settings = {}) {
@@ -33,23 +36,69 @@ class AuthMiddleware {
   }
 
   isPublicRoute(pathname, method) {
-    // Static assets and UI controller are always public
     if (method === 'GET' && (
       pathname === '/' ||
       pathname === '/index.html' ||
       pathname === '/styles.css' ||
       pathname === '/app.js' ||
       pathname === '/favicon.ico' ||
-      pathname === '/api/stream' ||
-      pathname === '/health'
+      pathname === '/health' ||
+      (typeof pathname === 'string' && pathname.startsWith('/js/') && !pathname.includes('..'))
     )) {
       return true;
     }
     return false;
   }
 
+  parseCookieToken(cookieHeader) {
+    if (!cookieHeader) return '';
+    const parts = String(cookieHeader).split(';');
+    for (const part of parts) {
+      const idx = part.indexOf('=');
+      if (idx === -1) continue;
+      const key = part.slice(0, idx).trim();
+      if (key !== 'oas_api_token') continue;
+      const raw = part.slice(idx + 1).trim();
+      try {
+        return decodeURIComponent(raw);
+      } catch {
+        return raw;
+      }
+    }
+    return '';
+  }
+
+  extractToken(req) {
+    const headers = (req && req.headers) || {};
+    const authHeader = headers.authorization || '';
+    if (authHeader.startsWith('Bearer ')) {
+      return authHeader.slice(7).trim();
+    }
+    if (headers['x-api-key']) {
+      return String(headers['x-api-key']).trim();
+    }
+    const cookieToken = this.parseCookieToken(headers.cookie);
+    if (cookieToken) return cookieToken;
+    const reqUrl = req && req.url;
+    if (!reqUrl) return '';
+    try {
+      const parsed = new URL(reqUrl, 'http://127.0.0.1');
+      return (parsed.searchParams.get('token') || parsed.searchParams.get('access_token') || '').trim();
+    } catch {
+      return '';
+    }
+  }
+
+  tokensMatch(supplied) {
+    if (!this.token || !supplied) return false;
+    const expected = Buffer.from(String(this.token));
+    const actual = Buffer.from(String(supplied));
+    if (expected.length !== actual.length) return false;
+    return crypto.timingSafeEqual(expected, actual);
+  }
+
   checkRateLimit(req) {
-    const ip = req.headers['x-forwarded-for'] || (req.socket && req.socket.remoteAddress) || '127.0.0.1';
+    const ip = this.clientAddress(req) || 'unknown';
     const now = Date.now();
     let client = this.requestCounts.get(ip);
 
@@ -69,7 +118,6 @@ class AuthMiddleware {
   }
 
   authenticate(req, pathname, method) {
-    // If rate limited, reject immediately
     const rateCheck = this.checkRateLimit(req);
     if (!rateCheck.allowed) {
       return {
@@ -91,23 +139,12 @@ class AuthMiddleware {
       };
     }
 
-    // Public UI and assets bypass auth
     if (this.isPublicRoute(pathname, method)) {
       return { authorized: true };
     }
 
-    // Extract credentials from Authorization header or query or x-api-key
-    const authHeader = req.headers['authorization'] || '';
-    const apiKeyHeader = req.headers['x-api-key'] || '';
-
-    let suppliedToken = '';
-    if (authHeader.startsWith('Bearer ')) {
-      suppliedToken = authHeader.slice(7).trim();
-    } else if (apiKeyHeader) {
-      suppliedToken = apiKeyHeader.trim();
-    }
-
-    if (!suppliedToken || suppliedToken !== this.token) {
+    const suppliedToken = this.extractToken(req);
+    if (!this.tokensMatch(suppliedToken)) {
       return {
         authorized: false,
         statusCode: 401,

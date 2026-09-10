@@ -54,76 +54,42 @@ if (pathname.startsWith('/api/sessions/') && pathname.endsWith('/execute') && re
   const parts = pathname.split('/');
   const sessionId = parts[3];
   const body = await this.parseBody(req);
-  let run = this.scheduler.getRun(sessionId);
-  if (!run) {
-    run = this.scheduler.createPipeline(sessionId, body.intent || 'OAS Enterprise Task', 'feature_lifecycle');
-  }
-
-  const activeNode = run.nodes.find(n => n.status === 'running') || run.nodes.find(n => n.status === 'pending');
-  if (!activeNode) {
-    return this.sendJson(res, 200, { message: 'All pipeline nodes already completed', run });
-  }
-
-  activeNode.status = 'running';
-  const agentId = activeNode.agentId;
-  const agentDef = (this.cachedCatalog?.agents || []).find(a => a.id === agentId) || { id: agentId, model: resolveDefaultModel() };
-
-  let stepResult;
   try {
-    stepResult = await this.runner.executeMultiTurnLoop(
-      agentDef,
-      body.prompt || run.intent,
-      { sessionId, maxTurns: body.maxTurns || 3 },
-      {
-        onStepChunk: chunk => {
-          this.broadcastSse('agent:thought:chunk', { sessionId, ...chunk });
-        },
-        onToolExecution: toolEvent => {
-          this.broadcastSse('agent:tool:executed', { sessionId, ...toolEvent });
-        }
-      }
-    );
+    const result = await this.executeActiveNode(sessionId, body);
+    if (result.done && !result.success) {
+      return this.sendJson(res, 200, { message: result.message, run: result.run });
+    }
+    return this.sendJson(res, 200, result);
   } catch (execErr) {
-    activeNode.status = 'failed';
-    run.status = 'failed';
-    this.broadcastSse('agent:session:failed', { sessionId, error: execErr.message });
-    return this.sendJson(res, 500, {
+    const status = execErr.statusCode || (execErr.code === 'PIPELINE_BLOCKED' ? 409 : 500);
+    return this.sendJson(res, status, {
       error: execErr.message,
-      completedNode: activeNode.id,
-      status: 'failed'
+      errorCode: execErr.code || 'EXECUTE_FAILED',
+      status: execErr.pipeline ? execErr.pipeline.status : 'failed',
+      pipeline: execErr.pipeline || this.scheduler.getRun(sessionId)
     });
   }
-
-  activeNode.status = 'completed';
-  const stepRecord = {
-    stepIndex: run.history.length + 1,
-    nodeId: activeNode.id,
-    agentId,
-    step_type: 'thought',
-    content: stepResult.output,
-    timestamp: new Date().toISOString()
-  };
-  run.history.push(stepRecord);
-  this.store.addStep(sessionId, stepRecord);
-
-  const allDone = run.nodes.every(n => n.status === 'completed');
-  if (allDone) {
-    run.status = 'completed';
-    this.broadcastSse('agent:session:completed', { sessionId });
-  }
-
-  return this.sendJson(res, 200, {
-    success: true,
-    completedNode: activeNode.id,
-    agentId,
-    step: stepRecord,
-    output: stepResult.output,
-    turns: stepResult.turns,
-    pipeline: run
-  });
 }
 
 // --- PIPELINE AUTO-ADVANCE ENDPOINT ---
+if (pathname.startsWith('/api/sessions/') && pathname.endsWith('/pipeline/run') && req.method === 'POST') {
+  const parts = pathname.split('/');
+  const sessionId = parts[3];
+  const body = await this.parseBody(req);
+  try {
+    const result = await this.runPipeline(sessionId, body);
+    return this.sendJson(res, 200, { success: true, sessionId, ...result });
+  } catch (execErr) {
+    const status = execErr.statusCode || (execErr.code === 'PIPELINE_BLOCKED' ? 409 : 500);
+    return this.sendJson(res, status, {
+      error: execErr.message,
+      errorCode: execErr.code || 'EXECUTE_FAILED',
+      status: execErr.pipeline ? execErr.pipeline.status : 'failed',
+      pipeline: execErr.pipeline || this.scheduler.getRun(sessionId)
+    });
+  }
+}
+
 if (pathname.startsWith('/api/sessions/') && pathname.endsWith('/pipeline/advance') && req.method === 'POST') {
   const parts = pathname.split('/');
   const sessionId = parts[3];
@@ -142,6 +108,8 @@ if (pathname.startsWith('/api/sessions/') && pathname.endsWith('/pipeline/advanc
   } else {
     run.status = 'completed';
   }
+
+  if (this.scheduler.persistRun) this.scheduler.persistRun(run);
 
   this.broadcastSse('agent:pipeline:advanced', {
     sessionId,
@@ -306,7 +274,12 @@ if (pathname.startsWith('/api/sessions/') && req.method === 'DELETE') {
 // --- MEMORY VAULT ---
 if (pathname === '/api/memory' && req.method === 'GET') {
   const query = (parsedUrl.query && (parsedUrl.query.query || parsedUrl.query.q)) || '';
-  const list = this.store.getMemoryVault(query);
+  const mode = parsedUrl.query && parsedUrl.query.mode;
+  const list = this.store.getMemoryVault(mode === 'semantic' ? '' : query);
+  if (mode === 'semantic') {
+    const { rankByLocalVector } = require('../../../../packages/db/src/local-vectors');
+    return this.sendJson(res, 200, rankByLocalVector(list, query));
+  }
   return this.sendJson(res, 200, list);
 }
 

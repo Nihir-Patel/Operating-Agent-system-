@@ -188,10 +188,14 @@ if (pathname.startsWith('/api/graph/nodes/') && req.method === 'PUT') {
   try {
     const rawId = decodeURIComponent(pathname.replace('/api/graph/nodes/', ''));
     const body = await this.parseBody(req);
-    this.customNodeOverrides[rawId] = {
-      ...(this.customNodeOverrides[rawId] || {}),
-      ...body
+    this.customNodeOverrides = {
+      ...this.customNodeOverrides,
+      [rawId]: {
+        ...(this.customNodeOverrides[rawId] || {}),
+        ...body
+      }
     };
+    this.persistGraphState();
     return this.sendJson(res, 200, {
       success: true,
       nodeId: rawId,
@@ -217,7 +221,8 @@ if (pathname === '/api/graph/edges' && req.method === 'POST') {
       label: body.label || 'custom connection'
     };
 
-    this.customEdges.push(newEdge);
+    this.customEdges = [...(this.customEdges || []), newEdge];
+    this.persistGraphState();
     return this.sendJson(res, 201, {
       success: true,
       edge: newEdge

@@ -1,29 +1,14 @@
 /**
  * @file apps/web/app.js
- * OAS Studio & Cloud Control Plane Frontend Controller
+ * OAS Local Studio 0.9 frontend controller
  */
 
-// Application State Store
-const state = {
-  activeView: 'view-dag',
-  catalog: {
-    agents: [],
-    skills: [],
-    commands: [],
-    mcp: []
-  },
-  currentFilter: 'all',
-  searchQuery: '',
-  activeSession: {
-    id: null,
-    title: 'No Session Selected',
-    currentNode: null,
-    status: 'idle'
-  }
-};
+import { state, nodeMetadata, viewTitles } from './js/studio-state.js';
+import { escapeHtml, showToast, formatUnifiedDiffHtml } from './js/ui.js';
+import { persistApiToken, getApiToken, attachAuthHeaders, getSseStreamUrl, installAuthenticatedFetch } from './js/api-client.js';
+import { initWorkspaceFilesystem, loadWorkspaceTree, openWorkspaceFile, hideWorkspaceEditors } from './js/workspace-editor.js';
 
-// Node metadata for interactive DAG (dynamically populated from live session / catalog)
-const nodeMetadata = {};
+installAuthenticatedFetch({ onAuthRetry: () => connectSseStream() });
 
 // DOM Elements
 const elements = {
@@ -55,21 +40,6 @@ const elements = {
   annotationInput: document.getElementById('plan-new-annotation')
 };
 
-// View Titles
-const viewTitles = {
-  'view-dag': 'Execution DAG Orchestrator',
-  'view-workspace': 'Live Streaming Workspace & Virtual Terminal',
-  'view-knowledge-graph': 'Interactive Knowledge Graph Visualizer (483 Relational Nodes)',
-  'view-plan-canvas': 'Plan Canvas Pro (Interactive Roadmap)',
-  'view-catalog': 'Capabilities Catalog & Studio (68 Agents • 286 Skills • 94 Commands)',
-  'view-vault': 'Memory Vault & Telemetry Dashboard',
-  'view-builder': 'Studio Builder (Visual Agent & Skill Designer)'
-};
-
-function escapeHtml(str) {
-  if (typeof str !== 'string') return String(str || '');
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 
 // Navigation
 function switchView(viewId) {
@@ -121,66 +91,6 @@ elements.navItems.forEach(item => {
   });
 });
 
-// Global Cyber Toast Notification
-function showToast(message, type = 'info') {
-  let toastContainer = document.getElementById('cyber-toast-container');
-  if (!toastContainer) {
-    toastContainer = document.createElement('div');
-    toastContainer.id = 'cyber-toast-container';
-    toastContainer.style.position = 'fixed';
-    toastContainer.style.bottom = '20px';
-    toastContainer.style.right = '20px';
-    toastContainer.style.display = 'flex';
-    toastContainer.style.flexDirection = 'column';
-    toastContainer.style.gap = '8px';
-    toastContainer.style.zIndex = '99999';
-    toastContainer.style.pointerEvents = 'none';
-    document.body.appendChild(toastContainer);
-  }
-
-  const toast = document.createElement('div');
-  const borderColor = type === 'success' ? '#10B981' : (type === 'error' ? '#EF4444' : '#38BDF8');
-  toast.style.background = 'rgba(8, 14, 28, 0.95)';
-  toast.style.border = `1px solid ${borderColor}`;
-  toast.style.color = '#F8FAFC';
-  toast.style.padding = '8px 14px';
-  toast.style.borderRadius = '6px';
-  toast.style.fontSize = '11px';
-  toast.style.fontWeight = '600';
-  toast.style.boxShadow = `0 6px 24px rgba(0, 0, 0, 0.6), 0 0 12px ${borderColor}44`;
-  toast.style.backdropFilter = 'blur(12px)';
-  toast.style.display = 'flex';
-  toast.style.alignItems = 'center';
-  toast.style.gap = '8px';
-  toast.style.pointerEvents = 'auto';
-  toast.style.transition = 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
-  toast.style.transform = 'translateY(12px)';
-  toast.style.opacity = '0';
-
-  const dot = document.createElement('span');
-  dot.style.width = '6px';
-  dot.style.height = '6px';
-  dot.style.borderRadius = '50%';
-  dot.style.background = borderColor;
-  dot.style.boxShadow = `0 0 8px ${borderColor}`;
-
-  toast.appendChild(dot);
-  const text = document.createElement('span');
-  text.textContent = message;
-  toast.appendChild(text);
-
-  toastContainer.appendChild(toast);
-  requestAnimationFrame(() => {
-    toast.style.transform = 'translateY(0)';
-    toast.style.opacity = '1';
-  });
-
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateY(12px)';
-    setTimeout(() => toast.remove(), 250);
-  }, 2600);
-}
 
 // Interactive DAG Node Selection & Bidirectional Inspector
 let activeSelectedDagNode = 'tdd-guide';
@@ -426,24 +336,6 @@ if (document.readyState === 'loading') {
 }
 
 // Live Session Steps & Thought Stream Loader
-function formatUnifiedDiffHtml(diffText) {
-  const lines = (diffText || '').split('\n');
-  const rendered = lines.map(line => {
-    const esc = escapeHtml(line);
-    if (line.startsWith('+++') || line.startsWith('---') || line.startsWith('diff ')) {
-      return `<div class="diff-header-bar">${esc}</div>`;
-    } else if (line.startsWith('@@')) {
-      return `<div class="diff-line-info">${esc}</div>`;
-    } else if (line.startsWith('+')) {
-      return `<div class="diff-line-add">${esc}</div>`;
-    } else if (line.startsWith('-')) {
-      return `<div class="diff-line-del">${esc}</div>`;
-    } else {
-      return `<div class="diff-line-same">${esc}</div>`;
-    }
-  }).join('');
-  return `<div class="diff-block">${rendered}</div>`;
-}
 
 function updateDagTimelineScrubber(steps) {
   const slider = document.getElementById('dag-step-slider');
@@ -675,7 +567,7 @@ function connectSseStream() {
   }
 
   try {
-    sseEventSource = new EventSource('/api/stream');
+    sseEventSource = new EventSource(getSseStreamUrl());
 
     sseEventSource.onopen = () => {
       sseReconnectAttempts = 0;
@@ -780,16 +672,41 @@ if (elements.btnSimulateStep) {
   elements.btnSimulateStep.addEventListener('click', advanceDagStep);
 }
 
-let autoRunTimer = null;
+let autoRunInFlight = false;
 if (elements.btnAutoRun) {
-  elements.btnAutoRun.addEventListener('click', () => {
-    if (autoRunTimer) {
-      clearInterval(autoRunTimer);
-      autoRunTimer = null;
-      elements.btnAutoRun.textContent = 'Auto Run';
-    } else {
-      autoRunTimer = setInterval(advanceDagStep, 2000);
-      elements.btnAutoRun.textContent = 'Stop Auto';
+  elements.btnAutoRun.addEventListener('click', async () => {
+    if (autoRunInFlight) return;
+    if (!state.activeSession.id) {
+      showToast('Create or select a session before Auto Run', 'warning');
+      return;
+    }
+    autoRunInFlight = true;
+    const original = elements.btnAutoRun.textContent;
+    elements.btnAutoRun.textContent = 'Running…';
+    try {
+      const res = await fetch(`/api/sessions/${state.activeSession.id}/pipeline/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: state.activeSession.title || 'Studio pipeline',
+          maxNodes: 16
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast(data.error || 'Pipeline run failed', 'error');
+      } else if (Array.isArray(data.results)) {
+        data.results.forEach(step => {
+          if (step && step.step) appendStepToStream(step.step);
+        });
+      }
+      renderDynamicDag();
+    } catch (err) {
+      console.error('Pipeline auto-run failed:', err);
+      showToast(err.message || 'Pipeline auto-run failed', 'error');
+    } finally {
+      autoRunInFlight = false;
+      elements.btnAutoRun.textContent = original || 'Auto Run';
     }
   });
 }
@@ -814,35 +731,6 @@ if (elements.btnDagPause) {
   });
 }
 
-// ==========================================
-// FLOATING TOAST NOTIFICATION UTILITY
-// ==========================================
-function showToast(title, message, type = 'info') {
-  const container = document.getElementById('toast-container');
-  if (!container) return;
-  const toast = document.createElement('div');
-  const typeClass = type === 'success' ? 'toast-success' : (type === 'error' ? 'toast-error' : '');
-  const iconSvg = type === 'success'
-    ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
-    : (type === 'error'
-      ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
-      : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>');
-
-  toast.className = `toast ${typeClass}`;
-  toast.innerHTML = `
-    <div class="toast-icon">${iconSvg}</div>
-    <div class="toast-content">
-      <div class="toast-title">${escapeHtml(title)}</div>
-      <div class="toast-message">${escapeHtml(message)}</div>
-    </div>
-  `;
-  container.appendChild(toast);
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateY(10px) scale(0.95)';
-    setTimeout(() => toast.remove(), 250);
-  }, 3500);
-}
 
 // ==========================================
 // PIPELINE RUNNER CONTROLLER (RUN PIPELINE MODAL)
@@ -1216,7 +1104,7 @@ function openModal(item) {
   elements.modalTitle.textContent = `${item.type || 'Entity'}: ${item.name || item.id}`;
   elements.modalSubtitle.textContent = item.model ? `Model: ${item.model}` : (item.domain || item.type || '');
   elements.modalDesc.textContent = item.description || 'Detailed specification for this entity.';
-  elements.modalPrompt.textContent = item.systemPrompt || item.instructions || item.content || `Entity ${item.id} registered under OAS Enterprise Control Plane.`;
+  elements.modalPrompt.textContent = item.systemPrompt || item.instructions || item.content || `Entity ${item.id} registered in the local OAS catalog.`;
   elements.modal.classList.add('active');
 }
 
@@ -1283,14 +1171,13 @@ async function executeCliCommand(cmdString) {
   const tabCode = document.getElementById('tab-code-viewer');
   const diffDisplay = document.getElementById('workspace-diff-viewer');
   const codeDisplay = document.getElementById('workspace-code-display');
-  const editor = document.getElementById('workspace-file-editor');
 
   if (tabDiff && tabCode && diffDisplay) {
     tabDiff.classList.add('active');
     tabCode.classList.remove('active');
     diffDisplay.style.display = 'block';
     if (codeDisplay) codeDisplay.style.display = 'none';
-    if (editor) editor.style.display = 'none';
+    hideWorkspaceEditors();
   }
 
   // Handle local clear command
@@ -1712,11 +1599,11 @@ function initPlanCanvasInteractions() {
     btnResetPlan.onclick = async () => {
       if (!confirm('Reset capability plan to canonical 5 enterprise milestones?')) return;
       const canonicalPhases = [
-        { id: 'p0', title: 'Phase 0: Codebase Ontology & Directory Deep-Dive', description: 'Cataloged all 68 agents, 286 skills, 94 commands, and 35 MCP servers into relational knowledge graph.', completed: true, assignedAgent: 'architect' },
+        { id: 'p0', title: 'Phase 0: Codebase Ontology & Directory Deep-Dive', description: 'Cataloged all 68 agents, 286 skills, 94 commands, and 36 MCP servers into relational knowledge graph.', completed: true, assignedAgent: 'architect' },
         { id: 'p1', title: 'Phase 1: System Architecture & Persistence Layer', description: 'Drizzle ORM schema with pgvector support and localized MemoryStore JSON fallback.', completed: true, assignedAgent: 'architect' },
         { id: 'p2', title: 'Phase 2: Live Workspace & File Tree Integration', description: 'Live file tree explorer, sandbox file reader, and real-time execution thought stream.', completed: true, assignedAgent: 'developer' },
         { id: 'p3', title: 'Phase 3: Multi-Session Execution & Worktree Runner', description: 'Isolated Git worktrees per subagent, multi-session CRUD, and transcript export.', completed: true, assignedAgent: 'loop-operator' },
-        { id: 'p4', title: 'Phase 4: Verification Suite & Enterprise Hardening', description: 'Full unit and integration test coverage across all control plane routes.', completed: true, assignedAgent: 'tdd-guide' }
+        { id: 'p4', title: 'Phase 4: Verification Suite & Local Hardening', description: 'Full unit and integration test coverage across all control plane routes.', completed: true, assignedAgent: 'tdd-guide' }
       ];
 
       if (currentPlanArtifact) {
@@ -2107,14 +1994,18 @@ if (btnExportSkill) {
           domain: document.getElementById('builder-skill-domain')?.value,
           triggers: document.getElementById('builder-skill-triggers')?.value,
           description: document.getElementById('builder-skill-desc')?.value,
-          instructions: document.getElementById('builder-skill-prompt')?.value
+          instructions: document.getElementById('builder-skill-prompt')?.value,
+          confirmPromote: Boolean(document.getElementById('builder-skill-confirm-promote')?.checked)
         })
       });
 
       if (res.ok) {
         const data = await res.json();
-        showToast('Skill Registered', `Exported to ${data.file} and loaded into catalog.`, 'success');
-        loadCatalog();
+        const note = data.stage === 'catalog'
+          ? `Promoted to ${data.file}`
+          : `Draft saved at ${data.file} (not in catalog until HITL promote)`;
+        showToast(data.stage === 'catalog' ? 'Skill promoted' : 'Skill draft saved', note, 'success');
+        if (data.stage === 'catalog') loadCatalog();
       } else {
         const err = await res.json().catch(() => ({}));
         showToast('Export Failed', err.error || 'Failed to export skill', 'error');
@@ -2317,343 +2208,6 @@ function initDynamicDag() {
   renderDynamicDag();
 }
 
-// ==========================================
-// 2. WORKSPACE FILESYSTEM EXPLORER & CODE VIEWER
-// ==========================================
-let workspaceTree = [];
-
-function getFsFileIcon(name) {
-  const ext = name.split('.').pop()?.toLowerCase();
-  switch (ext) {
-    case 'js':
-    case 'mjs':
-    case 'cjs': return '🟨';
-    case 'ts':
-    case 'tsx': return '🔷';
-    case 'json': return '💠';
-    case 'md': return '📝';
-    case 'html': return '🌐';
-    case 'css': return '🎨';
-    case 'py': return '🐍';
-    case 'sh': return '🐚';
-    case 'yml':
-    case 'yaml': return '⚙️';
-    case 'lock': return '🔒';
-    default: return '📄';
-  }
-}
-
-async function loadWorkspaceTree() {
-  const container = document.getElementById('fs-tree-container');
-  if (!container) return;
-  try {
-    const res = await fetch('/api/fs/tree');
-    if (res.ok) {
-      const data = await res.json();
-      workspaceTree = data.tree || [];
-      renderFsTree(workspaceTree, container);
-      // Auto-load default file if nothing is open
-      if (!state.currentWorkspaceFilePath) {
-        openWorkspaceFile('package.json');
-      }
-    }
-  } catch (err) {
-    container.innerHTML = '<div style="color: var(--status-error); padding: 8px;">Failed to load filesystem tree</div>';
-  }
-}
-
-function renderFsTree(items, parentEl, depth = 0) {
-  if (depth === 0) parentEl.innerHTML = '';
-  items.forEach(item => {
-    const row = document.createElement('div');
-    row.className = `fs-tree-item fs-depth-${Math.min(depth, 4)}`;
-    const isDir = item.type === 'directory';
-    const icon = isDir ? '📁' : getFsFileIcon(item.name);
-
-    row.innerHTML = `<span class="fs-icon">${icon}</span><span>${item.name}</span>`;
-    parentEl.appendChild(row);
-
-    if (isDir && item.children && item.children.length > 0) {
-      const childContainer = document.createElement('div');
-      childContainer.style.display = depth < 1 ? 'block' : 'none';
-      parentEl.appendChild(childContainer);
-      renderFsTree(item.children, childContainer, depth + 1);
-
-      row.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const open = childContainer.style.display !== 'none';
-        childContainer.style.display = open ? 'none' : 'block';
-        row.querySelector('.fs-icon').textContent = open ? '📁' : '📂';
-      });
-    } else if (!isDir) {
-      row.addEventListener('click', () => {
-        document.querySelectorAll('.fs-tree-item').forEach(el => el.classList.remove('active'));
-        row.classList.add('active');
-        openWorkspaceFile(item.path);
-      });
-    }
-  });
-}
-
-async function openWorkspaceFile(filePath) {
-  const codeDisplay = document.getElementById('workspace-code-display');
-  const badge = document.getElementById('code-viewer-file-badge');
-  const statsBadge = document.getElementById('code-viewer-stats');
-  const editor = document.getElementById('workspace-file-editor');
-  const btnEdit = document.getElementById('btn-edit-workspace-file');
-  const btnSave = document.getElementById('btn-save-workspace-file');
-  const btnCancel = document.getElementById('btn-cancel-edit-workspace-file');
-
-  if (badge) badge.textContent = filePath;
-  if (codeDisplay) codeDisplay.textContent = 'Loading ' + filePath + '...';
-
-  state.currentWorkspaceFilePath = filePath;
-
-  // Reset edit mode toggle if it was in edit mode
-  if (editor) editor.style.display = 'none';
-  if (codeDisplay) codeDisplay.style.display = 'block';
-  if (btnEdit) btnEdit.style.display = 'inline-flex';
-  if (btnSave) btnSave.style.display = 'none';
-  if (btnCancel) btnCancel.style.display = 'none';
-
-  try {
-    const res = await fetch(`/api/fs/read?path=${encodeURIComponent(filePath)}`);
-    if (res.ok) {
-      const data = await res.json();
-      state.currentWorkspaceFileContent = data.content || '';
-      if (editor) editor.value = state.currentWorkspaceFileContent;
-
-      const lines = (data.content || '').split('\n');
-      if (statsBadge) {
-        const byteSize = new Blob([data.content || '']).size;
-        const sizeStr = byteSize > 1024 ? `${(byteSize / 1024).toFixed(1)} KB` : `${byteSize} B`;
-        statsBadge.textContent = `${lines.length} lines • ${sizeStr} • UTF-8`;
-        statsBadge.style.display = 'inline-block';
-      }
-
-      if (codeDisplay) {
-        codeDisplay.innerHTML = lines.map((line, i) => {
-          const num = String(i + 1).padStart(4, ' ');
-          const escaped = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-          return `<span style="color: #475569; user-select: none;">${num}  </span>${escaped}`;
-        }).join('\n');
-      }
-    } else {
-      const err = await res.json();
-      if (codeDisplay) codeDisplay.textContent = 'Error: ' + (err.error || 'Failed to read file');
-      if (statsBadge) statsBadge.style.display = 'none';
-    }
-  } catch (err) {
-    if (codeDisplay) codeDisplay.textContent = 'Error loading file: ' + err.message;
-    if (statsBadge) statsBadge.style.display = 'none';
-  }
-}
-
-function initWorkspaceEditorController() {
-  const btnEdit = document.getElementById('btn-edit-workspace-file');
-  const btnSave = document.getElementById('btn-save-workspace-file');
-  const btnCancel = document.getElementById('btn-cancel-edit-workspace-file');
-  const editor = document.getElementById('workspace-file-editor');
-  const codeDisplay = document.getElementById('workspace-code-display');
-  const diffDisplay = document.getElementById('workspace-diff-viewer');
-  const tabDiff = document.getElementById('tab-diff-viewer');
-
-  if (btnEdit && editor && codeDisplay) {
-    btnEdit.onclick = () => {
-      if (!state.currentWorkspaceFilePath) {
-        showToast('No File Selected', 'Please select a file from the workspace tree to edit', 'warning');
-        return;
-      }
-      editor.value = state.currentWorkspaceFileContent || '';
-      editor.style.display = 'block';
-      codeDisplay.style.display = 'none';
-      btnEdit.style.display = 'none';
-      if (btnSave) btnSave.style.display = 'inline-flex';
-      if (btnCancel) btnCancel.style.display = 'inline-flex';
-      editor.focus();
-    };
-  }
-
-  if (btnCancel && editor && codeDisplay) {
-    btnCancel.onclick = () => {
-      editor.style.display = 'none';
-      codeDisplay.style.display = 'block';
-      if (btnEdit) btnEdit.style.display = 'inline-flex';
-      if (btnSave) btnSave.style.display = 'none';
-      btnCancel.style.display = 'none';
-      editor.value = state.currentWorkspaceFileContent || '';
-    };
-  }
-
-  const saveCurrentFile = async () => {
-    if (!state.currentWorkspaceFilePath) return;
-    const newContent = editor ? editor.value : '';
-    const origContent = state.currentWorkspaceFileContent || '';
-
-    try {
-      const res = await fetch('/api/fs/write', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: state.currentWorkspaceFilePath, content: newContent })
-      });
-
-      if (res.ok) {
-        // Fetch real-time visual diff
-        try {
-          const diffRes = await fetch('/api/fs/diff', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              path: state.currentWorkspaceFilePath,
-              original: origContent,
-              modified: newContent
-            })
-          });
-          if (diffRes.ok) {
-            const diffData = await diffRes.json();
-            if (diffDisplay && diffData.diff) {
-              diffDisplay.innerHTML = formatUnifiedDiffHtml(diffData.diff);
-            }
-          }
-        } catch {
-          // ignore diff error if optional
-        }
-
-        state.currentWorkspaceFileContent = newContent;
-        if (codeDisplay) {
-          const lines = newContent.split('\n');
-          codeDisplay.innerHTML = lines.map((line, i) => {
-            const num = String(i + 1).padStart(4, ' ');
-            const escaped = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            return `<span style="color: #475569; user-select: none;">${num}  </span>${escaped}`;
-          }).join('\n');
-        }
-
-        // Return to display view
-        if (editor) editor.style.display = 'none';
-        if (codeDisplay) codeDisplay.style.display = 'block';
-        if (btnEdit) btnEdit.style.display = 'inline-flex';
-        if (btnSave) btnSave.style.display = 'none';
-        if (btnCancel) btnCancel.style.display = 'none';
-
-        showToast('File Saved', `Successfully wrote to ${state.currentWorkspaceFilePath}`, 'success');
-      } else {
-        const err = await res.json();
-        showToast('Save Error', err.error || 'Failed to save file', 'error');
-      }
-    } catch (err) {
-      showToast('Save Error', err.message, 'error');
-    }
-  };
-
-  if (btnSave) btnSave.onclick = saveCurrentFile;
-
-  if (editor) {
-    editor.addEventListener('keydown', (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-        e.preventDefault();
-        saveCurrentFile();
-      }
-    });
-  }
-}
-
-function initWorkspaceFilesystem() {
-  const refreshBtn = document.getElementById('btn-refresh-fs');
-  if (refreshBtn) refreshBtn.onclick = loadWorkspaceTree;
-
-  const btnCreateFile = document.getElementById('btn-create-file');
-  if (btnCreateFile) {
-    btnCreateFile.onclick = async () => {
-      const filename = prompt('Enter new file path relative to workspace (e.g. src/new-module.js):');
-      if (!filename || !filename.trim()) return;
-      const cleanPath = filename.trim().replace(/^\/+/, '');
-      try {
-        const res = await fetch('/api/fs/write', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path: cleanPath, content: `// ${cleanPath}\n` })
-        });
-        if (res.ok) {
-          showToast('File Created', `Created ${cleanPath}`, 'success');
-          await loadWorkspaceTree();
-          openWorkspaceFile(cleanPath);
-        } else {
-          const err = await res.json();
-          showToast('Create Failed', err.error || 'Failed to create file', 'error');
-        }
-      } catch (e) {
-        showToast('Error', e.message, 'error');
-      }
-    };
-  }
-
-  const btnCreateFolder = document.getElementById('btn-create-folder');
-  if (btnCreateFolder) {
-    btnCreateFolder.onclick = async () => {
-      const foldername = prompt('Enter new directory path relative to workspace (e.g. docs/guides):');
-      if (!foldername || !foldername.trim()) return;
-      const cleanPath = foldername.trim().replace(/^\/+/, '') + '/.gitkeep';
-      try {
-        const res = await fetch('/api/fs/write', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path: cleanPath, content: '' })
-        });
-        if (res.ok) {
-          showToast('Directory Created', `Created directory: ${foldername.trim()}`, 'success');
-          await loadWorkspaceTree();
-        } else {
-          const err = await res.json();
-          showToast('Create Failed', err.error || 'Failed to create directory', 'error');
-        }
-      } catch (e) {
-        showToast('Error', e.message, 'error');
-      }
-    };
-  }
-
-  const searchInput = document.getElementById('fs-search-input');
-  if (searchInput) {
-    searchInput.addEventListener('input', () => {
-      const q = searchInput.value.toLowerCase();
-      const items = document.querySelectorAll('.fs-tree-item');
-      items.forEach(el => {
-        const text = el.textContent.toLowerCase();
-        el.style.display = text.includes(q) ? 'flex' : 'none';
-      });
-    });
-  }
-
-  const tabCode = document.getElementById('tab-code-viewer');
-  const tabDiff = document.getElementById('tab-diff-viewer');
-  const codeDisplay = document.getElementById('workspace-code-display');
-  const editor = document.getElementById('workspace-file-editor');
-  const diffDisplay = document.getElementById('workspace-diff-viewer');
-
-  if (tabCode && tabDiff) {
-    tabCode.onclick = () => {
-      tabCode.classList.add('active');
-      tabDiff.classList.remove('active');
-      if (editor && editor.style.display === 'block') {
-        // keep editor open
-      } else if (codeDisplay) {
-        codeDisplay.style.display = 'block';
-      }
-      if (diffDisplay) diffDisplay.style.display = 'none';
-    };
-    tabDiff.onclick = () => {
-      tabDiff.classList.add('active');
-      tabCode.classList.remove('active');
-      if (codeDisplay) codeDisplay.style.display = 'none';
-      if (editor) editor.style.display = 'none';
-      if (diffDisplay) diffDisplay.style.display = 'block';
-    };
-  }
-
-  initWorkspaceEditorController();
-  loadWorkspaceTree();
-}
 
 function initMissionComposer() {
   const missionInput = document.getElementById('agent-mission-input');
@@ -4473,6 +4027,8 @@ async function loadSettings() {
       if (oll) oll.value = s.ollamaHost || 'http://localhost:11434';
       const ollM = document.getElementById('settings-ollama-model');
       if (ollM) ollM.value = s.ollamaModel || 'qwen2.5-coder:7b';
+      const apiTok = document.getElementById('settings-api-token');
+      if (apiTok) apiTok.value = getApiToken();
       const sb = document.getElementById('settings-sandbox-toggle');
       if (sb) sb.checked = s.sandboxEnabled !== false;
       const wt = document.getElementById('settings-worktree-toggle');
@@ -4519,6 +4075,10 @@ function initSettingsManager() {
         sandboxEnabled: document.getElementById('settings-sandbox-toggle')?.checked,
         worktreeIsolation: document.getElementById('settings-worktree-toggle')?.checked
       };
+      const apiTokenValue = document.getElementById('settings-api-token')?.value;
+      persistApiToken(apiTokenValue || getApiToken());
+      if (apiTokenValue) payload.apiToken = apiTokenValue;
+      if (typeof connectSseStream === 'function') connectSseStream();
 
       try {
         const res = await fetch('/api/settings', {
@@ -4578,14 +4138,23 @@ function initSettingsManager() {
 // ==========================================
 // 7. MEMORY VAULT & TELEMETRY DASHBOARD
 // ==========================================
-async function loadMemoryVault(query = '') {
+async function loadMemoryVault(query = '', options = {}) {
   const grid = document.getElementById('memory-grid');
   if (!grid) return;
 
   grid.innerHTML = '<div style="color: var(--text-muted); padding: 16px;">Querying Durable Memory Vault...</div>';
 
   try {
-    const url = query ? `/api/memory?query=${encodeURIComponent(query)}` : '/api/memory';
+    const params = new URLSearchParams();
+    if (query) {
+      if (options.semantic) {
+        params.set('mode', 'semantic');
+        params.set('q', query);
+      } else {
+        params.set('query', query);
+      }
+    }
+    const url = params.toString() ? `/api/memory?${params.toString()}` : '/api/memory';
     const res = await fetch(url);
     if (res.ok) {
       const memories = await res.json();
@@ -4616,6 +4185,7 @@ async function loadMemoryVault(query = '') {
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span class="badge-tag font-mono mem-hash-badge" style="font-size: 10px; cursor: pointer; color: #38BDF8; border-color: rgba(56, 189, 248, 0.25);" title="Click to copy SHA-256 hash">SHA-256: ${(escapeHtml(mem.hash || 'sha256')).substring(0, 16)}...</span>
             <span class="badge-tag" style="font-size: 10px; color: #94A3B8;">${escapeHtml(mem.kind || 'convention')}</span>
+            ${mem.vectorSource === 'local-hash-vectors' ? `<span class="badge-tag" style="font-size: 10px; color: #38BDF8;">hash-vector ${Number(mem.similarity || 0).toFixed(2)}</span>` : ''}
           </div>
         `;
 
@@ -4739,7 +4309,11 @@ async function loadHudStatus() {
       if (elMergeQueue && data.queueState) {
         elMergeQueue.textContent = data.queueState.mergeQueue.length ? `${data.queueState.mergeQueue.length} in merge queue` : 'Merge queue empty';
       }
-      if (elSync && data.sync?.Linear) elSync.textContent = `Linear: ${data.sync.Linear.health}`;
+      if (elSync && data.sync?.Linear) {
+        const linear = data.sync.Linear.health || data.sync.Linear.status || 'unconfigured';
+        const github = data.sync.GitHub ? (data.sync.GitHub.health || data.sync.GitHub.status) : '';
+        elSync.textContent = github ? `Linear: ${linear} · GitHub: ${github}` : `Linear: ${linear}`;
+      }
       if (elHandoff && data.sync?.handoff) elHandoff.textContent = data.sync.handoff.written ? '● Handoff written' : '○ Handoff pending';
 
       if (payloadView) {
@@ -4868,29 +4442,30 @@ async function runSecurityAudit() {
         container.innerHTML = `
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
             <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(52, 211, 153, 0.2); border-radius: 6px; padding: 10px;">
-              <div style="font-size: 10px; color: var(--text-muted);">SECURITY POSTURE</div>
-              <div style="font-size: 16px; font-weight: 700; color: ${data.status === 'SAFE' ? '#34D399' : '#F59E0B'};">${data.status}</div>
-              <div style="font-size: 10px; color: var(--text-secondary);">Zero-Day IOC Scan</div>
+              <div style="font-size: 10px; color: var(--text-muted);">SCANNER</div>
+              <div style="font-size: 16px; font-weight: 700; color: #38BDF8;">${escapeHtml(data.scanner || data.scanEngine || 'lightweight-workspace')}</div>
+              <div style="font-size: 10px; color: var(--text-secondary);">${data.claimsAgentShield ? 'AgentShield CLI' : 'Not AgentShield CLI'}</div>
             </div>
             <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; padding: 10px;">
-              <div style="font-size: 10px; color: var(--text-muted);">FILES INSPECTED</div>
-              <div style="font-size: 16px; font-weight: 700; color: #38BDF8;">${data.totalFilesScanned || 524}</div>
-              <div style="font-size: 10px; color: var(--text-secondary);">Package Manifests & ASTs</div>
+              <div style="font-size: 10px; color: var(--text-muted);">POSTURE</div>
+              <div style="font-size: 16px; font-weight: 700; color: ${data.status === 'SAFE' ? '#34D399' : '#F59E0B'};">${escapeHtml(String(data.status || 'UNKNOWN'))}</div>
+              <div style="font-size: 10px; color: var(--text-secondary);">${Number(data.totalFilesScanned || 0)} files counted</div>
             </div>
             <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(167, 139, 250, 0.2); border-radius: 6px; padding: 10px;">
-              <div style="font-size: 10px; color: var(--text-muted);">REGISTRY LOCK</div>
-              <div style="font-size: 16px; font-weight: 700; color: #A78BFA;">VERIFIED</div>
-              <div style="font-size: 10px; color: var(--text-secondary);">npm, pypi, crates.io</div>
+              <div style="font-size: 10px; color: var(--text-muted);">FINDINGS</div>
+              <div style="font-size: 16px; font-weight: 700; color: #A78BFA;">${(data.supplyChainFindings || []).length + (data.secretFindings || []).length}</div>
+              <div style="font-size: 10px; color: var(--text-secondary);">IOC + secret-shape</div>
             </div>
           </div>
-
           <div style="background: rgba(5, 9, 20, 0.9); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 12px;">
-            <div style="font-weight: 700; font-size: 12px; margin-bottom: 8px; color: #F1F5F9;">Scan Results & Advisory Ledger</div>
+            <div style="font-weight: 700; font-size: 12px; margin-bottom: 8px; color: #F1F5F9;">Scan results</div>
             <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.6;">
-              <div>✔ No malicious packages detected matching active threat advisories (142 indicators tracked).</div>
-              <div>✔ No unencrypted private keys or GitHub tokens exposed in workspace root.</div>
-              <div>✔ Pre-Tool execution sandbox active with loopback guard enforcement.</div>
-              <div>✔ SHA-256 Memory Vault cryptographic integrity validated.</div>
+              <div>${escapeHtml(data.disclaimer || '')}</div>
+              ${(data.supplyChainFindings || []).length === 0 && (data.secretFindings || []).length === 0
+                ? '<div>No IOC or secret-shape hits in the lightweight pass.</div>'
+                : (data.supplyChainFindings || []).concat(data.secretFindings || []).map(f =>
+                    `<div>${escapeHtml(f.severity || 'INFO')}: ${escapeHtml(f.package || f.file || f.type || JSON.stringify(f))}</div>`
+                  ).join('')}
             </div>
           </div>
         `;
@@ -5178,8 +4753,12 @@ async function initWorktreeController() {
     const res = await fetch('/api/worktree/branches');
     if (res.ok) {
       const data = await res.json();
-      const branches = data.branches || [];
-      const current = data.current || 'main';
+      const branches = (data.branches || []).map(b => (
+        typeof b === 'string'
+          ? { name: b, current: b === (data.current || data.activeBranch) }
+          : b
+      ));
+      const current = data.current || data.activeBranch || 'main';
       if (branches.length) {
         select.innerHTML = branches.map(b =>
           `<option value="${escapeHtml(b.name)}" ${b.name === current ? 'selected' : ''}>Worktree: ${escapeHtml(b.name)} ${b.current ? '(HEAD)' : ''}</option>`
@@ -5257,7 +4836,7 @@ function initMemoryVaultManager() {
     searchInput.addEventListener('input', () => {
       clearTimeout(timer);
       timer = setTimeout(() => {
-        loadMemoryVault(searchInput.value.trim());
+        loadMemoryVault(searchInput.value.trim(), { semantic: true });
       }, 200);
     });
   }
@@ -5488,7 +5067,7 @@ function initGlobalCommandPalette() {
       { name: 'Open Platform Settings & Provider Hub', badge: 'Action', action: () => document.getElementById('btn-open-settings')?.click() },
       { name: 'Inspect OAS 2.0 HUD Statusline (oas.hud-status.v1)', badge: 'Status', action: () => document.getElementById('btn-open-hud-status')?.click() },
       { name: 'Inspect 12-Target Harness Adapter Compliance Matrix', badge: 'Harness', action: () => document.getElementById('btn-open-compliance')?.click() },
-      { name: 'Run AgentShield Enterprise Security & Supply Chain Audit', badge: 'Security', action: () => document.getElementById('btn-open-security')?.click() },
+      { name: 'Run lightweight workspace security scan', badge: 'Security', action: () => document.getElementById('btn-open-security')?.click() },
       { name: 'TCAS Layer 4 Agent Proximity & Collision Deconfliction Airspace', badge: 'TCAS', action: () => document.getElementById('btn-open-tcas')?.click() },
       { name: 'OAS 2.0 Observability Readiness Gate (21/21 Scorecard)', badge: 'Observability', action: () => document.getElementById('btn-open-observability')?.click() },
       { name: 'Run OAS System Diagnostics & Environment Doctor', badge: 'Doctor', action: () => document.getElementById('btn-run-doctor')?.click() }
@@ -5833,12 +5412,58 @@ function initArenaBenchmarkController() {
   const btnRun = document.getElementById('btn-run-arena-benchmark');
   const promptInput = document.getElementById('arena-prompt-input');
   const presetSelect = document.getElementById('arena-prompt-preset');
+  const kSelect = document.getElementById('arena-k-select');
   const resultsGrid = document.getElementById('arena-results-grid');
+  const mustContainInput = document.getElementById('arena-must-contain');
+  const mustNotContainInput = document.getElementById('arena-must-not-contain');
+  const traceList = document.getElementById('arena-trace-list');
+  let goldenTasks = [];
+  let selectedTaskId = 'rate-limiter-tdd';
+
+  const applyTask = (taskId) => {
+    selectedTaskId = taskId;
+    const task = goldenTasks.find(item => item.id === taskId);
+    if (task && promptInput && taskId !== 'custom') promptInput.value = task.prompt;
+  };
+
+  const loadTasks = async () => {
+    const res = await fetch('/api/arena/tasks');
+    if (!res.ok) return;
+    const data = await res.json().catch(() => ({}));
+    goldenTasks = Array.isArray(data.tasks) ? data.tasks : [];
+    if (presetSelect && goldenTasks.length) {
+      const custom = '<option value="custom">Custom prompt (ungraded unless you add graders)</option>';
+      presetSelect.innerHTML = goldenTasks.map(task =>
+        `<option value="${escapeHtml(task.id)}"${task.id === selectedTaskId ? ' selected' : ''}>${escapeHtml(task.title)}</option>`
+      ).join('') + custom;
+    }
+    applyTask(selectedTaskId);
+  };
+
+  const renderTraces = (traces) => {
+    if (!traceList) return;
+    if (!traces || !traces.length) {
+      traceList.textContent = 'No recorded traces yet.';
+      return;
+    }
+    traceList.innerHTML = traces.slice(-12).reverse().map(trace =>
+      `<div>${escapeHtml(String(trace.passed ? 'PASS' : 'FAIL'))} · ${escapeHtml(String(trace.modelId || ''))} · ${escapeHtml(String(trace.taskId || ''))} · attempt ${escapeHtml(String(trace.attempt || 1))}</div>`
+    ).join('');
+  };
+
+  const loadTraces = async () => {
+    const res = await fetch('/api/arena/traces');
+    if (!res.ok) return;
+    const data = await res.json().catch(() => ({}));
+    renderTraces(data.traces || []);
+  };
 
   if (btnOpen && modal) {
     btnOpen.onclick = (e) => {
       e?.stopPropagation();
       modal.style.display = 'flex';
+      loadTasks().catch(() => {});
+      loadTraces().catch(() => {});
     };
   }
   if (btnClose && modal) {
@@ -5854,9 +5479,7 @@ function initArenaBenchmarkController() {
 
   if (presetSelect && promptInput) {
     presetSelect.onchange = () => {
-      if (presetSelect.value) {
-        promptInput.value = presetSelect.value;
-      }
+      applyTask(presetSelect.value);
     };
   }
 
@@ -5871,19 +5494,28 @@ function initArenaBenchmarkController() {
       const checkboxes = document.querySelectorAll('.arena-model-cb:checked');
       const selectedModels = Array.from(checkboxes).map(cb => cb.value);
       if (selectedModels.length === 0) {
-        showToast('Arena Warning', 'Please select at least one model to benchmark', 'warning');
+        showToast('Arena Warning', 'Please select at least one model to evaluate', 'warning');
         return;
       }
 
+      const taskId = presetSelect && presetSelect.value !== 'custom' ? presetSelect.value : 'custom';
+      const k = kSelect ? Number(kSelect.value) || 1 : 1;
+      const payload = { prompt, models: selectedModels, taskId, k };
+      const judgeToggle = document.getElementById('arena-model-judge');
+      if (judgeToggle && judgeToggle.checked) payload.judge = true;
+      if (taskId === 'custom') {
+        payload.mustContain = mustContainInput ? mustContainInput.value : '';
+        payload.mustNotContain = mustNotContainInput ? mustNotContainInput.value : '';
+      }
       btnRun.disabled = true;
-      btnRun.innerHTML = '<span>⏳ Running Live Inference Benchmark...</span>';
-      resultsGrid.innerHTML = '<div style="text-align: center; color: #EC4899; padding: 40px; grid-column: 1 / -1;">Querying live models concurrently across latency, tokens, cost, and reasoning...</div>';
+      btnRun.innerHTML = '<span>⏳ Running eval harness...</span>';
+      resultsGrid.innerHTML = '<div style="text-align: center; color: #EC4899; padding: 40px; grid-column: 1 / -1;">Running golden-task graders and recording traces (pass@k)...</div>';
 
       try {
         const res = await fetch('/api/arena/compare', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt, models: selectedModels })
+          body: JSON.stringify(payload)
         });
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
@@ -5891,13 +5523,17 @@ function initArenaBenchmarkController() {
         }
         const data = await res.json();
         renderArenaResults(data);
-        showToast('Arena Benchmark Complete', `Evaluated ${data.models?.length} models head-to-head with live inference`, 'success');
+        renderTraces(data.traces || []);
+        const note = data.capability === 'eval-harness'
+          ? `pass@${data.k} on ${data.task && data.task.id ? data.task.id : 'task'}`
+          : 'Ungraded traces only — no pass@k score.';
+        showToast('Arena eval complete', note, 'success');
       } catch (err) {
-        resultsGrid.innerHTML = `<div style="color: #EF4444; padding: 20px; text-align: center;">Live Benchmark Error: ${escapeHtml(err.message)}</div>`;
+        resultsGrid.innerHTML = `<div style="color: #EF4444; padding: 20px; text-align: center;">Arena eval error: ${escapeHtml(err.message)}</div>`;
         showToast('Arena Error', err.message, 'error');
       } finally {
         btnRun.disabled = false;
-        btnRun.innerHTML = '<span>⚔️ Run Arena Benchmark</span>';
+        btnRun.innerHTML = '<span>⚔️ Run Arena Eval</span>';
       }
     };
   }
@@ -5922,30 +5558,33 @@ function renderArenaResults(data) {
     <div class="arena-card">
       <div class="arena-card-header">
         <span class="arena-model-name">${escapeHtml(m.name)}</span>
-        <span class="badge-tag" style="color: #EC4899; border-color: rgba(236, 72, 153, 0.3);">${escapeHtml(m.provider)}</span>
+        <span class="badge-tag" style="color: #EC4899; border-color: rgba(236, 72, 153, 0.3);">${escapeHtml(m.provider || '')}</span>
       </div>
       <div class="arena-metrics-grid">
+        <div class="arena-metric-item">
+          <span class="arena-metric-label">PASS@${escapeHtml(String(m.k || data.k || 1))}</span>
+          <span class="arena-metric-val" style="color: #34D399;">${m.scoringMethod === 'pass_at_k' ? Number(m.passAtK || 0).toFixed(2) : 'n/a'}</span>
+        </div>
+        <div class="arena-metric-item">
+          <span class="arena-metric-label">TRIALS</span>
+          <span class="arena-metric-val" style="color: #38BDF8;">${m.correct || 0}/${m.trials || 0}</span>
+        </div>
         <div class="arena-metric-item">
           <span class="arena-metric-label">LATENCY</span>
           <span class="arena-metric-val" style="color: ${m.latencyMs < 500 ? '#34D399' : m.latencyMs < 900 ? '#38BDF8' : '#FBBF24'};">${m.latencyMs} ms</span>
         </div>
         <div class="arena-metric-item">
           <span class="arena-metric-label">EST. COST</span>
-          <span class="arena-metric-val" style="color: #A78BFA;">$${m.cost.toFixed(4)}</span>
-        </div>
-        <div class="arena-metric-item">
-          <span class="arena-metric-label">REASONING</span>
-          <span class="arena-metric-val" style="color: #38BDF8;">${m.scoreReasoning} / 10</span>
-        </div>
-        <div class="arena-metric-item">
-          <span class="arena-metric-label">SPEC ADHERENCE</span>
-          <span class="arena-metric-val" style="color: #34D399;">${m.scoreAdherence} / 10</span>
+          <span class="arena-metric-val" style="color: #A78BFA;">$${Number(m.cost || 0).toFixed(4)}</span>
         </div>
       </div>
-      <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); margin-top: 4px;">GENERATED CODE SNIPPET:</div>
-      <pre class="arena-code-preview"><code>${escapeHtml(m.codeSnippet)}</code></pre>
+      <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); margin-top: 4px;">${m.scoringMethod === 'pass_at_k' ? 'GRADED OUTPUT:' : 'UNGRADED TRACE:'}</div>
+      <pre class="arena-code-preview"><code>${escapeHtml(m.codeSnippet || m.error || '')}</code></pre>
     </div>
   `).join('');
+  if (data.scoringNote) {
+    resultsGrid.insertAdjacentHTML('afterbegin', `<div style="grid-column: 1 / -1; font-size: 11px; color: var(--text-muted);">${escapeHtml(data.scoringNote)}</div>`);
+  }
 }
 
 // ============================================================================
@@ -6099,12 +5738,16 @@ function initTerminalRunnerController() {
           return;
         }
         const data = await res.json();
+        const statusLabel = data.appliedInWorktree
+          ? (data.verified ? 'WORKTREE VERIFIED' : 'WORKTREE APPLIED')
+          : 'UNVERIFIED SUGGESTION';
+        const statusColor = data.verified ? '#10B981' : '#F59E0B';
 
         healerResult.innerHTML = `
           <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid #10B981; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="color: #34D399; font-weight: 700; font-size: 13px;">✔ REPAIRED: ${escapeHtml(data.patchSummary)}</span>
-              <span class="badge-tag font-mono" style="color: ${data.verified ? '#10B981' : '#F59E0B'}; border-color: rgba(16, 185, 129, 0.3);">STATUS: ${data.verified ? 'VERIFIED' : 'UNVERIFIED SUGGESTION'}</span>
+              <span style="color: #34D399; font-weight: 700; font-size: 13px;">${escapeHtml(data.patchSummary)}</span>
+              <span class="badge-tag font-mono" style="color: ${statusColor}; border-color: rgba(16, 185, 129, 0.3);">STATUS: ${statusLabel}</span>
             </div>
             <div style="font-size: 11px; color: var(--text-muted);">
               <strong>Root Cause:</strong> <code style="color: #F87171;">${escapeHtml(data.errorType)}</code> detected in <code>${escapeHtml(data.extractedFile)}</code>
@@ -6112,11 +5755,35 @@ function initTerminalRunnerController() {
             <div style="font-size: 10.5px; font-weight: 700; color: var(--text-secondary);">SURGICAL DIFF PATCH:</div>
             <pre class="diff-block" style="margin: 0; max-height: 160px; overflow-y: auto;"><code>${formatUnifiedDiffHtml(data.diff)}</code></pre>
             <div style="background: rgba(16, 185, 129, 0.1); padding: 8px 12px; border-radius: 4px; font-size: 11px; color: #A7F3D0;">
-              <strong>Verification Result:</strong> ${escapeHtml(data.verificationOutput)}
+              <strong>Verification Result:</strong> ${escapeHtml(data.verificationOutput || '')}
             </div>
+            ${data.worktree ? `<div style="font-size: 10.5px; color: #94A3B8;">Isolated worktree: <code>${escapeHtml(data.worktree.branch || data.worktree.id)}</code> — main is unchanged until HITL merge.</div>
+              <button class="btn btn-primary btn-sm" id="btn-heal-merge" style="align-self:flex-start;">HITL Merge to main</button>` : ''}
           </div>
         `;
-        showToast('Self-healing loop completed successfully. File validated and verified.');
+        const mergeBtn = healerResult.querySelector('#btn-heal-merge');
+        if (mergeBtn && data.worktree) {
+          mergeBtn.onclick = async () => {
+            mergeBtn.disabled = true;
+            const mergeRes = await fetch('/api/loop/heal/merge', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ worktreeId: data.worktree.id, confirmMerge: true })
+            });
+            const mergeData = await mergeRes.json().catch(() => ({}));
+            if (mergeRes.ok && mergeData.success) {
+              showToast('Heal merged', 'Worktree changes merged into the main branch after HITL confirm.', 'success');
+            } else {
+              showToast('Merge blocked', mergeData.error || mergeData.reason || 'HITL merge failed', 'error');
+              mergeBtn.disabled = false;
+            }
+          };
+        }
+        showToast(
+          data.appliedInWorktree ? 'Heal applied in worktree' : 'Heal suggestion ready',
+          data.appliedInWorktree ? 'Main branch is unchanged until you confirm HITL merge.' : 'Suggestion only; nothing was written.',
+          data.verified ? 'success' : 'info'
+        );
       } catch (err) {
         healerResult.innerHTML = `<div style="color: #F87171; padding: 20px;">Heal error: ${err.message}</div>`;
       }
@@ -6216,7 +5883,7 @@ function initCouncilDebateController() {
 }
 
 // ============================================================================
-// STEP 3: GIT CLOUD BRIDGE & GITHUB PR GENERATOR CONTROLLER
+// WORK INBOX + LOCAL PR DRAFT
 // ============================================================================
 function initGitHubBridgeController() {
   const btnOpen = document.getElementById('btn-open-github-pr');
@@ -6228,46 +5895,188 @@ function initGitHubBridgeController() {
   const bodyPreview = document.getElementById('pr-body-preview');
   const btnCopy = document.getElementById('btn-copy-pr-markdown');
   const btnSubmit = document.getElementById('btn-submit-github-pr');
+  const inboxList = document.getElementById('inbox-list');
+  const btnImportGithub = document.getElementById('btn-inbox-import-github');
+  const btnImportLinear = document.getElementById('btn-inbox-import-linear');
+  const btnRefresh = document.getElementById('btn-inbox-refresh');
+  const btnClaim = document.getElementById('btn-inbox-claim');
+  const btnDraftPr = document.getElementById('btn-inbox-draft-pr');
+  const btnPublishPr = document.getElementById('btn-inbox-publish-pr');
+  const btnMerge = document.getElementById('btn-inbox-merge');
 
   if (!btnOpen || !modal) return;
+
+  let selectedItemId = null;
+
+  const renderInbox = (items) => {
+    if (!inboxList) return;
+    if (!items || !items.length) {
+      inboxList.innerHTML = '<div style="color: var(--text-muted); font-size: 11px; text-align: center; padding: 16px;">No imported items. Import GitHub or Linear, or wait for a webhook.</div>';
+      return;
+    }
+    inboxList.innerHTML = items.map(item => {
+      const active = item.id === selectedItemId ? 'border-color: #60A5FA;' : '';
+      return `<button type="button" class="inbox-item" data-inbox-id="${escapeHtml(item.id)}" style="text-align:left; background: rgba(15,23,42,0.7); border: 1px solid var(--border-subtle); ${active} border-radius: 6px; padding: 8px 10px; color: #E2E8F0; cursor: pointer;">
+        <div style="font-size: 11px; font-weight: 700;">${escapeHtml(item.title)}</div>
+        <div style="font-size: 10px; color: var(--text-muted);">${escapeHtml(item.source)} · ${escapeHtml(item.status)}${item.sourceId ? ' · #' + escapeHtml(String(item.sourceId)) : ''}</div>
+      </button>`;
+    }).join('');
+    inboxList.querySelectorAll('[data-inbox-id]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedItemId = btn.getAttribute('data-inbox-id');
+        renderInbox(items);
+      });
+    });
+  };
+
+  const loadInbox = async () => {
+    const res = await fetch('/api/inbox');
+    if (!res.ok) throw new Error('Inbox request failed');
+    const data = await res.json();
+    if (!selectedItemId && data.items && data.items[0]) selectedItemId = data.items[0].id;
+    renderInbox(data.items || []);
+    return data;
+  };
+
+  const selectedId = () => {
+    if (!selectedItemId) {
+      showToast('Select a work item first', 'Import or click an inbox row.', 'info');
+      return null;
+    }
+    return selectedItemId;
+  };
 
   const updatePrPreview = () => {
     if (!bodyPreview) return;
     const title = titleInput ? titleInput.value : 'Feature update';
     const cType = typeSelect ? typeSelect.value : 'feat';
-    const branch = branchInput ? branchInput.value : 'feat/oas-frontier-enhancements';
-
+    const branch = branchInput ? branchInput.value : 'feat/oas-inbox';
     bodyPreview.value = [
-      `## ${cType}(studio): ${title}`,
-      ``,
-      `### 🚀 Summary of Changes`,
-      `- Branch: \`${branch}\` targeting \`main\``,
-      `- In-Browser Live Terminal & Autonomous Self-Healing Loop verified.`,
-      `- Council of Agents Multi-Agent Consensus deliberation engine integrated.`,
-      `- Interactive 3D Architecture Topology perspective canvas deployed.`,
-      `- Cryptographic Compliance Audit Vault with SHA-256 hash-chain enabled.`,
-      ``,
-      `### 🛡️ Security & Supply Chain Verification`,
-      `- CycloneDX SBOM v1.5 JSON generated and validated.`,
-      `- AIPOM AI Bill of Materials attested for all 68 agents.`,
-      `- Zero secret leakage verified across all ingress boundaries.`,
-      ``,
-      `### 🧪 Test Evidence`,
-      `- 40/40 E2E functional test battery passing (100% success rate).`,
-      `- Immutability and sandbox isolation strictly maintained.`,
-      ``,
-      `*Generated autonomously via Operating Agent System (OAS Studio)*`
+      `## ${cType}: ${title}`,
+      '',
+      `Branch \`${branch}\` targeting \`main\`.`,
+      '',
+      'This is a local draft. Publishing a GitHub PR requires HITL confirmPublish and a configured GitHub adapter or token.',
+      'Merging a claimed worktree onto main requires HITL confirmMerge.'
     ].join('\n');
   };
 
   btnOpen.addEventListener('click', () => {
     updatePrPreview();
     modal.style.display = 'flex';
+    loadInbox().catch(err => showToast('Inbox unavailable', err.message, 'error'));
+    loadHudStatus();
   });
 
   if (btnClose) btnClose.addEventListener('click', () => { modal.style.display = 'none'; });
   if (typeSelect) typeSelect.addEventListener('change', updatePrPreview);
   if (titleInput) titleInput.addEventListener('input', updatePrPreview);
+
+  if (btnRefresh) btnRefresh.addEventListener('click', () => loadInbox().catch(err => showToast('Inbox refresh failed', err.message, 'error')));
+  if (btnImportGithub) {
+    btnImportGithub.addEventListener('click', async () => {
+      const res = await fetch('/api/inbox/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source: 'github' })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast('GitHub import skipped', data.error || 'Configure GITHUB_TOKEN or an inbox adapter.', 'info');
+        return;
+      }
+      selectedItemId = data.items && data.items[0] ? data.items[0].id : selectedItemId;
+      renderInbox((await loadInbox()).items);
+      loadHudStatus();
+    });
+  }
+  if (btnImportLinear) {
+    btnImportLinear.addEventListener('click', async () => {
+      const res = await fetch('/api/inbox/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source: 'linear' })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast('Linear import skipped', data.error || 'Configure LINEAR_API_KEY or an inbox adapter.', 'info');
+        return;
+      }
+      renderInbox((await loadInbox()).items);
+      loadHudStatus();
+    });
+  }
+  if (btnClaim) {
+    btnClaim.addEventListener('click', async () => {
+      const id = selectedId();
+      if (!id) return;
+      const res = await fetch('/api/inbox/' + encodeURIComponent(id) + '/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agentId: 'planner' })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast('Claim failed', data.error || String(res.status), 'error');
+        return;
+      }
+      showToast('Worktree claimed', 'Main branch is unchanged until HITL merge.', 'success');
+      loadInbox();
+    });
+  }
+  if (btnDraftPr) {
+    btnDraftPr.addEventListener('click', async () => {
+      const id = selectedId();
+      if (!id) return;
+      const res = await fetch('/api/inbox/' + encodeURIComponent(id) + '/pr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: titleInput ? titleInput.value : 'fix: inbox item' })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (bodyPreview && data.prBody) bodyPreview.value = data.prBody;
+      showToast(data.published ? 'PR published' : 'PR draft only', data.published ? ((data.pullRequest && data.pullRequest.url) || '') : 'Nothing was opened on GitHub.', data.published ? 'success' : 'info');
+    });
+  }
+  if (btnPublishPr) {
+    btnPublishPr.addEventListener('click', async () => {
+      const id = selectedId();
+      if (!id) return;
+      const res = await fetch('/api/inbox/' + encodeURIComponent(id) + '/pr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: titleInput ? titleInput.value : 'fix: inbox item',
+          confirmPublish: true
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast('Publish blocked', data.error || 'GitHub adapter/token required', 'error');
+        return;
+      }
+      showToast('PR published', data.pullRequest && data.pullRequest.url ? data.pullRequest.url : 'Pull request opened', 'success');
+      loadInbox();
+    });
+  }
+  if (btnMerge) {
+    btnMerge.addEventListener('click', async () => {
+      const id = selectedId();
+      if (!id) return;
+      const res = await fetch('/api/inbox/' + encodeURIComponent(id) + '/merge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmMerge: true })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast('Merge blocked', data.error || data.reason || String(res.status), 'error');
+        return;
+      }
+      showToast('Merged', 'Worktree merged into main after HITL confirm.', 'success');
+      loadInbox();
+    });
+  }
 
   if (btnCopy && bodyPreview) {
     btnCopy.addEventListener('click', () => {
@@ -6281,28 +6090,25 @@ function initGitHubBridgeController() {
 
   if (btnSubmit) {
     btnSubmit.addEventListener('click', async () => {
-      showToast('Creating verified GitHub Pull Request...');
       try {
         const res = await fetch('/api/git/pr/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            branch: branchInput ? branchInput.value : 'feat/oas-frontier-enhancements',
-            title: titleInput ? titleInput.value : 'Frontier enhancements',
+            branch: branchInput ? branchInput.value : 'feat/oas-inbox',
+            title: titleInput ? titleInput.value : 'Inbox draft',
             conventionalType: typeSelect ? typeSelect.value : 'feat'
           })
         });
-
-        if (res.ok) {
-          const data = await res.json();
-          showToast(`Pull Request ready: "${data.prTitle}" (Branch: ${data.branch})`);
-        } else {
-          const errBody = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-          showToast('PR Generate Failed', errBody.error || String(res.status), 'error');
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          showToast('Draft failed', data.error || String(res.status), 'error');
+          return;
         }
-        modal.style.display = 'none';
+        if (bodyPreview && data.prBody) bodyPreview.value = data.prBody;
+        showToast('Local draft ready', 'This did not open a GitHub pull request.', 'info');
       } catch (err) {
-        showToast('PR Generate Failed', err.message, 'error');
+        showToast('Draft failed', err.message, 'error');
       }
     });
   }
@@ -6602,6 +6408,7 @@ function bootPlatform() {
     }
   };
 
+  safeInit('hydrateApiToken', () => getApiToken());
   safeInit('loadCatalog', () => loadCatalog());
   safeInit('selectDagNode', () => selectDagNode('tdd-guide'));
   safeInit('connectSseStream', () => connectSseStream());

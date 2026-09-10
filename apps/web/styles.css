@@ -1979,6 +1979,14 @@ code, pre, .font-mono {
   box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
 }
 
+.monaco-editor-host {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: #050914;
+  border-top: 1px solid rgba(56, 189, 248, 0.12);
+}
+
 .diff-block {
   background: #040814;
   border: 1px solid rgba(56, 189, 248, 0.15);

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OAS Studio & Cloud Control Plane</title>
-  <meta name="description" content="Operating Agent Systems (OAS) Studio & Enterprise Cloud Control Plane - Orchestrate 68 agents, 286 skills, 94 commands with live DAG visualization and streaming.">
+  <title>OAS Local Studio</title>
+  <meta name="description" content="OAS Local Studio 0.9 — loopback operator UI for the OAS plugin catalog (68 agents, 286 skills, 94 commands). Runs on 127.0.0.1 with BYOK. Not a hosted cloud control plane.">
   <link rel="stylesheet" href="styles.css?v=2.2.2">
 </head>
 <body>
@@ -16,7 +16,7 @@
         <div class="brand-logo" id="brand-logo">Ω</div>
         <div>
           <div class="brand-title">OAS Studio</div>
-          <div class="brand-badge">Enterprise v2.2.1</div>
+          <div class="brand-badge">Local Studio 0.9</div>
         </div>
       </div>
 
@@ -93,9 +93,9 @@
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
               <span>Harnesses (12)</span>
             </button>
-            <button class="btn btn-secondary topbar-btn" id="btn-open-security" title="AgentShield Supply Chain & Security Audit">
+            <button class="btn btn-secondary topbar-btn" id="btn-open-security" title="Lightweight workspace IOC and secret-shape scan. Not the 102-rule AgentShield CLI.">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              <span style="color: #34D399;">AgentShield</span>
+              <span style="color: #34D399;">Lightweight scan</span>
             </button>
             <button class="btn btn-secondary topbar-btn" id="btn-open-tcas" title="TCAS Layer 4 Agent Proximity & Collision Deconfliction">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -113,9 +113,9 @@
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               <span style="color: #38BDF8;">🏛️ Council</span>
             </button>
-            <button class="btn btn-secondary topbar-btn" id="btn-open-github-pr" title="Git Cloud Bridge & GitHub PR Generator">
+            <button class="btn btn-secondary topbar-btn" id="btn-open-github-pr" title="Work inbox: import GitHub/Linear issues, claim a worktree, open a PR, HITL merge">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
-              <span style="color: #60A5FA;">🚀 PR Bridge</span>
+              <span style="color: #60A5FA;">Inbox</span>
             </button>
             <button class="btn btn-secondary topbar-btn" id="btn-open-compliance-vault" title="Cryptographic Compliance Vault & Dossier">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -168,9 +168,9 @@
                   <button class="btn btn-secondary" id="btn-dag-reset-zoom" style="font-size: 11px; padding: 4px 8px;" title="Reset View">Reset</button>
                   <button class="btn btn-secondary" id="btn-dag-auto-layout" style="font-size: 11px; padding: 4px 8px;" title="Auto Layout">Auto Layout</button>
                   <span style="width: 1px; height: 16px; background: var(--border-subtle); margin: 0 4px;"></span>
-                  <button class="btn btn-secondary" id="btn-dag-simulate-step" style="font-size: 11px; padding: 4px 9px;">Advance Step</button>
+                  <button class="btn btn-secondary" id="btn-dag-simulate-step" style="font-size: 11px; padding: 4px 9px;" title="Marks the next DAG node complete without calling a model">Simulate Step</button>
                   <button class="btn btn-secondary" id="btn-dag-pause" style="font-size: 11px; padding: 4px 9px;">Pause</button>
-                  <button class="btn btn-primary" id="btn-dag-auto-run" style="font-size: 11px; padding: 4px 9px;">Auto Run</button>
+                  <button class="btn btn-primary" id="btn-dag-auto-run" style="font-size: 11px; padding: 4px 9px;" title="POST /pipeline/run — executes pending DAG nodes with the configured LLM">Auto Run</button>
                   <button class="btn btn-secondary" id="btn-toggle-3d-topology" style="font-size: 11px; padding: 4px 9px; color: #818CF8; border-color: rgba(129, 140, 248, 0.3);" title="Switch between 2D SVG Graph and Interactive 3D Architecture Topology">🌌 3D Topology</button>
                 </div>
               </div>
@@ -399,7 +399,7 @@
               <!-- Quick Starter Action Chips -->
               <div class="mission-chips-bar" style="display: flex; gap: 4px; padding: 5px 12px; background: rgba(8, 14, 28, 0.85); overflow-x: auto; border-top: 1px solid rgba(56, 189, 248, 0.1);">
                 <button class="pill mission-chip" data-prompt="Run full TDD cycle for pending capabilities and verify 80%+ test coverage" style="font-size: 9.5px; padding: 2px 7px;">⚡ TDD Loop</button>
-                <button class="pill mission-chip" data-prompt="Run comprehensive security scan with AgentShield and Snyk rules" style="font-size: 9.5px; padding: 2px 7px;">🛡️ Security Audit</button>
+                <button class="pill mission-chip" data-prompt="Run the lightweight workspace security scan and report IOC plus secret-shape findings" style="font-size: 9.5px; padding: 2px 7px;">Security Audit</button>
                 <button class="pill mission-chip" data-prompt="Diagnose and resolve all TypeScript/Node build errors" style="font-size: 9.5px; padding: 2px 7px;">🛠️ Build & Fix</button>
                 <button class="pill mission-chip" data-prompt="Refactor code for strict immutability and clean architecture" style="font-size: 9.5px; padding: 2px 7px;">✨ Refactor Code</button>
                 <button class="pill mission-chip" data-prompt="Update documentation, codemaps, and architectural blueprints" style="font-size: 9.5px; padding: 2px 7px;">📦 Update Docs</button>
@@ -455,7 +455,8 @@
               </div>
 
               <!-- In-Browser Code Editor Textarea (Direction A) -->
-              <textarea id="workspace-file-editor" class="code-editor-textarea" style="display: none; flex: 1; overflow: auto; background: #070D1E; border: none; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #E2E8F0; line-height: 1.5; resize: none; outline: none; width: 100%; box-sizing: border-box;" spellcheck="false"></textarea>
+              <div id="monaco-editor-host" class="monaco-editor-host" style="display: none; flex: 1; min-height: 0;" aria-label="Monaco code editor"></div>
+              <textarea id="workspace-file-editor" class="code-editor-textarea" style="display: none; flex: 1; overflow: auto; background: #070D1E; border: none; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #E2E8F0; line-height: 1.5; resize: none; outline: none; width: 100%; box-sizing: border-box;" spellcheck="false" aria-label="Fallback code editor"></textarea>
 
               <!-- Diff Content Display (hidden by default) -->
               <div class="diff-viewer" id="workspace-diff-viewer" style="display: none; flex: 1; overflow: auto; background: #050914; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #38BDF8; line-height: 1.5; white-space: pre-wrap;">
@@ -654,7 +655,7 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
             <div class="plan-document-pane">
               <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
                 <div>
-                  <h2 style="font-size: 20px; font-weight: 800; margin: 0 0 6px 0;">Capability Plan: Enterprise Control Plane v2.2.1</h2>
+                  <h2 style="font-size: 20px; font-weight: 800; margin: 0 0 6px 0;">Capability Plan: Local Studio 0.9</h2>
                   <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.6; margin: 0;">
                     This plan formalizes the end-to-end full-stack integration for the OAS operating platform. Click on any section to leave human-in-the-loop annotations, toggle phase readiness, or inspect deliverables.
                   </p>
@@ -731,7 +732,7 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
         <section class="view-panel" id="view-catalog">
           <div class="catalog-container">
             <div class="catalog-search-bar">
-              <input type="text" class="search-input" id="catalog-search" placeholder="Search 68 agents, 286 skills, 94 commands, 35 MCP servers...">
+              <input type="text" class="search-input" id="catalog-search" placeholder="Search 68 agents, 286 skills, 94 commands, 36 MCP servers...">
               <div class="filter-pills">
                 <div class="pill active" data-filter="all">All (483)</div>
                 <div class="pill" data-filter="agents">Agents (68)</div>
@@ -771,7 +772,7 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
               <div class="stat-card">
                 <div class="stat-label">Total Catalog Entities</div>
                 <div class="stat-value" id="stat-entities">483</div>
-                <div class="stat-trend positive" id="stat-entities-breakdown">68 Agents • 286 Skills • 94 Commands • 35 MCPs</div>
+                <div class="stat-trend positive" id="stat-entities-breakdown">68 Agents • 286 Skills • 94 Commands • 36 MCPs</div>
               </div>
               <div class="stat-card">
                 <div class="stat-label">Memory Utilization</div>
@@ -804,7 +805,7 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
                   </button>
                   <button class="btn btn-secondary" id="btn-run-security-scan" style="font-size: 11px; padding: 4px 10px; color: #34D399;">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                    <span>AgentShield Audit</span>
+                    <span>Workspace scan</span>
                   </button>
                 </div>
               </div>
@@ -841,7 +842,7 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; margin-bottom: 12px;">
               <div>
                 <h3 style="font-size: 16px; font-weight: 700; margin: 0;">Durable Memory Vault</h3>
-                <span style="font-size: 12px; color: var(--text-muted);">Scoped persistent memory with Vector Semantic Search &amp; SHA-256 integrity verification</span>
+                <span style="font-size: 12px; color: var(--text-muted);">Scoped persistent memory with SHA-256 integrity. Search ranks with local hash-vectors (not pgvector).</span>
               </div>
               <div style="display: flex; gap: 8px; align-items: center;">
                 <input type="text" id="memory-search-input" class="search-input" style="width: 240px; padding: 6px 12px; font-size: 12px;" placeholder="Semantic search memory (e.g. test, security)...">
@@ -994,7 +995,10 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
                   </div>
                   <textarea id="builder-skill-prompt" class="search-input" style="margin-top: 4px; flex: 1; min-height: 120px; resize: none; font-family: 'JetBrains Mono', monospace; font-size: 11px;" placeholder="Detailed execution protocol and step-by-step guidance..."></textarea>
                 </div>
-                <button class="btn btn-primary" id="btn-export-skill" style="margin-top: 4px;">Export &amp; Register Skill (skills/*/SKILL.md)</button>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: #FBBF24; cursor: pointer;">
+                  <input type="checkbox" id="builder-skill-confirm-promote" style="accent-color: #F59E0B;"> HITL: promote into skills/ (otherwise save an unreviewed draft)
+                </label>
+                <button class="btn btn-primary" id="btn-export-skill" style="margin-top: 4px;">Save skill draft or promote to catalog</button>
               </div>
 
               <!-- Right Preview -->
@@ -1095,6 +1099,10 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
           <div>
             <label for="settings-gemini-key" style="font-size: 11px; font-weight: 600; color: var(--text-muted);">GOOGLE GEMINI API KEY:</label>
             <input type="password" id="settings-gemini-key" class="search-input" style="width: 100%; margin-top: 4px; box-sizing: border-box;" placeholder="AIzaSy...">
+          </div>
+          <div>
+            <label for="settings-api-token" style="font-size: 11px; font-weight: 600; color: var(--text-muted);">CONTROL PLANE API TOKEN:</label>
+            <input type="password" id="settings-api-token" class="search-input" style="width: 100%; margin-top: 4px; box-sizing: border-box;" placeholder="OAS_API_TOKEN" autocomplete="off">
           </div>
           <div>
             <label for="settings-ollama-host" style="font-size: 11px; font-weight: 600; color: var(--text-muted);">OLLAMA HOST ENDPOINT:</label>
@@ -1200,7 +1208,7 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
           <span><span class="kbd-pill">1-7</span> Switch View</span>
         </div>
         <div>
-          <span>OAS Control Plane v2.2.1</span>
+          <span>OAS Local Studio 0.9</span>
         </div>
       </div>
     </div>
@@ -1229,7 +1237,7 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
             </button>
             <button type="button" class="btn btn-secondary pipeline-preset-btn" data-pipeline-type="security_audit" data-intent="Execute zero-day IOC scan and supply-chain dependency audit" style="text-align: left; padding: 10px;">
               <div style="font-weight: 700; color: #34D399; font-size: 12px;">Security & Supply Chain</div>
-              <div style="font-size: 10px; color: var(--text-muted);">AgentShield → Static AST → Lockfile verification</div>
+              <div style="font-size: 10px; color: var(--text-muted);">Lightweight scan → secret shapes → lockfile IOC list</div>
             </button>
             <button type="button" class="btn btn-secondary pipeline-preset-btn" data-pipeline-type="tdd_autonomous" data-intent="Run Red-Green TDD battery and enforce 80%+ branch coverage" style="text-align: left; padding: 10px;">
               <div style="font-weight: 700; color: #F59E0B; font-size: 12px;">TDD Autonomous Fix</div>
@@ -1358,15 +1366,15 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
     </div>
   </div>
 
-  <!-- 9. AgentShield Enterprise Security & Supply Chain Audit Modal -->
+  <!-- 9. Lightweight workspace security scan -->
   <div class="hitl-modal-overlay" id="security-audit-modal" style="display: none; z-index: 10000;" role="dialog" aria-modal="true" aria-labelledby="security-modal-title">
     <div class="hitl-modal-dialog" style="max-width: 820px; width: 90%;">
       <div class="hitl-modal-header" style="border-bottom: 1px solid rgba(52, 211, 153, 0.2);">
         <div class="hitl-title-row">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           <div>
-            <h3 id="security-modal-title" style="font-size: 15px; font-weight: 700; color: #F8FAFC;">AgentShield Security & Supply Chain Audit</h3>
-            <span style="font-size: 11px; color: var(--text-muted);">Real-time IOC detection, package security, and unencrypted credential scan</span>
+            <h3 id="security-modal-title" style="font-size: 15px; font-weight: 700; color: #F8FAFC;">Lightweight workspace security scan</h3>
+            <span style="font-size: 11px; color: var(--text-muted);">IOC registry + secret-shape pass. Not the 102-rule AgentShield CLI (npx oas-agentshield scan).</span>
           </div>
         </div>
         <button class="btn btn-secondary" id="btn-close-security" style="padding: 4px 10px; font-size: 12px;">✕ Close</button>
@@ -1455,8 +1463,8 @@ Loading HUD status payload...
         <div class="hitl-title-row">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="m10 13-2 2 2 2"/><path d="m14 17 2-2-2-2"/></svg>
           <div>
-            <h3 id="arena-modal-title" style="font-size: 15px; font-weight: 700; color: #F8FAFC;">⚔️ OAS Multi-Model Arena & Benchmark Lab</h3>
-            <span style="font-size: 11px; color: var(--text-muted);">Side-by-side model evaluation for latency, token throughput, reasoning depth, and spec adherence</span>
+            <h3 id="arena-modal-title" style="font-size: 15px; font-weight: 700; color: #F8FAFC;">OAS Multi-Model Arena</h3>
+            <span style="font-size: 11px; color: var(--text-muted);">Eval harness: pass@k on golden tasks, recorded traces. Custom prompts without graders are traces only. <span data-capability="eval-harness">Eval harness</span></span>
           </div>
         </div>
         <button class="btn btn-secondary" id="btn-close-arena" style="padding: 4px 10px; font-size: 12px;">✕ Close</button>
@@ -1469,15 +1477,25 @@ Loading HUD status payload...
             <div style="display: flex; gap: 6px; align-items: center;">
               <span style="font-size: 10px; color: var(--text-muted);">Presets:</span>
               <select id="arena-prompt-preset" style="background: #0B1120; border: 1px solid var(--border-subtle); color: #93C5FD; font-size: 10.5px; padding: 2px 6px; border-radius: 4px; cursor: pointer;">
-                <option value="rate_limiter" selected>Immutable Rate Limiter (TDD + Spec)</option>
-                <option value="state_reducer">Pure Functional State Reducer</option>
-                <option value="ast_analyzer">AST Security Tokenizer</option>
-                <option value="tcas_resolver">Distributed TCAS Spatial Resolver</option>
-                <option value="custom">Custom Prompt</option>
+                <option value="rate-limiter-tdd" selected>Immutable Rate Limiter (TDD + Spec)</option>
+                <option value="state-reducer">Pure Functional State Reducer</option>
+                <option value="immutability-spread">Immutable object update</option>
+                <option value="ready-token">Reply READY</option>
+                <option value="custom">Custom prompt (ungraded unless you add graders)</option>
               </select>
             </div>
           </div>
           <textarea id="arena-prompt-input" rows="2" style="background: #070D1E; border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; color: #F1F5F9; padding: 8px 10px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; resize: vertical; outline: none; width: 100%; box-sizing: border-box;">Design an immutable thread-safe rate limiter with test-driven coverage.</textarea>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div>
+              <label style="font-size: 10px; font-weight: 700; color: var(--text-muted);">CUSTOM MUST CONTAIN (COMMA-SEPARATED)</label>
+              <input type="text" id="arena-must-contain" placeholder="Used when preset is Custom" style="background: #0B1120; border: 1px solid var(--border-subtle); color: #F8FAFC; padding: 6px 10px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 11px;" />
+            </div>
+            <div>
+              <label style="font-size: 10px; font-weight: 700; color: var(--text-muted);">CUSTOM MUST NOT CONTAIN</label>
+              <input type="text" id="arena-must-not-contain" placeholder="Optional negative grader" style="background: #0B1120; border: 1px solid var(--border-subtle); color: #F8FAFC; padding: 6px 10px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 11px;" />
+            </div>
+          </div>
           
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
             <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
@@ -1498,8 +1516,18 @@ Loading HUD status payload...
                 <input type="checkbox" class="arena-model-cb" value="o3-mini" style="accent-color: #A78BFA;"> o3-mini
               </label>
             </div>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #94A3B8;">
+              k
+              <select id="arena-k-select" style="background: #0B1120; border: 1px solid var(--border-subtle); color: #93C5FD; font-size: 10.5px; padding: 2px 6px; border-radius: 4px;">
+                <option value="1" selected>1</option>
+                <option value="3">3</option>
+              </select>
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #F9A8D4; cursor: pointer;">
+              <input type="checkbox" id="arena-model-judge" style="accent-color: #EC4899;"> Model-as-judge (gateway PASS/FAIL)
+            </label>
             <button class="btn btn-primary" id="btn-run-arena-benchmark" style="font-size: 11px; padding: 6px 16px; background: #EC4899; border-color: #F472B6;">
-              <span>⚔️ Run Arena Benchmark</span>
+              <span>⚔️ Run Arena Eval</span>
             </button>
           </div>
         </div>
@@ -1511,7 +1539,7 @@ Loading HUD status payload...
             <div id="arena-winner-speed" style="font-size: 13px; font-weight: 700; color: #F8FAFC;">--</div>
           </div>
           <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 8px 12px;">
-            <div style="font-size: 10px; color: #38BDF8; font-weight: 700;">🧠 REASONING & SPEC WINNER</div>
+            <div style="font-size: 10px; color: #38BDF8; font-weight: 700;">🎯 PASS@K WINNER</div>
             <div id="arena-winner-reasoning" style="font-size: 13px; font-weight: 700; color: #F8FAFC;">--</div>
           </div>
           <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; padding: 8px 12px;">
@@ -1521,9 +1549,12 @@ Loading HUD status payload...
         </div>
 
         <!-- Side-by-Side Arena Comparison Cards -->
+        <div id="arena-trace-list" style="display: flex; flex-direction: column; gap: 4px; max-height: 120px; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px; background: rgba(5, 9, 20, 0.55); font-size: 11px; color: var(--text-muted);">
+          No recorded traces yet.
+        </div>
         <div id="arena-results-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;">
           <div style="text-align: center; color: var(--text-muted); padding: 40px; grid-column: 1 / -1;">
-            Select models, configure task prompt, and click "Run Arena Benchmark" to evaluate models head-to-head.
+            Select a golden task (or a custom ungraded prompt), set k, and click "Run Arena Eval". pass@k uses code graders; traces are recorded.
           </div>
         </div>
       </div>
@@ -1559,7 +1590,7 @@ Loading HUD status payload...
         <button class="btn btn-secondary btn-sm term-preset-btn" data-cmd="node -e 'throw new TypeError(\"Rate limiter history array expected\")'" style="font-size: 10px; padding: 1px 6px; color: #F87171;">Simulate Crash</button>
       </div>
 
-      <pre id="terminal-output" style="flex: 1; margin: 0; padding: 10px 14px; background: #030712; color: #A7F3D0; font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.45; overflow-y: auto; white-space: pre-wrap; word-break: break-all;">[OAS Cloud Control Plane Terminal v2.2.1 initialized]
+      <pre id="terminal-output" style="flex: 1; margin: 0; padding: 10px 14px; background: #030712; color: #A7F3D0; font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.45; overflow-y: auto; white-space: pre-wrap; word-break: break-all;">[OAS Local Studio 0.9 terminal initialized]
 Ready for sandboxed task execution. Enter a command below or select a preset.</pre>
 
       <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: rgba(15, 23, 42, 0.9); border-top: 1px solid rgba(255,255,255,0.08);">
@@ -1573,8 +1604,8 @@ Ready for sandboxed task execution. Enter a command below or select a preset.</p
     <div id="terminal-healer-view" style="flex: 1; display: none; padding: 12px 16px; overflow-y: auto; flex-direction: column; gap: 10px;">
       <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 6px; padding: 8px 12px;">
         <div>
-          <span style="font-size: 11px; font-weight: 700; color: #34D399;">🚑 AUTONOMOUS ERROR INTERCEPTOR & HEALING LOOP</span>
-          <p style="margin: 2px 0 0; font-size: 10.5px; color: var(--text-muted);">Monitors stderr, captures stack traces, and synthesizes verifiable surgical diff patches.</p>
+          <span style="font-size: 11px; font-weight: 700; color: #34D399;">AUTONOMOUS ERROR INTERCEPTOR (Worktree apply · HITL merge)</span>
+          <p style="margin: 2px 0 0; font-size: 10.5px; color: var(--text-muted);">Analyze drafts a patch. Apply writes in an isolated worktree; merging onto main requires HITL confirm.</p>
         </div>
         <button class="btn btn-primary btn-sm" id="btn-trigger-self-heal" style="font-size: 10.5px; padding: 4px 12px; background: #10B981; border-color: #34D399;">Analyze & Auto-Heal</button>
       </div>
@@ -1658,13 +1689,30 @@ Ready for sandboxed task execution. Enter a command below or select a preset.</p
         <div class="hitl-title-row">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
           <div>
-            <h3 id="github-pr-modal-title" style="font-size: 15px; font-weight: 700; color: #F8FAFC;">🚀 Git Cloud Bridge & GitHub PR Generator</h3>
-            <span style="font-size: 11px; color: var(--text-muted);">Package session diffs, test evidence, and SBOM into a verified Conventional Commit Pull Request</span>
+            <h3 id="github-pr-modal-title" style="font-size: 15px; font-weight: 700; color: #F8FAFC;">Work inbox</h3>
+            <span style="font-size: 11px; color: var(--text-muted);">Import GitHub/Linear issues, claim an isolated worktree, draft or publish a PR, merge only with HITL confirm.</span>
           </div>
         </div>
         <button class="btn btn-secondary" id="btn-close-github-pr" style="padding: 4px 10px; font-size: 12px;">✕ Close</button>
       </div>
       <div class="hitl-body" style="max-height: 540px; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <span style="font-size: 11px; font-weight: 700; color: var(--text-secondary);">IMPORTED WORK ITEMS</span>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn btn-secondary btn-sm" id="btn-inbox-import-github">Import GitHub</button>
+            <button class="btn btn-secondary btn-sm" id="btn-inbox-import-linear">Import Linear</button>
+            <button class="btn btn-ghost btn-sm" id="btn-inbox-refresh">Refresh</button>
+          </div>
+        </div>
+        <div id="inbox-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px; background: rgba(5, 9, 20, 0.55);">
+          <div style="color: var(--text-muted); font-size: 11px; text-align: center; padding: 16px;">No imported items. Import GitHub or Linear, or wait for a webhook.</div>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn btn-secondary btn-sm" id="btn-inbox-claim">Claim worktree</button>
+          <button class="btn btn-secondary btn-sm" id="btn-inbox-draft-pr">Draft PR</button>
+          <button class="btn btn-primary btn-sm" id="btn-inbox-publish-pr" style="background: #2563EB; border-color: #60A5FA;">Publish PR (HITL)</button>
+          <button class="btn btn-primary btn-sm" id="btn-inbox-merge">HITL Merge</button>
+        </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
           <div>
             <label style="font-size: 10.5px; font-weight: 700; color: var(--text-secondary);">TARGET BRANCH</label>
@@ -1690,13 +1738,12 @@ Ready for sandboxed task execution. Enter a command below or select a preset.</p
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.6); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-subtle);">
           <div style="display: flex; gap: 8px; font-size: 10.5px;">
-            <span class="badge-tag" style="color: #34D399; border-color: rgba(52, 211, 153, 0.3);">✓ SBOM Attached</span>
-            <span class="badge-tag" style="color: #38BDF8; border-color: rgba(56, 189, 248, 0.3);">✓ AIPOM Verified</span>
-            <span class="badge-tag" style="color: #FBBF24; border-color: rgba(245, 158, 11, 0.3);">✓ 40/40 E2E Passing</span>
+            <span class="badge-tag" style="color: #FBBF24; border-color: rgba(245, 158, 11, 0.3);">Draft until HITL publish</span>
+            <span class="badge-tag" style="color: #38BDF8; border-color: rgba(56, 189, 248, 0.3);">Merge requires confirmMerge</span>
           </div>
           <div style="display: flex; gap: 8px;">
             <button class="btn btn-secondary btn-sm" id="btn-copy-pr-markdown">Copy Markdown</button>
-            <button class="btn btn-primary btn-sm" id="btn-submit-github-pr" style="background: #2563EB; border-color: #60A5FA;">Create Pull Request</button>
+            <button class="btn btn-primary btn-sm" id="btn-submit-github-pr" style="background: #2563EB; border-color: #60A5FA;">Generate local draft</button>
           </div>
         </div>
       </div>
@@ -1710,8 +1757,8 @@ Ready for sandboxed task execution. Enter a command below or select a preset.</p
         <div class="hitl-title-row">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           <div>
-            <h3 id="compliance-modal-title" style="font-size: 15px; font-weight: 700; color: #F8FAFC;">📜 Cryptographic Compliance Vault & Audit Trail</h3>
-            <span style="font-size: 11px; color: var(--text-muted);">Immutable SHA-256 hash-chain verification & SOC-2 / ISO-27001 executive compliance dossier</span>
+            <h3 id="compliance-modal-title" style="font-size: 15px; font-weight: 700; color: #F8FAFC;">Compliance Vault (Sample dossier)</h3>
+            <span style="font-size: 11px; color: var(--text-muted);">Local hash-chain explorer. SAMPLE TEMPLATE — not a SOC-2 / ISO-27001 audit.</span>
           </div>
         </div>
         <button class="btn btn-secondary" id="btn-close-compliance-vault" style="padding: 4px 10px; font-size: 12px;">✕ Close</button>
@@ -1843,6 +1890,6 @@ Ready for sandboxed task execution. Enter a command below or select a preset.</p
     </div>
   </div>
 
-  <script src="app.js?v=2.2.3"></script>
+  <script type="module" src="app.js?v=2.2.4"></script>
 </body>
 </html>

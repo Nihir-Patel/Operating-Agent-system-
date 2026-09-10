@@ -7,6 +7,12 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { schemaSql } = require('./schema');
+const { loadFileMemories, mergeMemoryRecords, filterMemories } = require('./memory-files');
+const { rankByLocalVector } = require('./local-vectors');
+
+function cloneRecord(value) {
+  return JSON.parse(JSON.stringify(value));
+}
 
 const SECRET_PATTERNS = [
   /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/,
@@ -28,6 +34,13 @@ class MemoryStore {
       agent_steps: [],
       memory_vault: [],
       artifacts: [],
+      pipeline_runs: [],
+      worktree_records: [],
+      cost_events: [],
+      path_leases: [],
+      work_items: [],
+      arena_traces: [],
+      graph_state: { customNodeOverrides: {}, customEdges: [] },
       settings: {
         provider: 'ollama',
         anthropicApiKey: '',
@@ -48,6 +61,10 @@ class MemoryStore {
       try {
         const raw = fs.readFileSync(this.storagePath, 'utf8');
         this.data = Object.assign(this.data, JSON.parse(raw));
+        this.data.cost_events = this.data.cost_events || [];
+        this.data.path_leases = this.data.path_leases || [];
+        this.data.work_items = this.data.work_items || [];
+        this.data.arena_traces = this.data.arena_traces || [];
       } catch (_err) {
         // Fallback to fresh store
       }
@@ -88,7 +105,7 @@ class MemoryStore {
       id: payload.id || 'sess_' + Date.now().toString(36),
       title: payload.title || 'New Agent Session',
       status: payload.status || 'active',
-      lead_agent_id: payload.lead_agent_id || 'planner',
+      lead_agent_id: payload.lead_agent_id || payload.leadAgent || 'planner',
       total_tokens: payload.total_tokens || 0,
       prompt_tokens: payload.prompt_tokens || 0,
       completion_tokens: payload.completion_tokens || 0,
@@ -134,57 +151,8 @@ class MemoryStore {
   }
 
   getMemoryVault(query) {
-    if (!query) return this.data.memory_vault;
-    const q = query.toLowerCase().trim();
-    const terms = q.split(/\s+/).filter(Boolean);
-
-    // Semantic conceptual synonym expansions
-    const semanticMap = {
-      'test': ['coverage', 'tdd', 'unit', 'integration', 'assertion'],
-      'security': ['sandbox', 'secret', 'credential', 'auth', 'loopback', 'guard'],
-      'architecture': ['pattern', 'immutability', 'structure', 'modular', 'contract'],
-      'spec': ['brownfield', 'requirement', 'extraction', 'srs', 'invariant'],
-      'error': ['exception', 'fail', 'crash', 'rollback', 'checkpoint']
-    };
-
-    const expandedTerms = new Set(terms);
-    for (const term of terms) {
-      for (const [concept, synonyms] of Object.entries(semanticMap)) {
-        if (concept.includes(term) || term.includes(concept)) {
-          synonyms.forEach(s => expandedTerms.add(s));
-        } else if (synonyms.some(s => s.includes(term) || term.includes(s))) {
-          expandedTerms.add(concept);
-          synonyms.forEach(s => expandedTerms.add(s));
-        }
-      }
-    }
-
-    const scored = this.data.memory_vault.map(m => {
-      let score = 0;
-      const title = (m.title || '').toLowerCase();
-      const body = (m.body || m.content || '').toLowerCase();
-      const scope = (m.scope || '').toLowerCase();
-      const kind = (m.kind || m.category || '').toLowerCase();
-
-      // Exact phrase match
-      if (title.includes(q)) score += 10;
-      if (body.includes(q)) score += 6;
-
-      // Expanded semantic matches
-      for (const term of expandedTerms) {
-        if (title.includes(term)) score += 4;
-        if (body.includes(term)) score += 2;
-        if (scope.includes(term)) score += 3;
-        if (kind.includes(term)) score += 3;
-      }
-
-      return { item: m, score };
-    });
-
-    return scored
-      .filter(s => s.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .map(s => ({ ...s.item, semanticScore: s.score }));
+    const merged = mergeMemoryRecords(this.data.memory_vault, loadFileMemories(this.memoryRoot));
+    return filterMemories(merged, query);
   }
 
   addMemory(item) {
@@ -317,8 +285,190 @@ class MemoryStore {
     this.data.agent_sessions = this.data.agent_sessions.filter(s => s.id !== id);
     this.data.agent_steps = this.data.agent_steps.filter(s => s.session_id !== id);
     this.data.artifacts = this.data.artifacts.filter(a => a.session_id !== id);
+    this.data.pipeline_runs = (this.data.pipeline_runs || []).filter(r => r.id !== id);
     this.save();
     return this.data.agent_sessions.length < initialCount;
+  }
+
+  savePipeline(run) {
+    if (!run || !run.id) return null;
+    const copy = cloneRecord(run);
+    this.data.pipeline_runs = this.data.pipeline_runs || [];
+    const idx = this.data.pipeline_runs.findIndex(r => r.id === copy.id);
+    if (idx >= 0) {
+      this.data.pipeline_runs = [
+        ...this.data.pipeline_runs.slice(0, idx),
+        copy,
+        ...this.data.pipeline_runs.slice(idx + 1)
+      ];
+    } else {
+      this.data.pipeline_runs = [...this.data.pipeline_runs, copy];
+    }
+    this.save();
+    return copy;
+  }
+
+  getPipeline(id) {
+    const found = (this.data.pipeline_runs || []).find(r => r.id === id);
+    return found ? cloneRecord(found) : null;
+  }
+
+  listPipelines() {
+    return (this.data.pipeline_runs || []).map(cloneRecord);
+  }
+
+  saveWorktree(record) {
+    if (!record || !record.id) return null;
+    const copy = cloneRecord(record);
+    this.data.worktree_records = this.data.worktree_records || [];
+    const idx = this.data.worktree_records.findIndex(r => r.id === copy.id);
+    if (idx >= 0) {
+      this.data.worktree_records = [
+        ...this.data.worktree_records.slice(0, idx),
+        copy,
+        ...this.data.worktree_records.slice(idx + 1)
+      ];
+    } else {
+      this.data.worktree_records = [...this.data.worktree_records, copy];
+    }
+    this.save();
+    return copy;
+  }
+
+  listWorktrees() {
+    return (this.data.worktree_records || []).map(cloneRecord);
+  }
+
+  deleteWorktree(id) {
+    const initial = (this.data.worktree_records || []).length;
+    this.data.worktree_records = (this.data.worktree_records || []).filter(r => r.id !== id);
+    this.save();
+    return this.data.worktree_records.length < initial;
+  }
+
+  saveGraphState(state) {
+    this.data.graph_state = {
+      customNodeOverrides: cloneRecord((state && state.customNodeOverrides) || {}),
+      customEdges: cloneRecord((state && state.customEdges) || [])
+    };
+    this.save();
+    return cloneRecord(this.data.graph_state);
+  }
+
+  savePathLease(lease) {
+    if (!lease || !lease.id) return null;
+    const copy = cloneRecord(lease);
+    this.data.path_leases = this.data.path_leases || [];
+    const idx = this.data.path_leases.findIndex(r => r.id === copy.id);
+    if (idx >= 0) {
+      this.data.path_leases = [
+        ...this.data.path_leases.slice(0, idx),
+        copy,
+        ...this.data.path_leases.slice(idx + 1)
+      ];
+    } else {
+      this.data.path_leases = [...this.data.path_leases, copy];
+    }
+    this.save();
+    return copy;
+  }
+
+  listPathLeases() {
+    return (this.data.path_leases || []).map(cloneRecord);
+  }
+
+  deletePathLease(id) {
+    const initial = (this.data.path_leases || []).length;
+    this.data.path_leases = (this.data.path_leases || []).filter(r => r.id !== id);
+    this.save();
+    return this.data.path_leases.length < initial;
+  }
+
+  saveWorkItem(item) {
+    if (!item || !item.id) return null;
+    const copy = cloneRecord(item);
+    this.data.work_items = this.data.work_items || [];
+    const idx = this.data.work_items.findIndex(r => r.id === copy.id);
+    if (idx >= 0) {
+      this.data.work_items = [
+        ...this.data.work_items.slice(0, idx),
+        copy,
+        ...this.data.work_items.slice(idx + 1)
+      ];
+    } else {
+      this.data.work_items = [...this.data.work_items, copy];
+    }
+    this.save();
+    return copy;
+  }
+
+  listWorkItems() {
+    return (this.data.work_items || []).map(cloneRecord);
+  }
+
+  getWorkItem(id) {
+    const found = (this.data.work_items || []).find(r => r.id === id);
+    return found ? cloneRecord(found) : null;
+  }
+
+  deleteWorkItem(id) {
+    const initial = (this.data.work_items || []).length;
+    this.data.work_items = (this.data.work_items || []).filter(r => r.id !== id);
+    this.save();
+    return this.data.work_items.length < initial;
+  }
+
+  saveArenaTrace(trace) {
+    if (!trace || !trace.id) return null;
+    const copy = cloneRecord(trace);
+    this.data.arena_traces = [...(this.data.arena_traces || []), copy].slice(-200);
+    this.save();
+    return copy;
+  }
+
+  listArenaTraces(filter = {}) {
+    const benchmarkId = filter.benchmarkId ? String(filter.benchmarkId) : null;
+    return (this.data.arena_traces || [])
+      .filter(row => !benchmarkId || row.benchmarkId === benchmarkId)
+      .map(cloneRecord);
+  }
+
+  addCostEvent(event) {
+    const copy = cloneRecord(event);
+    this.data.cost_events = [...(this.data.cost_events || []), copy];
+    this.save();
+    return copy;
+  }
+
+  listCostEvents() {
+    return (this.data.cost_events || []).map(cloneRecord);
+  }
+
+  addSessionCost(sessionId, delta = {}) {
+    const tokens = Number(delta.tokens) || 0;
+    const usd = Number(delta.usd) || 0;
+    const promptTokens = Number(delta.promptTokens != null ? delta.promptTokens : delta.prompt_tokens) || 0;
+    const completionTokens = Number(delta.completionTokens != null ? delta.completionTokens : delta.completion_tokens) || 0;
+    this.data.agent_sessions = (this.data.agent_sessions || []).map(session => {
+      if (session.id !== sessionId) return session;
+      return {
+        ...session,
+        total_tokens: (session.total_tokens || 0) + tokens,
+        prompt_tokens: (session.prompt_tokens || 0) + promptTokens,
+        completion_tokens: (session.completion_tokens || 0) + completionTokens,
+        cost_usd: Number(((session.cost_usd || 0) + usd).toFixed(6))
+      };
+    });
+    this.save();
+    return this.getSession(sessionId);
+  }
+
+  getGraphState() {
+    const state = this.data.graph_state || { customNodeOverrides: {}, customEdges: [] };
+    return {
+      customNodeOverrides: cloneRecord(state.customNodeOverrides || {}),
+      customEdges: cloneRecord(state.customEdges || [])
+    };
   }
 
   renameSession(id, title) {
@@ -356,5 +506,6 @@ const { OasSqliteStore } = require('./sqlite-store');
 module.exports = {
   MemoryStore,
   OasSqliteStore,
-  schemaSql
+  schemaSql,
+  rankByLocalVector
 };

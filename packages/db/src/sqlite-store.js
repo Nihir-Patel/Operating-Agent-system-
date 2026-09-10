@@ -7,6 +7,11 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { DatabaseSync } = require('node:sqlite');
+const { loadFileMemories, mergeMemoryRecords, filterMemories } = require('./memory-files');
+
+function cloneRecord(value) {
+  return JSON.parse(JSON.stringify(value));
+}
 
 const SECRET_PATTERNS = [
   /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/,
@@ -106,6 +111,54 @@ CREATE TABLE IF NOT EXISTS artifacts (
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL,
+  updated_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS pipeline_runs (
+  id TEXT PRIMARY KEY,
+  payload TEXT NOT NULL,
+  updated_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS worktree_records (
+  id TEXT PRIMARY KEY,
+  payload TEXT NOT NULL,
+  updated_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS graph_state (
+  id TEXT PRIMARY KEY,
+  payload TEXT NOT NULL,
+  updated_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS cost_events (
+  id TEXT PRIMARY KEY,
+  session_id TEXT,
+  provider TEXT,
+  model TEXT,
+  prompt_tokens INTEGER DEFAULT 0,
+  completion_tokens INTEGER DEFAULT 0,
+  tokens INTEGER DEFAULT 0,
+  usd REAL DEFAULT 0,
+  created_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS path_leases (
+  id TEXT PRIMARY KEY,
+  payload TEXT NOT NULL,
+  updated_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS work_items (
+  id TEXT PRIMARY KEY,
+  payload TEXT NOT NULL,
+  updated_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS arena_traces (
+  id TEXT PRIMARY KEY,
+  payload TEXT NOT NULL,
   updated_at TEXT
 );
 
@@ -269,7 +322,7 @@ class OasSqliteStore {
       workspace_id: payload.workspace_id || null,
       title: payload.title || 'New Agent Session',
       status: payload.status || 'active',
-      lead_agent_id: payload.lead_agent_id || 'planner',
+      lead_agent_id: payload.lead_agent_id || payload.leadAgent || 'planner',
       total_tokens: payload.total_tokens || 0,
       prompt_tokens: payload.prompt_tokens || 0,
       completion_tokens: payload.completion_tokens || 0,
@@ -317,6 +370,11 @@ class OasSqliteStore {
   deleteSession(id) {
     const stmt = this.db.prepare('DELETE FROM agent_sessions WHERE id = ?');
     const res = stmt.run(id);
+    try {
+      this.db.prepare('DELETE FROM pipeline_runs WHERE id = ?').run(id);
+    } catch {
+      // schema may not yet exist on very old handles
+    }
     return (res.changes || 0) > 0;
   }
 
@@ -482,57 +540,11 @@ class OasSqliteStore {
       ...r,
       content: r.body,
       category: r.kind,
-      sha256: r.hash
+      sha256: r.hash,
+      source: 'store'
     }));
-
-    if (!query) return records;
-    const q = query.toLowerCase().trim();
-    const terms = q.split(/\s+/).filter(Boolean);
-
-    const semanticMap = {
-      'test': ['coverage', 'tdd', 'unit', 'integration', 'assertion'],
-      'security': ['sandbox', 'secret', 'credential', 'auth', 'loopback', 'guard'],
-      'architecture': ['pattern', 'immutability', 'structure', 'modular', 'contract'],
-      'spec': ['brownfield', 'requirement', 'extraction', 'srs', 'invariant'],
-      'error': ['exception', 'fail', 'crash', 'rollback', 'checkpoint']
-    };
-
-    const expandedTerms = new Set(terms);
-    for (const term of terms) {
-      for (const [concept, synonyms] of Object.entries(semanticMap)) {
-        if (concept.includes(term) || term.includes(concept)) {
-          synonyms.forEach(s => expandedTerms.add(s));
-        } else if (synonyms.some(s => s.includes(term) || term.includes(s))) {
-          expandedTerms.add(concept);
-          synonyms.forEach(s => expandedTerms.add(s));
-        }
-      }
-    }
-
-    const scored = records.map(m => {
-      let score = 0;
-      const title = (m.title || '').toLowerCase();
-      const body = (m.body || m.content || '').toLowerCase();
-      const scope = (m.scope || '').toLowerCase();
-      const kind = (m.kind || m.category || '').toLowerCase();
-
-      if (title.includes(q)) score += 10;
-      if (body.includes(q)) score += 6;
-
-      for (const term of expandedTerms) {
-        if (title.includes(term)) score += 4;
-        if (body.includes(term)) score += 2;
-        if (scope.includes(term)) score += 3;
-        if (kind.includes(term)) score += 3;
-      }
-
-      return { item: m, score };
-    });
-
-    return scored
-      .filter(s => s.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .map(s => ({ ...s.item, semanticScore: s.score }));
+    const merged = mergeMemoryRecords(records, loadFileMemories(this.memoryRoot));
+    return filterMemories(merged, query);
   }
 
   deleteMemory(id) {
@@ -709,6 +721,202 @@ class OasSqliteStore {
       stmt.run(key, JSON.stringify(val), now);
     }
     return merged;
+  }
+
+  savePipeline(run) {
+    if (!run || !run.id) return null;
+    const copy = cloneRecord(run);
+    this.db.prepare(`
+      INSERT INTO pipeline_runs (id, payload, updated_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET payload = excluded.payload, updated_at = excluded.updated_at
+    `).run(copy.id, JSON.stringify(copy), new Date().toISOString());
+    return copy;
+  }
+
+  getPipeline(id) {
+    const row = this.db.prepare('SELECT payload FROM pipeline_runs WHERE id = ?').get(id);
+    return row ? JSON.parse(row.payload) : null;
+  }
+
+  listPipelines() {
+    return this.db.prepare('SELECT payload FROM pipeline_runs').all().map(row => JSON.parse(row.payload));
+  }
+
+  saveWorktree(record) {
+    if (!record || !record.id) return null;
+    const copy = cloneRecord(record);
+    this.db.prepare(`
+      INSERT INTO worktree_records (id, payload, updated_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET payload = excluded.payload, updated_at = excluded.updated_at
+    `).run(copy.id, JSON.stringify(copy), new Date().toISOString());
+    return copy;
+  }
+
+  listWorktrees() {
+    return this.db.prepare('SELECT payload FROM worktree_records').all().map(row => JSON.parse(row.payload));
+  }
+
+  deleteWorktree(id) {
+    const res = this.db.prepare('DELETE FROM worktree_records WHERE id = ?').run(id);
+    return (res.changes || 0) > 0;
+  }
+
+  saveGraphState(state) {
+    const payload = {
+      customNodeOverrides: (state && state.customNodeOverrides) || {},
+      customEdges: (state && state.customEdges) || []
+    };
+    this.db.prepare(`
+      INSERT INTO graph_state (id, payload, updated_at)
+      VALUES ('default', ?, ?)
+      ON CONFLICT(id) DO UPDATE SET payload = excluded.payload, updated_at = excluded.updated_at
+    `).run(JSON.stringify(payload), new Date().toISOString());
+    return cloneRecord(payload);
+  }
+
+  savePathLease(lease) {
+    if (!lease || !lease.id) return null;
+    const copy = cloneRecord(lease);
+    this.db.prepare(`
+      INSERT INTO path_leases (id, payload, updated_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET payload = excluded.payload, updated_at = excluded.updated_at
+    `).run(copy.id, JSON.stringify(copy), new Date().toISOString());
+    return copy;
+  }
+
+  listPathLeases() {
+    try {
+      return this.db.prepare('SELECT payload FROM path_leases').all().map(row => JSON.parse(row.payload));
+    } catch {
+      return [];
+    }
+  }
+
+  deletePathLease(id) {
+    try {
+      const res = this.db.prepare('DELETE FROM path_leases WHERE id = ?').run(id);
+      return (res.changes || 0) > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  saveWorkItem(item) {
+    if (!item || !item.id) return null;
+    const copy = cloneRecord(item);
+    this.db.prepare(`
+      INSERT INTO work_items (id, payload, updated_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET payload = excluded.payload, updated_at = excluded.updated_at
+    `).run(copy.id, JSON.stringify(copy), new Date().toISOString());
+    return copy;
+  }
+
+  listWorkItems() {
+    try {
+      return this.db.prepare('SELECT payload FROM work_items').all().map(row => JSON.parse(row.payload));
+    } catch {
+      return [];
+    }
+  }
+
+  getWorkItem(id) {
+    try {
+      const row = this.db.prepare('SELECT payload FROM work_items WHERE id = ?').get(id);
+      return row ? JSON.parse(row.payload) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  deleteWorkItem(id) {
+    try {
+      const res = this.db.prepare('DELETE FROM work_items WHERE id = ?').run(id);
+      return (res.changes || 0) > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  saveArenaTrace(trace) {
+    if (!trace || !trace.id) return null;
+    const copy = cloneRecord(trace);
+    this.db.prepare(`
+      INSERT INTO arena_traces (id, payload, updated_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET payload = excluded.payload, updated_at = excluded.updated_at
+    `).run(copy.id, JSON.stringify(copy), new Date().toISOString());
+    return copy;
+  }
+
+  listArenaTraces(filter = {}) {
+    try {
+      const rows = this.db.prepare('SELECT payload FROM arena_traces').all().map(row => JSON.parse(row.payload));
+      const benchmarkId = filter.benchmarkId ? String(filter.benchmarkId) : null;
+      return benchmarkId ? rows.filter(row => row.benchmarkId === benchmarkId) : rows;
+    } catch {
+      return [];
+    }
+  }
+
+  addCostEvent(event) {
+    const copy = cloneRecord(event);
+    this.db.prepare(`
+      INSERT INTO cost_events (id, session_id, provider, model, prompt_tokens, completion_tokens, tokens, usd, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      copy.id,
+      copy.session_id || null,
+      copy.provider || 'unknown',
+      copy.model || '',
+      copy.prompt_tokens || 0,
+      copy.completion_tokens || 0,
+      copy.tokens || 0,
+      copy.usd || 0,
+      copy.created_at || new Date().toISOString()
+    );
+    return copy;
+  }
+
+  listCostEvents() {
+    try {
+      return this.db.prepare('SELECT * FROM cost_events ORDER BY created_at ASC').all();
+    } catch {
+      return [];
+    }
+  }
+
+  addSessionCost(sessionId, delta = {}) {
+    const tokens = Number(delta.tokens) || 0;
+    const usd = Number(delta.usd) || 0;
+    const promptTokens = Number(delta.promptTokens != null ? delta.promptTokens : delta.prompt_tokens) || 0;
+    const completionTokens = Number(delta.completionTokens != null ? delta.completionTokens : delta.completion_tokens) || 0;
+    this.db.prepare(`
+      UPDATE agent_sessions
+      SET total_tokens = total_tokens + ?,
+          prompt_tokens = prompt_tokens + ?,
+          completion_tokens = completion_tokens + ?,
+          cost_usd = cost_usd + ?
+      WHERE id = ?
+    `).run(tokens, promptTokens, completionTokens, usd, sessionId);
+    return this.getSession(sessionId);
+  }
+
+  getGraphState() {
+    const row = this.db.prepare("SELECT payload FROM graph_state WHERE id = 'default'").get();
+    if (!row) return { customNodeOverrides: {}, customEdges: [] };
+    try {
+      const parsed = JSON.parse(row.payload);
+      return {
+        customNodeOverrides: parsed.customNodeOverrides || {},
+        customEdges: parsed.customEdges || []
+      };
+    } catch {
+      return { customNodeOverrides: {}, customEdges: [] };
+    }
   }
 }
 

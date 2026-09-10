@@ -11,6 +11,10 @@ const handlers = [
   require('./settings'),
   require('./sessions'),
   require('./worktrees'),
+  require('./leases'),
+  require('./inbox'),
+  require('./arena'),
+  require('./read-plane'),
   require('./platform'),
   require('./llm-ops'),
   require('./compliance'),
@@ -20,7 +24,7 @@ const handlers = [
 async function dispatchRoutes(server, req, res, pathname, parsedUrl) {
   for (const handler of handlers) {
     await handler.call(server, req, res, pathname, parsedUrl);
-    if (res.headersSent || res.writableEnded || res.destroyed || res.oasPending) {
+    if (res.headersSent || res.writableEnded || res.destroyed || res.oasPending || res.oasSent) {
       return true;
     }
   }

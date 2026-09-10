@@ -12,12 +12,12 @@ if (pathname === '/api/worktree/branches' && req.method === 'GET') {
   try {
     const { execSync } = require('child_process');
     const branchOutput = execSync('git branch -a --no-color', { cwd: this.workspaceRoot, encoding: 'utf8', timeout: 5000 });
+    const activeBranchLine = branchOutput.split('\n').find(b => b.startsWith('*'));
+    const active = activeBranchLine ? activeBranchLine.replace(/^\*\s+/, '').trim() : 'main';
     const branches = branchOutput.split('\n')
       .map(b => b.replace(/^\*?\s+/, '').trim())
-      .filter(b => b && !b.includes('->'));
-    const activeBranch = branchOutput.split('\n')
-      .find(b => b.startsWith('*'));
-    const active = activeBranch ? activeBranch.replace(/^\*\s+/, '').trim() : 'main';
+      .filter(b => b && !b.includes('->'))
+      .map(name => ({ name, current: name === active }));
 
     let worktreeList = [];
     try {
@@ -36,12 +36,14 @@ if (pathname === '/api/worktree/branches' && req.method === 'GET') {
 
     return this.sendJson(res, 200, {
       activeBranch: active,
+      current: active,
       branches,
       worktrees: worktreeList
     });
   } catch (err) {
     return this.sendJson(res, 200, {
       activeBranch: 'unknown',
+      current: 'unknown',
       branches: [],
       worktrees: [],
       error: err.message
@@ -51,12 +53,11 @@ if (pathname === '/api/worktree/branches' && req.method === 'GET') {
 
 if (pathname === '/api/worktree/switch' && req.method === 'POST') {
   const body = await this.parseBody(req);
-  const branch = body.branch || 'main';
-  return this.sendJson(res, 200, {
-    success: true,
-    activeBranch: branch,
-    message: `Switched active workspace worktree to branch: ${branch}`
-  });
+  const result = this.worktrees.switchBranch(body.branch);
+  if (!result.success) {
+    return this.sendJson(res, 400, result);
+  }
+  return this.sendJson(res, 200, result);
 }
 
 if (pathname === '/api/worktrees/spawn' && req.method === 'POST') {

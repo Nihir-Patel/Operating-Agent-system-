@@ -20,7 +20,7 @@ async function runTestSuite() {
   assert.ok(res.agents.length >= 68, `Must parse at least 68 agents, got ${res.agents.length}`);
   assert.strictEqual(res.skills.length, 286, 'Must parse exactly 286 skills');
   assert.strictEqual(res.commands.length, 94, 'Must parse exactly 94 commands');
-  assert.strictEqual(Object.keys(res.mcpServers).length, 35, 'Must parse 35 MCP servers');
+  assert.strictEqual(Object.keys(res.mcpServers).length, 36, 'Must parse 36 MCP servers');
 
   // Check agent model tiers
   const sonnetAgents = res.agents.filter(a => a.model === 'sonnet');

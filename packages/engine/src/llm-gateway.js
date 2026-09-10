@@ -7,6 +7,8 @@ const https = require('https');
 const http = require('http');
 const url = require('url');
 const { inferProvider, resolveDefaultModel } = require('./model-registry');
+const { wrapUntrustedContent, wrapUserMessages } = require('./prompt-guard');
+const { toAnthropicTools } = require('./agent-tools');
 
 const DEFAULT_TIMEOUT_MS = Number(process.env.OAS_LLM_TIMEOUT_MS) || 60000;
 const DEFAULT_RETRIES = Number(process.env.OAS_LLM_RETRIES) || 1;
@@ -98,19 +100,24 @@ class UniversalModelGateway {
     }
 
     let lastError;
+    const guardedParams = {
+      ...params,
+      prompt: wrapUntrustedContent(params.prompt, params),
+      messages: wrapUserMessages(params.messages, params)
+    };
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       try {
         if (provider === 'anthropic') {
-          return await this.callAnthropicStream(params, model, callbacks);
+          return await this.callAnthropicStream(guardedParams, model, callbacks);
         }
         if (provider === 'openai') {
-          return await this.callOpenAiStream(params, model, callbacks);
+          return await this.callOpenAiStream(guardedParams, model, callbacks);
         }
         if (provider === 'gemini') {
-          return await this.callGeminiStream(params, model, callbacks);
+          return await this.callGeminiStream(guardedParams, model, callbacks);
         }
         if (provider === 'ollama') {
-          return await this.callOllamaStream(params, model, callbacks);
+          return await this.callOllamaStream(guardedParams, model, callbacks);
         }
         const err = new Error(`No supported LLM provider found for: ${provider}. Configure a provider in Settings.`);
         err.code = 'NO_PROVIDER_CONFIGURED';
@@ -138,13 +145,17 @@ class UniversalModelGateway {
   }
 
   async callAnthropicStream(params, model, callbacks) {
-    const payload = JSON.stringify({
+    const body = {
       model,
       max_tokens: params.maxTokens || 4096,
       system: params.systemPrompt || '',
       messages: params.messages || [{ role: 'user', content: params.prompt || 'Execute task' }],
       stream: true
-    });
+    };
+    if (params.tools && params.tools.length) {
+      body.tools = toAnthropicTools(params.tools);
+    }
+    const payload = JSON.stringify(body);
 
     return new Promise((resolve, reject) => {
       const req = https.request({
@@ -188,14 +199,18 @@ class UniversalModelGateway {
   }
 
   async callOpenAiStream(params, model, callbacks) {
-    const payload = JSON.stringify({
+    const body = {
       model,
       messages: [
         ...(params.systemPrompt ? [{ role: 'system', content: params.systemPrompt }] : []),
         ...(params.messages || [{ role: 'user', content: params.prompt || 'Execute task' }])
       ],
       stream: true
-    });
+    };
+    if (params.tools && params.tools.length) {
+      body.tools = params.tools;
+    }
+    const payload = JSON.stringify(body);
 
     return new Promise((resolve, reject) => {
       const req = https.request({
@@ -277,7 +292,7 @@ class UniversalModelGateway {
       ...(params.systemPrompt ? [{ role: 'system', content: params.systemPrompt }] : []),
       ...(params.messages || [{ role: 'user', content: params.prompt || 'Execute task' }])
     ];
-    const payload = JSON.stringify({
+    const chatBody = {
       model: selectedModel,
       messages,
       stream: true,
@@ -285,7 +300,11 @@ class UniversalModelGateway {
         num_predict: params.maxTokens || 2048,
         num_ctx: params.numCtx || params.contextWindow || 32768
       }
-    });
+    };
+    if (params.tools && params.tools.length) {
+      chatBody.tools = params.tools;
+    }
+    const payload = JSON.stringify(chatBody);
 
     return new Promise((resolve, reject) => {
       const client = parsed.protocol === 'https:' ? https : http;
@@ -298,6 +317,7 @@ class UniversalModelGateway {
       }, res => {
         let fullText = '';
         let buffer = '';
+        let toolCalls = [];
         res.on('data', chunk => {
           buffer += chunk.toString();
           const lines = buffer.split('\n');
@@ -312,6 +332,9 @@ class UniversalModelGateway {
                 fullText += token;
                 if (callbacks.onToken) callbacks.onToken(token);
               }
+              if (Array.isArray(data.message?.tool_calls) && data.message.tool_calls.length) {
+                toolCalls = data.message.tool_calls;
+              }
             } catch {}
           }
         });
@@ -321,10 +344,13 @@ class UniversalModelGateway {
               const data = JSON.parse(buffer.trim());
               const token = data.message?.content || data.response || '';
               if (token) fullText += token;
+              if (Array.isArray(data.message?.tool_calls) && data.message.tool_calls.length) {
+                toolCalls = data.message.tool_calls;
+              }
             } catch {}
           }
           if (callbacks.onComplete) callbacks.onComplete(fullText);
-          resolve({ text: fullText, provider: 'ollama', model: selectedModel });
+          resolve({ text: fullText, toolCalls, provider: 'ollama', model: selectedModel });
         });
       });
       this.attachTimeout(req, reject);

@@ -6,6 +6,32 @@
 const fs = require('fs');
 const path = require('path');
 const { buildCycloneDxSbom, buildAipom } = require('../../../../packages/engine/src/bill-of-materials');
+const { MALICIOUS_PACKAGE_VERSIONS, scanSupplyChainIocs } = require('../../../../scripts/ci/scan-supply-chain-iocs');
+
+function asLineRanges(lines) {
+  if (!Array.isArray(lines) || lines.length === 0) return undefined;
+  if (lines.length === 2 && typeof lines[0] === 'number' && typeof lines[1] === 'number') {
+    return [lines];
+  }
+  return lines;
+}
+
+function toProximityScanAgent(agent) {
+  const rawFiles = agent.files || agent.touchedFiles || [];
+  const files = rawFiles.map(file => {
+    if (typeof file === 'string') return { path: file };
+    const lines = asLineRanges(file.lines || file.ranges);
+    const mapped = { path: file.path, weight: file.weight };
+    if (lines) mapped.lines = lines;
+    return mapped;
+  });
+  return {
+    agentId: agent.agentId || agent.holderId,
+    files,
+    startedAt: agent.startedAt || agent.acquiredAt,
+    intent: agent.intent
+  };
+}
 
 module.exports = async function platformRoutes(req, res, pathname, parsedUrl) {
 if (pathname === '/api/telemetry') {
@@ -33,13 +59,22 @@ if (pathname === '/api/telemetry') {
     },
     memoryVaultEntries: this.store.getMemoryVault().length,
     artifacts: this.store.getArtifacts().length,
-    activeProvider: this.gateway?.activeProvider || 'none'
+    activeProvider: this.gateway?.activeProvider || 'none',
+    otel: {
+      consent: Boolean(this.store.getSettings && this.store.getSettings().otelConsent),
+      exporter: (this.store.getSettings && this.store.getSettings().otelConsent) ? 'otlp-json' : 'none',
+      tenancy: 'local-single'
+    }
   });
 }
 
 // --- OAS 2.0 HUD STATUS & SESSION CONTROL CONTRACT (docs/architecture/hud-status-session-control.md) ---
 if (pathname === '/api/hud-status' && req.method === 'GET') {
   return this.sendJson(res, 200, this.buildHudStatus());
+}
+
+if (pathname === '/api/cost/ledger' && req.method === 'GET') {
+  return this.sendJson(res, 200, this.getCostLedger());
 }
 
 // --- HARNESS ADAPTER COMPLIANCE MATRIX (docs/architecture/harness-adapter-compliance.md) ---
@@ -108,9 +143,16 @@ if (pathname === '/api/security/scan' && req.method === 'POST') {
       const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
       const allDeps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
       const flagged = ['@squawk/mcp', '@tallyui/core', '@draftauth/client'];
-      for (const dep of Object.keys(allDeps)) {
-        if (flagged.includes(dep)) {
-          findings.push({ severity: 'CRITICAL', type: 'SUPPLY_CHAIN_IOC', package: dep, version: allDeps[dep] });
+      for (const [dep, version] of Object.entries(allDeps)) {
+        const knownBad = MALICIOUS_PACKAGE_VERSIONS[dep];
+        if (flagged.includes(dep) || (Array.isArray(knownBad) && knownBad.includes(String(version).replace(/^[\^~]/, '')))) {
+          findings.push({
+            severity: 'CRITICAL',
+            type: 'SUPPLY_CHAIN_IOC',
+            package: dep,
+            version,
+            source: 'ioc-registry'
+          });
         }
       }
     }
@@ -147,10 +189,32 @@ if (pathname === '/api/security/scan' && req.method === 'POST') {
     }
   }
 
+  if (process.env.OAS_FULL_IOC_SCAN === '1') {
+    try {
+      const iocResult = scanSupplyChainIocs({ rootDir: this.workspaceRoot });
+      for (const f of iocResult.findings || []) {
+        findings.push({
+          severity: (f.severity || 'HIGH').toUpperCase(),
+          type: 'SUPPLY_CHAIN_IOC',
+          package: f.indicator || f.package,
+          version: f.version || null,
+          file: f.filePath,
+          message: f.message
+        });
+      }
+    } catch {
+      // Keep the registry scan if the full walker cannot run
+    }
+  }
+
   const status = findings.length === 0 && secretFindings.length === 0 ? 'SAFE' : 'ATTENTION';
   return this.sendJson(res, 200, {
     status,
     scannedAt: new Date().toISOString(),
+    scanner: 'lightweight-workspace',
+    claimsAgentShield: false,
+    scanEngine: 'supply-chain-ioc-registry+secret-shapes',
+    disclaimer: 'This is not the 102-rule AgentShield CLI. Run npx oas-agentshield scan for that scanner.',
     totalFilesScanned: filesScanned,
     supplyChainFindings: findings,
     secretFindings,
@@ -283,9 +347,17 @@ if (pathname === '/api/proximity' && (req.method === 'GET' || req.method === 'PO
   try {
     const { scanAirspace, buildProximityTriggers } = require('../../../../scripts/lib/agent-proximity/index');
     let agentsList = [];
+    let source = 'sample';
     if (req.method === 'POST') {
       const body = await this.parseBody(req);
       if (Array.isArray(body.agents)) agentsList = body.agents;
+    }
+    const liveLeaseAgents = this.leases && typeof this.leases.toProximityAgents === 'function'
+      ? this.leases.toProximityAgents()
+      : [];
+    if (!agentsList.length && liveLeaseAgents.length) {
+      agentsList = liveLeaseAgents;
+      source = 'leases';
     }
     if (!agentsList.length) {
       agentsList = [
@@ -294,12 +366,16 @@ if (pathname === '/api/proximity' && (req.method === 'GET' || req.method === 'PO
         { agentId: 'code-reviewer', touchedFiles: [{ path: 'packages/db/src/index.js', lines: [10, 80] }] },
         { agentId: 'security-reviewer', touchedFiles: [{ path: 'packages/db/src/index.js', lines: [20, 60] }], intent: ['apps/api/src/server.js'] }
       ];
+      source = 'sample';
     }
-    const airspace = scanAirspace(agentsList);
+    const scanAgents = agentsList.map(toProximityScanAgent);
+    const airspace = scanAirspace(scanAgents);
     const triggers = buildProximityTriggers(airspace.advisories);
     return this.sendJson(res, 200, {
       schemaVersion: 'oas.proximity.v1',
       scannedAt: new Date().toISOString(),
+      source,
+      leases: this.leases ? this.leases.list() : [],
       ...airspace,
       triggers
     });

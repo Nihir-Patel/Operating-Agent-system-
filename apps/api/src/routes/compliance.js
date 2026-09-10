@@ -187,7 +187,9 @@ if (pathname === '/api/compliance/audit-trail' && req.method === 'GET') {
       totalBlocks: blocks.length,
       chainValid: true,
       merkleRoot,
-      standard: 'SOC-2 / ISO-27001 / EU-AI-ACT',
+      standard: 'local-hash-chain',
+      attestation: 'sample',
+      disclaimer: 'Hash-chain over local sessions and memory. Not a SOC-2 / ISO-27001 / EU-AI-Act certification.',
       blocks
     });
   } catch (err) {
@@ -220,15 +222,16 @@ if (pathname === '/api/compliance/dossier' && req.method === 'POST') {
 </head>
 <body>
   <h1>Operating Agent System (OAS) — Executive Compliance Verification Dossier</h1>
-  <p><strong>Dossier Reference:</strong> ${dossierId} | <strong>Generated:</strong> ${generatedAt} | <span class="badge badge-pass">STATUS: COMPLIANT & ATTESTED</span></p>
+  <p><strong>Dossier Reference:</strong> ${dossierId} | <strong>Generated:</strong> ${generatedAt} | <span class="badge badge-pass">STATUS: SAMPLE TEMPLATE</span></p>
+  <p><em>This HTML is a local operator template. It is not a SOC 2, ISO 27001, or EU AI Act audit.</em></p>
   
   <h3>1. Regulatory & Standards Governance</h3>
   <table>
     <tr><th>Framework</th><th>Control Name</th><th>Audit Status</th><th>Attestation Hash</th></tr>
-    <tr><td>SOC 2 Type II</td><td>CC6.1 Logical Access & Boundary Controls</td><td>PASS</td><td class="hash">e8b39f72a1d4...3c1</td></tr>
-    <tr><td>ISO/IEC 27001</td><td>A.12.1 Operational Procedures & Responsibilities</td><td>PASS</td><td class="hash">49c81b03d2e9...7a4</td></tr>
-    <tr><td>EU AI Act</td><td>Article 14 Human Oversight & Traceability</td><td>PASS</td><td class="hash">9fa281c70e34...2b8</td></tr>
-    <tr><td>CycloneDX SBOM</td><td>NIST SP 800-218 Software Supply Chain</td><td>PASS</td><td class="hash">71dc09a48f21...9e0</td></tr>
+    <tr><td>SOC 2 Type II</td><td>CC6.1 Logical Access & Boundary Controls</td><td>SAMPLE</td><td class="hash">not-an-audit-hash</td></tr>
+    <tr><td>ISO/IEC 27001</td><td>A.12.1 Operational Procedures & Responsibilities</td><td>SAMPLE</td><td class="hash">not-an-audit-hash</td></tr>
+    <tr><td>EU AI Act</td><td>Article 14 Human Oversight & Traceability</td><td>SAMPLE</td><td class="hash">not-an-audit-hash</td></tr>
+    <tr><td>CycloneDX SBOM</td><td>NIST SP 800-218 Software Supply Chain</td><td>SAMPLE</td><td class="hash">not-an-audit-hash</td></tr>
   </table>
 
   <h3>2. Cryptographic Immutability & Provenance</h3>
@@ -244,8 +247,10 @@ if (pathname === '/api/compliance/dossier' && req.method === 'POST') {
     return this.sendJson(res, 200, {
       dossierId,
       generatedAt,
-      complianceStatus: 'PASSED',
-      controlsVerified: 14,
+      complianceStatus: 'SAMPLE',
+      attestation: 'sample',
+      disclaimer: 'Local template only. This is not a SOC 2, ISO 27001, or EU AI Act audit attestation.',
+      controlsVerified: 0,
       merkleRoot: crypto.createHash('sha256').update(dossierId + generatedAt).digest('hex'),
       dossierHtml
     });

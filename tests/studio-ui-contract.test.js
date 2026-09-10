@@ -4,6 +4,8 @@
  */
 
 const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
 const { EventEmitter } = require('events');
 const { OasControlPlaneServer } = require('../apps/api/src/server');
 
@@ -87,6 +89,10 @@ async function runStudioContractTests() {
   assert.ok(resIndex.body.includes('command-palette-modal'), 'index.html must include command-palette-modal');
   assert.ok(resIndex.body.includes('hitl-modal'), 'index.html must include hitl-modal');
   assert.ok(resIndex.body.includes('btn-open-command-palette'), 'index.html must include ⌘K Command Palette button');
+  assert.ok(resIndex.body.includes('id="inbox-list"'), 'index.html must include work inbox list');
+  assert.ok(resIndex.body.includes('Work inbox'), 'index.html must label the GitHub modal as Work inbox');
+  assert.ok(resIndex.body.includes('id="arena-must-contain"'), 'Arena must expose custom graders');
+  assert.ok(resIndex.body.includes('local hash-vectors (not pgvector)'), 'Memory vault must not claim hosted pgvector');
   console.log('  ✔ index.html contains command palette and HITL elements');
 
   // 2. Static Asset Serving: styles.css
@@ -100,16 +106,22 @@ async function runStudioContractTests() {
   assert.ok(resCss.body.includes('.edge-animated'), 'styles.css must contain animated DAG edge styles');
   console.log('  ✔ styles.css contains Cyber-Linear design system and component styles');
 
-  // 3. Static Asset Serving: app.js
-  console.log('3. Verifying GET /app.js');
+  // 3. Static Asset Serving: app.js + ES modules
+  console.log('3. Verifying GET /app.js and GET /js modules');
   const resJs = await simulateRequest(server, 'GET', '/app.js');
   assert.strictEqual(resJs.statusCode, 200, 'GET /app.js must return 200');
-  assert.ok(resJs.body.includes('initGlobalCommandPalette'), 'app.js must define initGlobalCommandPalette');
-  assert.ok(resJs.body.includes('initHitlSecurityController'), 'app.js must define initHitlSecurityController');
-  assert.ok(resJs.body.includes('openEntityModal'), 'app.js must define openEntityModal');
-  assert.ok(resJs.body.includes('edge-animated'), 'app.js must render animated DAG edges');
-  assert.ok(resJs.body.includes('agent:intervention:paused'), 'app.js must handle HITL intervention paused events');
-  console.log('  ✔ app.js contains client-side controller, modal handlers, and SSE logic');
+  const resApiClient = await simulateRequest(server, 'GET', '/js/api-client.js');
+  assert.strictEqual(resApiClient.statusCode, 200, 'GET /js/api-client.js must return 200');
+  const studioJs = [resJs.body, resApiClient.body].join('\n');
+  assert.ok(studioJs.includes('initGlobalCommandPalette'), 'app.js must define initGlobalCommandPalette');
+  assert.ok(studioJs.includes('initHitlSecurityController'), 'app.js must define initHitlSecurityController');
+  assert.ok(studioJs.includes('openEntityModal'), 'app.js must define openEntityModal');
+  assert.ok(studioJs.includes('edge-animated'), 'app.js must render animated DAG edges');
+  assert.ok(studioJs.includes('agent:intervention:paused'), 'app.js must handle HITL intervention paused events');
+  assert.ok(studioJs.includes('getApiToken'), 'Studio JS must read the control-plane API token');
+  assert.ok(studioJs.includes("headers.set('Authorization'"), 'Studio JS must attach Authorization headers to API calls');
+  assert.ok(studioJs.includes('getSseStreamUrl'), 'Studio JS must send credentials on the SSE stream');
+  console.log('  ✔ app.js module graph contains client-side controller, modal handlers, and SSE logic');
 
   // 4. Catalog API
   console.log('4. Verifying GET /api/catalog');
@@ -252,8 +264,14 @@ async function runStudioContractTests() {
   assert.strictEqual(resAbort.statusCode, 200);
   console.log('  ✔ Intervention lifecycle (pause -> resume -> feedback -> abort) verified');
 
+  console.log('13. Verifying desktop Studio devUrl matches oas-studio port');
+  const tauriConf = JSON.parse(fs.readFileSync(path.join(__dirname, '../apps/desktop/src-tauri/tauri.conf.json'), 'utf8'));
+  assert.strictEqual(tauriConf.build.devUrl, 'http://127.0.0.1:3458', 'Tauri devUrl must target the Studio control plane');
+  assert.ok(typeof tauriConf.app.security.csp === 'string' && tauriConf.app.security.csp.includes("default-src 'self'"), 'Tauri CSP must not be null');
+  console.log('  ✔ Tauri desktop shell targets Studio on port 3458');
+
   console.log('\n======================================================');
-  console.log('  ✅ ALL 12 STUDIO SUBSYSTEM CONTRACTS PASSED (100%)');
+  console.log('  ✅ ALL 13 STUDIO SUBSYSTEM CONTRACTS PASSED (100%)');
   console.log('======================================================\n');
 }
 
