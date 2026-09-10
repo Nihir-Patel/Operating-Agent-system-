@@ -70,7 +70,7 @@ async function run() {
   assert.ok((html.match(/role="dialog"/g) || []).length >= 5, 'modals must use dialog role');
   assert.ok(css.includes(':focus-visible'), 'CSS must define :focus-visible');
   assert.ok(css.includes('prefers-reduced-motion'), 'CSS must honor reduced motion');
-  console.log('  ✔ Static HTML/CSS landmarks, skip link, focus, and motion checks');
+  console.log('   Static HTML/CSS landmarks, skip link, focus, and motion checks');
 
   const unnamedButtons = [];
   const buttonRe = /<button\b([^>]*)>([\s\S]*?)<\/button>/gi;
@@ -82,7 +82,7 @@ async function run() {
     if (!hasName) unnamedButtons.push(attrs.slice(0, 80));
   }
   assert.strictEqual(unnamedButtons.length, 0, 'buttons without accessible names: ' + unnamedButtons.join(' | '));
-  console.log('  ✔ All buttons have an accessible name (text, title, or aria-label)');
+  console.log('   All buttons have an accessible name (text, title, or aria-label)');
 
   const server = new OasControlPlaneServer({ port: 0 });
   const served = await simulate(server, 'GET', '/');
@@ -92,7 +92,7 @@ async function run() {
   const cssServed = await simulate(server, 'GET', '/styles.css');
   assert.strictEqual(cssServed.status, 200);
   assert.ok(cssServed.body.includes('prefers-reduced-motion'));
-  console.log('  ✔ Served index.html and styles.css include a11y affordances');
+  console.log('   Served index.html and styles.css include a11y affordances');
 
   console.log('\n======================================================');
   console.log('  STUDIO A11Y & RESPONSIVE CONTRACT PASSED');

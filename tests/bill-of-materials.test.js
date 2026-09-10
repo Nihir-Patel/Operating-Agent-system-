@@ -26,7 +26,7 @@ function run() {
   assert.ok(sbom.components.some(c => c.name === 'sql.js'), 'SBOM must include lockfile sql.js');
   assert.ok(!sbom.components.some(c => c.name === '@oas/engine'), 'must not invent unpublished @oas/* packages');
   assert.ok(sbom.components.length >= Object.keys(pkg.dependencies || {}).length);
-  console.log(`  ✔ CycloneDX SBOM built from lockfile (${sbom.components.length} components)`);
+  console.log(`   CycloneDX SBOM built from lockfile (${sbom.components.length} components)`);
 
   const catalog = {
     agents: [
@@ -56,7 +56,7 @@ function run() {
   assert.strictEqual(aipom.guardrailPolicies.sandboxEnabled, true);
   assert.strictEqual(aipom.guardrailPolicies.worktreeIsolation, false);
   assert.ok(!aipom.guardrailPolicies.tcasAirspaceEnforced, 'must not claim unverified TCAS policy');
-  console.log('  ✔ AIPOM built from model registry + catalog + settings');
+  console.log('   AIPOM built from model registry + catalog + settings');
 
   console.log('\n======================================================');
   console.log('  BILL OF MATERIALS TESTS PASSED');

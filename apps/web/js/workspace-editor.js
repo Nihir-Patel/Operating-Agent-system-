@@ -208,19 +208,19 @@ function getFsFileIcon(name) {
   switch (ext) {
     case 'js':
     case 'mjs':
-    case 'cjs': return '🟨';
+    case 'cjs': return '[js]';
     case 'ts':
-    case 'tsx': return '🔷';
-    case 'json': return '💠';
-    case 'md': return '📝';
-    case 'html': return '🌐';
-    case 'css': return '🎨';
-    case 'py': return '🐍';
-    case 'sh': return '🐚';
+    case 'tsx': return '[ts]';
+    case 'json': return '[json]';
+    case 'md': return '[md]';
+    case 'html': return '[html]';
+    case 'css': return '[css]';
+    case 'py': return '[py]';
+    case 'sh': return '[sh]';
     case 'yml':
-    case 'yaml': return '⚙️';
-    case 'lock': return '🔒';
-    default: return '📄';
+    case 'yaml': return '[yml]';
+    case 'lock': return '[lock]';
+    default: return '[file]';
   }
 }
 
@@ -248,7 +248,7 @@ function renderFsTree(items, parentEl, depth = 0) {
     const row = document.createElement('div');
     row.className = `fs-tree-item fs-depth-${Math.min(depth, 4)}`;
     const isDir = item.type === 'directory';
-    const icon = isDir ? '📁' : getFsFileIcon(item.name);
+    const icon = isDir ? '[dir]' : getFsFileIcon(item.name);
 
     row.innerHTML = `<span class="fs-icon">${icon}</span><span>${item.name}</span>`;
     parentEl.appendChild(row);
@@ -263,7 +263,7 @@ function renderFsTree(items, parentEl, depth = 0) {
         e.stopPropagation();
         const open = childContainer.style.display !== 'none';
         childContainer.style.display = open ? 'none' : 'block';
-        row.querySelector('.fs-icon').textContent = open ? '📁' : '📂';
+        row.querySelector('.fs-icon').textContent = open ? '[dir]' : '[open]';
       });
     } else if (!isDir) {
       row.addEventListener('click', () => {

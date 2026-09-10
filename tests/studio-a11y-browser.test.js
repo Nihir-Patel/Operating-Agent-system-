@@ -45,7 +45,7 @@ async function run() {
     if (REQUIRE_BROWSER) {
       throw new Error('playwright is required. Install with npm install and retry.');
     }
-    console.log('  ⚠ playwright not installed — skipping browser axe scan');
+    console.log('  WARNING: playwright not installed — skipping browser axe scan');
     return;
   }
 
@@ -54,7 +54,7 @@ async function run() {
     browser = await playwright.chromium.launch({ headless: true });
   } catch (err) {
     if (REQUIRE_BROWSER) throw err;
-    console.log(`  ⚠ Chromium unavailable (${err.message}) — skipping browser axe scan`);
+    console.log(`  WARNING: Chromium unavailable (${err.message}) — skipping browser axe scan`);
     console.log('    Install with: npx playwright install chromium');
     return;
   }
@@ -81,14 +81,14 @@ async function run() {
     const dagScan = await runAxe(page);
     const dagSerious = dagScan.violations.filter(v => v.impact === 'critical' || v.impact === 'serious');
     assert.strictEqual(dagSerious.length, 0, `view-dag axe violations:\n${formatViolations(dagSerious)}`);
-    console.log(`  ✔ view-dag: ${dagScan.violations.length} residual (non-serious) axe findings`);
+    console.log(`   view-dag: ${dagScan.violations.length} residual (non-serious) axe findings`);
 
     await page.click('#nav-workspace');
     await page.waitForSelector('#view-workspace.active', { timeout: 10000 });
     const workspaceScan = await runAxe(page);
     const workspaceSerious = workspaceScan.violations.filter(v => v.impact === 'critical' || v.impact === 'serious');
     assert.strictEqual(workspaceSerious.length, 0, `view-workspace axe violations:\n${formatViolations(workspaceSerious)}`);
-    console.log(`  ✔ view-workspace: ${workspaceScan.violations.length} residual (non-serious) axe findings`);
+    console.log(`   view-workspace: ${workspaceScan.violations.length} residual (non-serious) axe findings`);
 
     await page.click('#btn-open-settings');
     await page.waitForSelector('#settings-modal', { state: 'visible', timeout: 10000 });
@@ -97,7 +97,7 @@ async function run() {
     const settingsScan = await runAxe(page);
     const settingsSerious = settingsScan.violations.filter(v => v.impact === 'critical' || v.impact === 'serious');
     assert.strictEqual(settingsSerious.length, 0, `settings axe violations:\n${formatViolations(settingsSerious)}`);
-    console.log(`  ✔ settings: ${settingsScan.violations.length} residual (non-serious) axe findings`);
+    console.log(`   settings: ${settingsScan.violations.length} residual (non-serious) axe findings`);
   } finally {
     await context.close();
     await browser.close();

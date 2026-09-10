@@ -65,7 +65,7 @@ async function run() {
   } catch (err) {
     assert.strictEqual(err.code, 'READ_PLANE_DENIED');
   }
-  console.log('  ✔ list_sessions works; mutations denied');
+  console.log('   list_sessions works; mutations denied');
 
   const server = new OasControlPlaneServer({
     port: 0,
@@ -85,7 +85,7 @@ async function run() {
   const worktree = await dispatch(server, 'GET', '/api/read-plane/worktree');
   assert.strictEqual(worktree.status, 200);
   assert.ok(worktree.body.data.branch);
-  console.log('  ✔ HTTP read plane is mutation-false');
+  console.log('   HTTP read plane is mutation-false');
 
   const { handle } = require('../scripts/oas-studio-mcp');
   const writes = [];
@@ -98,7 +98,7 @@ async function run() {
   }
   const catalog = JSON.parse(writes.join('').trim().split('\n').pop());
   assert.ok(catalog.result.tools.some(tool => tool.name === 'list_sessions'));
-  console.log('  ✔ stdio helper lists read-only tools');
+  console.log('   stdio helper lists read-only tools');
 }
 
 run().catch(err => {

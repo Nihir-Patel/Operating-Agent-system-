@@ -19,10 +19,10 @@ function test(name, fn) {
   try {
     fn();
     passed++;
-    console.log(`  ✔ [PASS] ${name}`);
+    console.log(`   [PASS] ${name}`);
   } catch (err) {
     failed++;
-    console.log(`  ✖ [FAIL] ${name}: ${err.message}`);
+    console.log(`   [FAIL] ${name}: ${err.message}`);
   }
 }
 
@@ -248,7 +248,7 @@ test('extractGeminiText parses streamed envelope', () => {
       execFileSync('git', ['init', '-b', 'main'], { cwd: tmpRepo, stdio: 'ignore' });
       gitReady = true;
     } catch (err) {
-      console.log('  ⚠ skip worktree git tests: git init blocked');
+      console.log('  WARNING: skip worktree git tests: git init blocked');
     }
     if (gitReady) {
     execFileSync('git', ['config', 'user.email', 'oas@example.com'], { cwd: tmpRepo, stdio: 'ignore' });

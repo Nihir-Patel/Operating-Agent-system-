@@ -361,7 +361,6 @@ async function loadSessionSteps(sessionId) {
     if (activeAgentBadge) activeAgentBadge.textContent = 'No agent active';
     stream.innerHTML = `
       <div class="stream-empty-state" style="padding: 24px 16px; text-align: center; color: var(--text-muted); background: rgba(5, 9, 20, 0.6); border-radius: 8px; border: 1px dashed rgba(56, 189, 248, 0.2);">
-        <div style="font-size: 26px; margin-bottom: 6px;">⚡</div>
         <div style="font-size: 13px; font-weight: 700; color: #F1F5F9;">No Active Session Selected</div>
         <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px; line-height: 1.5;">
           Create a session in the Sessions drawer or launch a mission prompt to begin execution.
@@ -403,7 +402,6 @@ async function loadSessionSteps(sessionId) {
       if (steps.length === 0) {
         stream.innerHTML = `
           <div class="stream-empty-state" style="padding: 24px 16px; text-align: center; color: var(--text-muted); background: rgba(5, 9, 20, 0.6); border-radius: 8px; border: 1px dashed rgba(56, 189, 248, 0.2);">
-            <div style="font-size: 26px; margin-bottom: 6px;">⚡</div>
             <div style="font-size: 13px; font-weight: 700; color: #F1F5F9;">Agent Workspace Primed</div>
             <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px; line-height: 1.5;">
               Active Session: <strong style="color: #38BDF8;">${data.session?.title || sessionId}</strong><br>
@@ -475,7 +473,7 @@ function appendStepToStream(step) {
     bodyHtml += `
       <div class="cot-accordion">
         <div class="cot-header" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block'">
-          <span>🧠 Chain of Thought (${step.cot.length} chars)</span>
+          <span> Chain of Thought (${step.cot.length} chars)</span>
           <span style="font-size: 9px; opacity: 0.7;">▾ Toggle</span>
         </div>
         <div class="cot-body">${escapeHtml(step.cot)}</div>
@@ -489,7 +487,7 @@ function appendStepToStream(step) {
     bodyHtml += `
       <div class="tool-inspector-card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-          <strong style="color: #34D399;">🔧 Invoked: ${step.tool_name || 'tool'}</strong>
+          <strong style="color: #34D399;"> Invoked: ${step.tool_name || 'tool'}</strong>
           <span class="badge-tag font-mono" style="font-size: 8.5px; color: #10B981;">SUCCESS</span>
         </div>
         ${toolArgs ? `<pre style="margin: 0; background: #030712; padding: 6px; border-radius: 4px; font-family: monospace; font-size: 10px; color: #93C5FD; overflow-x: auto;">${escapeHtml(toolArgs)}</pre>` : ''}
@@ -3200,11 +3198,9 @@ function initKnowledgeGraph() {
       tooltip.style.display = 'block';
       tooltip.style.left = `${Math.min(rect.width - 290, mouseScreenX + 16)}px`;
       tooltip.style.top = `${Math.max(10, Math.min(rect.height - 110, mouseScreenY - 20))}px`;
-      const catIcons = { 'agent': '🤖', 'skill': '⚡', 'command': '⌨️', 'mcp': '🔌' };
-      const icon = catIcons[hoveredKgNode.type] || '💠';
       tooltip.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-          <strong style="color: #F8FAFC; font-size: 12px;">${icon} ${escapeHtml(hoveredKgNode.name || hoveredKgNode.id)}</strong>
+          <strong style="color: #F8FAFC; font-size: 12px;">${escapeHtml(hoveredKgNode.name || hoveredKgNode.id)}</strong>
           <span class="badge-tag" style="font-size: 9px; color: ${hoveredKgNode.color}; border-color: ${hoveredKgNode.color};">${hoveredKgNode.category}</span>
         </div>
         <div style="font-size: 10.5px; color: #94A3B8; line-height: 1.4; margin-bottom: 5px;">${escapeHtml(hoveredKgNode.description || 'Specialized OAS capability module.')}</div>
@@ -3445,7 +3441,7 @@ function initKnowledgeGraph() {
         };
       }
 
-      btnBlast.textContent = '⚡ Blast Radius';
+      btnBlast.textContent = ' Blast Radius';
 
       if (impact) {
         kgBlastImpact = {
@@ -3751,20 +3747,20 @@ function updateKgInspector(node) {
   // Dynamic Run Button Label based on Entity Type
   if (btnKgRun) {
     if (node.type === 'agent') {
-      btnKgRun.textContent = `🚀 Launch Mission with ${node.name}`;
+      btnKgRun.textContent = `Launch Mission with ${node.name}`;
       btnKgRun.style.background = 'var(--brand-blue)';
     } else if (node.type === 'command') {
       const cleanCmd = node.name.startsWith('/') ? node.name : '/' + node.name;
-      btnKgRun.textContent = `▶ Run ${cleanCmd} in Terminal`;
+      btnKgRun.textContent = `Run ${cleanCmd} in Terminal`;
       btnKgRun.style.background = '#D97706';
     } else if (node.type === 'skill') {
-      btnKgRun.textContent = `⚡ Activate Skill: ${node.name}`;
+      btnKgRun.textContent = `Activate Skill: ${node.name}`;
       btnKgRun.style.background = '#059669';
     } else if (node.type === 'mcp') {
-      btnKgRun.textContent = `🔌 Inspect ${node.name} MCP`;
+      btnKgRun.textContent = `Inspect ${node.name} MCP`;
       btnKgRun.style.background = '#7C3AED';
     } else {
-      btnKgRun.textContent = `🚀 Launch Mission with Agent`;
+      btnKgRun.textContent = `Launch Mission with Agent`;
       btnKgRun.style.background = 'var(--brand-blue)';
     }
 
@@ -4394,7 +4390,7 @@ async function loadHarnessCompliance() {
                 </div>
                 ${r.risk_notes && r.risk_notes.length ? `
                   <div style="font-size: 10px; color: #F59E0B; background: rgba(245, 158, 11, 0.08); padding: 4px 8px; border-radius: 4px; margin-top: 4px;">
-                    ⚠ ${escapeHtml(r.risk_notes[0])}
+                    WARNING: ${escapeHtml(r.risk_notes[0])}
                   </div>
                 ` : ''}
               </div>
@@ -4617,7 +4613,7 @@ async function loadTcasAirspace() {
               </div>
               <div style="color: #CBD5E1;">${escapeHtml(t.content)}</div>
             </div>
-          `).join('') : '<div style="color: #34D399; font-size: 11px;">✔ Airspace clear. No overlapping edit ranges or direct dependency collision vectors detected.</div>'}
+          `).join('') : '<div style="color: #34D399; font-size: 11px;"> Airspace clear. No overlapping edit ranges or direct dependency collision vectors detected.</div>'}
         </div>
       `;
     }
@@ -4801,7 +4797,7 @@ async function initWorktreeController() {
         const data = await res.json();
         showToast('Worktree Switched', `Active branch: ${targetBranch}`, 'success');
         if (diffViewer) {
-          diffViewer.innerHTML = `<span style="color: #10B981; font-weight: bold;">✓ Worktree branch switched to "${escapeHtml(targetBranch)}"</span>\n<span style="color: #94A3B8;">HEAD SHA: ${data.head || 'latest'} • Status: clean</span>\n<span style="color: #38BDF8;">Workspace tree refreshed.</span>\n`;
+          diffViewer.innerHTML = `<span style="color: #10B981; font-weight: bold;">PASS: Worktree branch switched to "${escapeHtml(targetBranch)}"</span>\n<span style="color: #94A3B8;">HEAD SHA: ${data.head || 'latest'} • Status: clean</span>\n<span style="color: #38BDF8;">Workspace tree refreshed.</span>\n`;
         }
         loadWorkspaceTree();
       } else {
@@ -5355,11 +5351,11 @@ function initDagTimelineScrubberController() {
       if (replayTimer) {
         clearInterval(replayTimer);
         replayTimer = null;
-        btnPlay.textContent = '▶';
+        btnPlay.textContent = '';
         return;
       }
 
-      btnPlay.textContent = '⏸';
+      btnPlay.textContent = '';
       const steps = state.activeSessionSteps || [];
       if (parseInt(slider?.value || '0', 10) >= steps.length) {
         applyScrubber(0);
@@ -5370,7 +5366,7 @@ function initDagTimelineScrubberController() {
         if (current >= steps.length) {
           clearInterval(replayTimer);
           replayTimer = null;
-          btnPlay.textContent = '▶';
+          btnPlay.textContent = '';
           showToast('Replay Complete', 'Timeline execution playback reached end', 'info');
         } else {
           applyScrubber(current + 1);
@@ -5520,7 +5516,7 @@ function initArenaBenchmarkController() {
         payload.mustNotContain = mustNotContainInput ? mustNotContainInput.value : '';
       }
       btnRun.disabled = true;
-      btnRun.innerHTML = '<span>⏳ Running eval harness...</span>';
+      btnRun.innerHTML = '<span> Running eval harness...</span>';
       resultsGrid.innerHTML = '<div style="text-align: center; color: #EC4899; padding: 40px; grid-column: 1 / -1;">Running golden-task graders and recording traces (pass@k)...</div>';
 
       try {
@@ -5545,7 +5541,7 @@ function initArenaBenchmarkController() {
         showToast('Arena Error', err.message, 'error');
       } finally {
         btnRun.disabled = false;
-        btnRun.innerHTML = '<span>⚔️ Run Arena Eval</span>';
+        btnRun.innerHTML = '<span> Run Arena Eval</span>';
       }
     };
   }
@@ -6154,14 +6150,14 @@ function init3DTopologyController() {
       svgDag.style.display = 'none';
       canvas3d.style.display = 'block';
       if (scrubber) scrubber.style.display = 'none';
-      btnToggle.textContent = '📊 2D SVG Graph';
+      btnToggle.textContent = '2D SVG Graph';
       btnToggle.style.color = '#38BDF8';
       start3dRendering();
     } else {
       svgDag.style.display = 'block';
       canvas3d.style.display = 'none';
       if (scrubber) scrubber.style.display = 'flex';
-      btnToggle.textContent = '🌌 3D Topology';
+      btnToggle.textContent = '3D Topology';
       btnToggle.style.color = '#818CF8';
       stop3dRendering();
     }
@@ -6371,7 +6367,7 @@ function initComplianceVaultController() {
           </div>
           <div style="display: flex; align-items: center; gap: 6px;">
             <span class="hash-pill">${(b.blockHash || '').slice(0, 16)}...</span>
-            <span style="color: #34D399; font-weight: bold; font-size: 11px;">✔</span>
+            <span style="color: #34D399; font-weight: bold; font-size: 11px;"></span>
           </div>
         </div>
       `).join('');

@@ -15,7 +15,7 @@ function run() {
   const profile = buildSeatbeltProfile();
   assert.ok(profile.includes('(deny file-write*)'));
   assert.ok(profile.includes('(param "WORKSPACE")'));
-  console.log('  ✔ seatbelt profile denies writes outside WORKSPACE');
+  console.log('   seatbelt profile denies writes outside WORKSPACE');
 
   const seated = resolveSandboxedSpawn('echo ok', '/tmp/ws', {
     platform: 'darwin',
@@ -25,7 +25,7 @@ function run() {
   assert.strictEqual(seated.isolation, 'seatbelt');
   assert.strictEqual(seated.file, '/usr/bin/sandbox-exec');
   assert.ok(seated.args.includes('/bin/sh'));
-  console.log('  ✔ darwin launch uses sandbox-exec');
+  console.log('   darwin launch uses sandbox-exec');
 
   const policy = resolveSandboxedSpawn('echo OAS_SANDBOX_OK', process.cwd(), {
     platform: 'linux',
@@ -36,7 +36,7 @@ function run() {
   assert.deepStrictEqual(policy.args, ['-c', 'echo OAS_SANDBOX_OK']);
   const echoed = spawnSync(policy.file, policy.args, { encoding: 'utf8', timeout: 5000 });
   assert.ok(String(echoed.stdout || '').includes('OAS_SANDBOX_OK'));
-  console.log('  ✔ non-darwin stays policy-only');
+  console.log('   non-darwin stays policy-only');
 
   assert.strictEqual(isOsIsolationUnavailable('seatbelt', 71, ''), true);
   assert.strictEqual(
@@ -45,7 +45,7 @@ function run() {
   );
   assert.strictEqual(isOsIsolationUnavailable('seatbelt', 0, ''), false);
   assert.strictEqual(isOsIsolationUnavailable('policy-only', 71, ''), false);
-  console.log('  ✔ seatbelt denial (exit 71) is a policy-only fallback');
+  console.log('   seatbelt denial (exit 71) is a policy-only fallback');
 }
 
 run();

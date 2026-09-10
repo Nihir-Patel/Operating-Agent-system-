@@ -97,11 +97,11 @@ async function run() {
   assert.ok(/Lightweight scan/i.test(indexHtml), 'security button must say Lightweight scan, not AgentShield as the product');
   assert.doesNotMatch(indexHtml, /AgentShield Supply Chain & Security Audit/);
   assert.match(indexHtml, /not the 102-rule AgentShield CLI/i);
-  console.log('  ✔ index.html Local Studio 0.9 labels');
+  console.log('   index.html Local Studio 0.9 labels');
 
   assert.doesNotMatch(launcher, /ENTERPRISE STUDIO & CLOUD/i);
   assert.match(launcher, /Local Studio 0\.9/);
-  console.log('  ✔ oas-studio.js launcher banner');
+  console.log('   oas-studio.js launcher banner');
 
   assert.ok(appJs.includes('/pipeline/run'), 'Auto Run must POST /pipeline/run');
   assert.doesNotMatch(appJs, /setInterval\(advanceDagStep/);
@@ -110,14 +110,14 @@ async function run() {
   assert.doesNotMatch(appJs, /Zero-Day IOC Scan/);
   assert.match(appJs, /'MCPs':\s*36/);
   assert.doesNotMatch(appJs, /'MCPs':\s*35/);
-  console.log('  ✔ app.js Auto Run + honest security render');
+  console.log('   app.js Auto Run + honest security render');
 
   assert.match(workingContext, /2\.2\.1/);
   assert.match(workingContext, /68 agents/);
   assert.match(workingContext, /286 skills/);
   assert.doesNotMatch(workingContext, /Public catalog truth is `47` agents/);
   assert.match(workingContext, /Studio 0\.9/);
-  console.log('  ✔ WORKING-CONTEXT.md current truth');
+  console.log('   WORKING-CONTEXT.md current truth');
 
   const server = new OasControlPlaneServer({ port: 0, store: tmpStore() });
   const health = await dispatch(server, 'GET', '/health');
@@ -125,7 +125,7 @@ async function run() {
   assert.strictEqual(health.body.service, 'oas-studio');
   assert.strictEqual(health.body.studioVersion, '0.9.0');
   assert.ok(health.body.pluginVersion);
-  console.log('  ✔ /health reports studioVersion 0.9.0');
+  console.log('   /health reports studioVersion 0.9.0');
 
   const scan = await dispatch(server, 'POST', '/api/security/scan', {});
   assert.strictEqual(scan.status, 200);
@@ -133,14 +133,14 @@ async function run() {
   assert.strictEqual(scan.body.scanner, 'lightweight-workspace');
   assert.ok(scan.body.disclaimer);
   assert.match(String(scan.body.disclaimer), /not the 102-rule AgentShield/i);
-  console.log('  ✔ security scan does not claim AgentShield');
+  console.log('   security scan does not claim AgentShield');
 
   const missing = await dispatch(server, 'POST', '/api/settings/test', { provider: 'anthropic' });
   assert.strictEqual(missing.status, 200);
   assert.strictEqual(missing.body.success, false);
   assert.strictEqual(missing.body.live, false);
   assert.match(String(missing.body.message || missing.body.error), /missing|not configured/i);
-  console.log('  ✔ settings/test refuses empty Anthropic key without claiming connected');
+  console.log('   settings/test refuses empty Anthropic key without claiming connected');
 
   const liveAttempt = await dispatch(server, 'POST', '/api/settings/test', {
     provider: 'openai',
@@ -150,7 +150,7 @@ async function run() {
   assert.strictEqual(liveAttempt.body.live, true);
   assert.strictEqual(liveAttempt.body.success, false);
   assert.ok(liveAttempt.body.error || liveAttempt.body.message);
-  console.log('  ✔ settings/test live-probes OpenAI instead of key-presence only');
+  console.log('   settings/test live-probes OpenAI instead of key-presence only');
 
   console.log('\nStudio honesty tests passed.\n');
 }

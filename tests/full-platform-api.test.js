@@ -105,7 +105,7 @@ async function runTests() {
   // Verify edge structure
   const sampleEdge = graphRes.body.edges[0];
   assert(sampleEdge.source && sampleEdge.target && sampleEdge.type);
-  console.log(`  ✓ Knowledge Graph verified: ${graphRes.body.totalNodes} nodes, ${graphRes.body.totalEdges} edges`);
+  console.log(`  PASS: Knowledge Graph verified: ${graphRes.body.totalNodes} nodes, ${graphRes.body.totalEdges} edges`);
 
   // 2. Filesystem Tree Verification
   console.log('[Test] 2. Verifying /api/fs/tree directory explorer...');
@@ -117,7 +117,7 @@ async function runTests() {
   assert(topDirs.includes('skills'), 'Must include skills directory');
   assert(topDirs.includes('packages'), 'Must include packages directory');
   assert(!topDirs.includes('node_modules'), 'node_modules must be excluded from tree');
-  console.log('  ✓ Filesystem tree verified: top directories include', topDirs.slice(0, 5).join(', '));
+  console.log('  PASS: Filesystem tree verified: top directories include', topDirs.slice(0, 5).join(', '));
 
   // 3. Filesystem File Read & Security Sandbox Check
   console.log('[Test] 3. Verifying /api/fs/read and sandbox containment...');
@@ -130,7 +130,7 @@ async function runTests() {
   // Path traversal attempt check
   const traversalRes = await dispatch(serverInstance, 'GET', '/api/fs/read?path=../../../../etc/passwd');
   assert.strictEqual(traversalRes.status, 400, 'Must reject path traversal outside sandbox');
-  console.log('  ✓ File read & sandbox isolation verified');
+  console.log('  PASS: File read & sandbox isolation verified');
 
   // 4. Platform Settings Persistence
   console.log('[Test] 4. Verifying /api/settings GET and POST...');
@@ -146,7 +146,7 @@ async function runTests() {
   assert.strictEqual(updateRes.status, 200);
   assert.strictEqual(updateRes.body.provider, 'ollama');
   assert.strictEqual(updateRes.body.defaultModel, 'llama3.3:latest');
-  console.log('  ✓ Settings persistence verified');
+  console.log('  PASS: Settings persistence verified');
 
   // 5. Session Lifecycle CRUD & Export
   console.log('[Test] 5. Verifying Multi-Session Lifecycle CRUD...');
@@ -190,7 +190,7 @@ async function runTests() {
 
   const postDeleteDetail = await dispatch(serverInstance, 'GET', '/api/sessions/sess_test_full_platform');
   assert.strictEqual(postDeleteDetail.status, 404);
-  console.log('  ✓ Session lifecycle CRUD & transcript export verified');
+  console.log('  PASS: Session lifecycle CRUD & transcript export verified');
 
   // 6. Memory Vault Verification
   console.log('[Test] 6. Verifying /api/memory query, creation, and deletion...');
@@ -219,7 +219,7 @@ async function runTests() {
   const deleteMemRes = await dispatch(serverInstance, 'DELETE', `/api/memory/${newMemId}`);
   assert.strictEqual(deleteMemRes.status, 200);
   assert.strictEqual(deleteMemRes.body.success, true);
-  console.log('  ✓ Memory Vault query, creation, and deletion verified');
+  console.log('  PASS: Memory Vault query, creation, and deletion verified');
 
   // 7. Plan Artifacts Verification
   console.log('[Test] 7. Verifying /api/artifacts plan management & updates...');
@@ -239,7 +239,7 @@ async function runTests() {
   });
   assert.strictEqual(updateArtRes.status, 200);
   assert.strictEqual(updateArtRes.body.phases.length, updatedPhases.length);
-  console.log('  ✓ Plan Artifacts management and updates verified');
+  console.log('  PASS: Plan Artifacts management and updates verified');
 
   // 8. Telemetry Verification
   console.log('[Test] 8. Verifying /api/telemetry real-time statistics...');
@@ -251,9 +251,9 @@ async function runTests() {
   assert(telemRes.body.totalAgents >= 68, `Expected at least 68 agents, got ${telemRes.body.totalAgents}`);
   assert.strictEqual(telemRes.body.totalSkills, 286);
   assert.strictEqual(telemRes.body.totalCommands, 94);
-  console.log(`  ✓ Telemetry verified: ${telemRes.body.memoryUtilizationMb} MB Heap, ${telemRes.body.totalAgents} Agents, status ${telemRes.body.status}`);
+  console.log(`  PASS: Telemetry verified: ${telemRes.body.memoryUtilizationMb} MB Heap, ${telemRes.body.totalAgents} Agents, status ${telemRes.body.status}`);
 
-  console.log('\n✅ ALL FULL-PLATFORM API TESTS PASSED WITH 100% SUCCESS!\n');
+  console.log('\nPASS: ALL FULL-PLATFORM API TESTS PASSED WITH 100% SUCCESS!\n');
 }
 
 runTests().catch(err => {

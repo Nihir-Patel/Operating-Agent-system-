@@ -16,10 +16,10 @@ async function test(name, fn) {
   try {
     await fn();
     passed++;
-    console.log(`  ✔ [PASS] ${name}`);
+    console.log(`   [PASS] ${name}`);
   } catch (err) {
     failed++;
-    console.log(`  ✖ [FAIL] ${name}: ${err.message}`);
+    console.log(`   [FAIL] ${name}: ${err.message}`);
   }
 }
 
@@ -39,7 +39,7 @@ function ollamaUp() {
 
   const up = await ollamaUp();
   if (!up) {
-    console.log(`✖ Ollama not reachable at ${BASE} - cannot run live LLM tests.`);
+    console.log(` Ollama not reachable at ${BASE} - cannot run live LLM tests.`);
     process.exit(2);
   }
   console.log(`Ollama reachable at ${BASE}, model=${MODEL}\n`);

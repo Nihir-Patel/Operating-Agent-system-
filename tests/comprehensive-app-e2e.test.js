@@ -92,9 +92,9 @@ async function runComprehensiveE2EBattery() {
     try {
       fn();
       passedTests++;
-      console.log(`  ✔ [PASS] ${name}`);
+      console.log(`   [PASS] ${name}`);
     } catch (err) {
-      console.error(`  ✖ [FAIL] ${name}:`, err.message);
+      console.error(`   [FAIL] ${name}:`, err.message);
       throw err;
     }
   }
@@ -104,9 +104,9 @@ async function runComprehensiveE2EBattery() {
     try {
       await fn();
       passedTests++;
-      console.log(`  ✔ [PASS] ${name}`);
+      console.log(`   [PASS] ${name}`);
     } catch (err) {
-      console.error(`  ✖ [FAIL] ${name}:`, err.message);
+      console.error(`   [FAIL] ${name}:`, err.message);
       throw err;
     }
   }
@@ -875,11 +875,11 @@ async function runComprehensiveE2EBattery() {
   await dispatch(server, 'DELETE', `/api/sessions/${testSessionId}`);
 
   console.log('\n======================================================');
-  console.log(`  ✅ ALL ${passedTests}/${totalTests} COMPREHENSIVE E2E FUNCTIONAL TESTS PASSED!`);
+  console.log(`  PASS: ALL ${passedTests}/${totalTests} COMPREHENSIVE E2E FUNCTIONAL TESTS PASSED!`);
   console.log('======================================================\n');
 }
 
 runComprehensiveE2EBattery().catch(err => {
-  console.error('\n✖ TEST SUITE ABORTED DUE TO FAILURE:', err);
+  console.error('\n TEST SUITE ABORTED DUE TO FAILURE:', err);
   process.exit(1);
 });

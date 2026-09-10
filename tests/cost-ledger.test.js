@@ -98,7 +98,7 @@ async function runCostLedgerTests() {
     completionTokens: 1000000
   });
   assert.ok(gpt > 8 && gpt < 12, 'gpt-4o output should be about $10/MTok, got ' + gpt);
-  console.log('  ✔ provider rate table');
+  console.log('   provider rate table');
 
   console.log('2. Router falls back to local when budget is gone or keys are missing');
   const exhausted = resolveRoute(
@@ -125,7 +125,7 @@ async function runCostLedgerTests() {
   );
   assert.strictEqual(ok.provider, 'anthropic');
   assert.strictEqual(ok.fallback, false);
-  console.log('  ✔ fallback + requested routes');
+  console.log('   fallback + requested routes');
 
   console.log('3. Budget guard throws PAYMENT_REQUIRED');
   let thrown = null;
@@ -138,7 +138,7 @@ async function runCostLedgerTests() {
   assert.strictEqual(thrown.code, 'BUDGET_EXCEEDED');
   assert.strictEqual(thrown.statusCode, 402);
   assertWithinBudget({ budgetUsd: 5, totals: { usd: 1.2 } });
-  console.log('  ✔ 402 budget stop');
+  console.log('   402 budget stop');
 
   console.log('4. Memory + SQLite persist cost events');
   const mem = new MemoryStore({ storagePath: path.join(tmpDir('oas-cost-mem-'), 'store.json') });
@@ -167,7 +167,7 @@ async function runCostLedgerTests() {
   const session = sql.getSession('sess_sql');
   assert.ok(session.cost_usd > 0);
   assert.ok(session.total_tokens >= 2000);
-  console.log('  ✔ durable cost events');
+  console.log('   durable cost events');
 
   console.log('5. GET /api/cost/ledger + HUD uses the ledger');
   const serverDir = tmpDir('oas-cost-api-');
@@ -194,7 +194,7 @@ async function runCostLedgerTests() {
   assert.strictEqual(hudRes.status, 200);
   assert.strictEqual(hudRes.body.cost.source, 'ledger');
   assert.ok(hudRes.body.cost.sessionUsd > 0);
-  console.log('  ✔ ledger API + HUD');
+  console.log('   ledger API + HUD');
 
   console.log('6. Execute stops when the budget is exhausted');
   recordInferenceCost(server.store, {
@@ -208,20 +208,20 @@ async function runCostLedgerTests() {
   const execRes = await dispatch(server, 'POST', `/api/sessions/${created.body.id}/execute`, { prompt: 'should not run' });
   assert.strictEqual(execRes.status, 402);
   assert.strictEqual(execRes.body.errorCode, 'BUDGET_EXCEEDED');
-  console.log('  ✔ execute returns 402');
+  console.log('   execute returns 402');
 
   const summary = summarizeCostLedger(server.store.listCostEvents(), { budgetUsd: 10 });
   assert.ok(summary.totals.byProvider.anthropic > 0);
-  console.log('  ✔ provider rollup');
+  console.log('   provider rollup');
 
   console.log('\n======================================================');
-  console.log('  ✅ COST LEDGER CONTRACTS PASSED');
+  console.log('  PASS: COST LEDGER CONTRACTS PASSED');
   console.log('======================================================\n');
 }
 
 if (require.main === module) {
   runCostLedgerTests().catch(err => {
-    console.error('❌ Cost ledger test failed:', err);
+    console.error('FAIL: Cost ledger test failed:', err);
     process.exit(1);
   });
 }

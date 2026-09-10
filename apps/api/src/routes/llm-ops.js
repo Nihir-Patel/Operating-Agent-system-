@@ -257,10 +257,10 @@ if (pathname === '/api/agents/council/deliberate' && req.method === 'POST') {
     const topic = body.topic || 'Transition from monolithic state to distributed immutable event store';
     const mode = body.mode || 'architecture';
     const participants = [
-      { id: 'architect', speaker: 'Architect (architect)', avatar: '🏛️' },
-      { id: 'security-reviewer', speaker: 'Security Reviewer (security-reviewer)', avatar: '🛡️' },
-      { id: 'tdd-guide', speaker: 'TDD Guide (tdd-guide)', avatar: '🧪' },
-      { id: 'planner', speaker: 'Planner (planner)', avatar: '📋' }
+      { id: 'architect', speaker: 'Architect (architect)', avatar: 'AR' },
+      { id: 'security-reviewer', speaker: 'Security Reviewer (security-reviewer)', avatar: 'SR' },
+      { id: 'tdd-guide', speaker: 'TDD Guide (tdd-guide)', avatar: 'TD' },
+      { id: 'planner', speaker: 'Planner (planner)', avatar: 'PL' }
     ];
 
     const settings = this.store.getSettings() || {};

@@ -57,7 +57,7 @@ async function run() {
   ], 'token bucket rate limiter');
   assert.strictEqual(ranked[0].id, 'a');
   assert.strictEqual(ranked[0].vectorSource, 'local-hash-vectors');
-  console.log('  ✔ cosine rank prefers related memory');
+  console.log('   cosine rank prefers related memory');
 
   const store = new MemoryStore({ storagePath: path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'oas-vec-')), 's.json') });
   store.addMemory({ title: 'Rate limiter TDD', body: 'immutable token bucket tests' });
@@ -67,7 +67,7 @@ async function run() {
   assert.strictEqual(res.status, 200);
   assert.ok(Array.isArray(res.body));
   assert.strictEqual(res.body[0].title, 'Rate limiter TDD');
-  console.log('  ✔ GET /api/memory?mode=semantic ranks locally (not pgvector)');
+  console.log('   GET /api/memory?mode=semantic ranks locally (not pgvector)');
 }
 
 run().catch(err => {

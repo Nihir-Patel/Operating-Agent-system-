@@ -77,7 +77,7 @@ async function run() {
   assert.strictEqual(bwrap.file, '/usr/bin/bwrap');
   assert.ok(bwrap.args.includes('--ro-bind'));
   assert.ok(bwrap.args.includes('/tmp/ws'));
-  console.log('  ✔ linux bwrap wraps command with read-only root');
+  console.log('   linux bwrap wraps command with read-only root');
 
   const win = resolveSandboxedSpawn('echo ok', 'C:\\\\ws', {
     platform: 'win32',
@@ -87,7 +87,7 @@ async function run() {
   assert.strictEqual(win.isolation, 'policy-only');
   assert.ok(/cmd\.exe/i.test(win.file) || win.file === 'cmd.exe');
   assert.ok(win.args.includes('/c'));
-  console.log('  ✔ windows stays policy-only with cmd.exe');
+  console.log('   windows stays policy-only with cmd.exe');
 
   const passJudge = await gradeWithModelJudge({
     output: 'READY',
@@ -102,7 +102,7 @@ async function run() {
     complete: async () => ({ text: 'FAIL\nMissing token' })
   });
   assert.strictEqual(failJudge.passed, false);
-  console.log('  ✔ model-as-judge parses PASS/FAIL from gateway');
+  console.log('   model-as-judge parses PASS/FAIL from gateway');
 
   const weak = evaluateSkillPromotion({
     id: 'x',
@@ -143,7 +143,7 @@ async function run() {
   });
   assert.strictEqual(promoted.stage, 'catalog');
   assert.ok(fs.existsSync(path.join(root, 'skills/rate-limiter-tdd/SKILL.md')));
-  console.log('  ✔ skill promotion drafts until HITL confirmPromote');
+  console.log('   skill promotion drafts until HITL confirmPromote');
 
   const reuse = planDesktopControlPlane({ healthOk: true, repoRoot: '/repo', port: 3458 });
   assert.strictEqual(reuse.action, 'reuse');
@@ -159,7 +159,7 @@ async function run() {
   assert.ok(spawnPlan.args.some(arg => String(arg).includes('oas-studio.js')));
   const rust = fs.readFileSync(path.join(__dirname, '../apps/desktop/src-tauri/src/main.rs'), 'utf8');
   assert.ok(rust.includes('spawn_control_plane') || rust.includes('oas-studio.js'));
-  console.log('  ✔ Tauri spawn plan owns the API when health is down');
+  console.log('   Tauri spawn plan owns the API when health is down');
 
   const oas2Db = path.join(tmpDir('oas2-'), 'oas2.sqlite');
   const db = new DatabaseSync(oas2Db);
@@ -179,7 +179,7 @@ async function run() {
   const listed = handleReadTool('list_sessions', { store: studioStore, oas2DbPath: oas2Db });
   assert.ok(listed.data.some(row => row.source === 'studio' || !row.source));
   assert.ok(listed.data.some(row => row.source === 'oas2'));
-  console.log('  ✔ OAS2 sessions are read-only alongside Studio (no merge writes)');
+  console.log('   OAS2 sessions are read-only alongside Studio (no merge writes)');
 
   const framed = encodeMcpMessage({ jsonrpc: '2.0', id: 1, result: { ok: true } });
   assert.ok(framed.startsWith('Content-Length: '));
@@ -188,19 +188,19 @@ async function run() {
     assert.strictEqual(msg.result.ok, true);
   });
   assert.strictEqual(fed.rest.length, 0);
-  console.log('  ✔ MCP Content-Length framing round-trips');
+  console.log('   MCP Content-Length framing round-trips');
 
   const redacted = redactSecrets('key sk-ant-abcdefghijklmnopqrstuvwxyz123456 token');
   assert.ok(!redacted.includes('sk-ant-abcdefghijklmnopqrstuvwxyz123456'));
   assert.ok(redacted.includes('[REDACTED]'));
   assert.ok(wrapUntrustedContent('x').includes('BEGIN UNTRUSTED CONTENT'));
-  console.log('  ✔ secret redaction');
+  console.log('   secret redaction');
 
   assert.strictEqual(buildConsentGatedOtlp({ consent: false, name: 'arena.compare' }), null);
   const otlp = buildConsentGatedOtlp({ consent: true, name: 'arena.compare', traceId: 'aa'.repeat(16), spanId: 'bb'.repeat(8) });
   assert.ok(otlp.resourceSpans);
   assert.strictEqual(otlp.consent, true);
-  console.log('  ✔ OTLP exporter is consent-gated');
+  console.log('   OTLP exporter is consent-gated');
 
   const workspace = tmpDir('oas-api-promo-');
   fs.mkdirSync(path.join(workspace, 'agents'), { recursive: true });
@@ -249,19 +249,19 @@ async function run() {
   assert.strictEqual(tel.status, 200);
   assert.strictEqual(tel.body.otel.consent, false);
   assert.strictEqual(tel.body.otel.exporter, 'none');
-  console.log('  ✔ HTTP promotion, arena judge, and telemetry consent');
+  console.log('   HTTP promotion, arena judge, and telemetry consent');
 
   const html = fs.readFileSync(path.join(__dirname, '../apps/web/index.html'), 'utf8');
   assert.ok(html.includes('id="builder-skill-confirm-promote"'));
   assert.ok(html.includes('id="arena-model-judge"'));
-  console.log('  ✔ Studio surfaces promotion HITL and model judge');
+  console.log('   Studio surfaces promotion HITL and model judge');
 
   const emptyAirspace = await dispatch(server, 'GET', '/api/proximity');
   assert.strictEqual(emptyAirspace.status, 200);
   assert.strictEqual(emptyAirspace.body.source, 'none');
   assert.notStrictEqual(emptyAirspace.body.source, 'sample');
   assert.ok(Array.isArray(emptyAirspace.body.advisories));
-  console.log('  ✔ proximity stays empty instead of a fake sample roster');
+  console.log('   proximity stays empty instead of a fake sample roster');
 
   let councilCalls = 0;
   server.gateway.streamCompletion = async () => {
@@ -280,7 +280,7 @@ async function run() {
   assert.strictEqual(council.body.rounds.length, 4);
   assert.ok(councilCalls <= 1, `council must fail-fast, got ${councilCalls} live calls`);
   assert.ok(Date.now() - councilStarted < 3000, 'council must not wait on a dead Ollama');
-  console.log('  ✔ council fail-fast when the model is unreachable');
+  console.log('   council fail-fast when the model is unreachable');
 
   const heal = await dispatch(server, 'POST', '/api/loop/heal', {
     errorTrace: 'TypeError: x at file.js:1:1',
@@ -289,12 +289,12 @@ async function run() {
   assert.strictEqual(heal.status, 200);
   assert.strictEqual(heal.body.generatedBy, 'heuristic-template');
   assert.doesNotMatch(String(heal.body.suggestedPatch || ''), /Auto-Healed by OAS/);
-  console.log('  ✔ heal patch is labeled as a heuristic template');
+  console.log('   heal patch is labeled as a heuristic template');
 }
 
 if (require.main === module) {
   run().catch(err => {
-    console.error('❌ remaining control plane test failed:', err);
+    console.error('FAIL: remaining control plane test failed:', err);
     process.exit(1);
   });
 }

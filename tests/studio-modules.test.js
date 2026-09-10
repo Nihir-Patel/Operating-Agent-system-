@@ -99,14 +99,14 @@ async function runStudioModuleTests() {
   assert.ok(/type=["']module["']/.test(indexHtml), 'index.html must load app.js as type=module');
   assert.ok(indexHtml.includes('id="monaco-editor-host"'), 'index.html must include monaco-editor-host');
   assert.ok(indexHtml.includes('id="workspace-file-editor"'), 'textarea fallback must remain');
-  console.log('  ✔ module boot + Monaco host + textarea fallback');
+  console.log('   module boot + Monaco host + textarea fallback');
 
   console.log('2. app.js imports extracted Studio modules');
   assert.ok(appJs.includes("from './js/api-client.js'"), 'app.js must import api-client');
   assert.ok(appJs.includes("from './js/workspace-editor.js'"), 'app.js must import workspace-editor');
   assert.ok(appJs.includes("from './js/studio-state.js'"), 'app.js must import studio-state');
   assert.ok(appJs.includes("from './js/ui.js'"), 'app.js must import ui helpers');
-  console.log('  ✔ app.js is a module graph root');
+  console.log('   app.js is a module graph root');
 
   console.log('3. GET /js modules are served as JavaScript');
   const requiredModules = [
@@ -121,13 +121,13 @@ async function runStudioModuleTests() {
     assert.ok((res.headers['content-type'] || '').includes('javascript'), pathname + ' must be JavaScript');
     assert.ok(res.body.length > 40, pathname + ' must not be empty');
   }
-  console.log('  ✔ /js/*.js static serving');
+  console.log('   /js/*.js static serving');
 
   console.log('4. /js path traversal is rejected');
   const traversal = await simulateRequest(server, 'GET', '/js/../package.json');
   assert.ok(traversal.statusCode === 403 || traversal.statusCode === 404, 'parent traversal must not serve package.json');
   assert.ok(!String(traversal.body).includes('"name"'), 'traversal must not leak package.json');
-  console.log('  ✔ path-guarded static modules');
+  console.log('   path-guarded static modules');
 
   console.log('5. Concatenated Studio JS keeps control-plane contracts');
   const studioJs = readStudioSources();
@@ -141,7 +141,7 @@ async function runStudioModuleTests() {
   assert.ok(studioJs.includes('getSseStreamUrl'), 'SSE credential URL must remain');
   assert.ok(studioJs.includes('monaco-editor'), 'Monaco loader must be referenced');
   assert.ok(studioJs.includes('languageFromPath'), 'editor language mapping must exist');
-  console.log('  ✔ control-plane strings survive the split');
+  console.log('   control-plane strings survive the split');
 
   console.log('6. workspace-editor language mapping');
   const editorPath = path.join(webRoot, 'js/workspace-editor.js');
@@ -152,7 +152,7 @@ async function runStudioModuleTests() {
   assert.strictEqual(editorMod.languageFromPath('styles.css'), 'css');
   assert.strictEqual(editorMod.languageFromPath('main.py'), 'python');
   assert.ok(typeof editorMod.initWorkspaceFilesystem === 'function');
-  console.log('  ✔ languageFromPath + exported filesystem init');
+  console.log('   languageFromPath + exported filesystem init');
 
   console.log('7. Token mode still serves /js as a public GET');
   const tokenAuth = new AuthMiddleware({ token: 'secret', bindHost: '0.0.0.0' });
@@ -168,16 +168,16 @@ async function runStudioModuleTests() {
     'GET'
   );
   assert.strictEqual(blockedApi.authorized, false, 'API routes stay token-gated');
-  console.log('  ✔ public module assets, gated API');
+  console.log('   public module assets, gated API');
 
   console.log('\n======================================================');
-  console.log('  ✅ STUDIO MODULE & EDITOR CONTRACTS PASSED');
+  console.log('  PASS: STUDIO MODULE & EDITOR CONTRACTS PASSED');
   console.log('======================================================\n');
 }
 
 if (require.main === module) {
   runStudioModuleTests().catch(err => {
-    console.error('❌ Studio module test failed:', err);
+    console.error('FAIL: Studio module test failed:', err);
     process.exit(1);
   });
 }

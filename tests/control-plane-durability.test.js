@@ -87,10 +87,10 @@ async function run() {
     try {
       await fn();
       passed += 1;
-      console.log(`  ✔ ${name}`);
+      console.log(`   ${name}`);
     } catch (err) {
       failed += 1;
-      console.error(`  ✖ ${name}: ${err.message}`);
+      console.error(`   ${name}: ${err.message}`);
       throw err;
     }
   }

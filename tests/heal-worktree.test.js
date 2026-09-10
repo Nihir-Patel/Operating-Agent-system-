@@ -94,7 +94,7 @@ async function run() {
   try {
     initGitRepo(repo);
   } catch {
-    console.log('  ⚠ skip heal worktree tests: git init blocked');
+    console.log('  WARNING: skip heal worktree tests: git init blocked');
     return;
   }
   const server = new OasControlPlaneServer({
@@ -114,7 +114,7 @@ async function run() {
   assert.strictEqual(suggest.body.applied, false);
   assert.strictEqual(suggest.body.appliedInWorktree, false);
   assert.strictEqual(fs.readFileSync(path.join(repo, 'app.js'), 'utf8'), 'console.log("ok");\n');
-  console.log('  ✔ suggest-only leaves main clean');
+  console.log('   suggest-only leaves main clean');
 
   console.log('2. apply=true writes the suggestion in an isolated worktree');
   const applied = await dispatch(server, 'POST', '/api/loop/heal', {
@@ -134,7 +134,7 @@ async function run() {
   assert.strictEqual(fs.readFileSync(path.join(repo, 'app.js'), 'utf8'), 'console.log("ok");\n');
   const isolated = fs.readFileSync(path.join(applied.body.worktree.path, 'app.js'), 'utf8');
   assert.strictEqual(isolated, 'console.log("healed");\n');
-  console.log('  ✔ isolated apply + verify');
+  console.log('   isolated apply + verify');
 
   console.log('3. Merge without HITL confirm is refused');
   const refused = await dispatch(server, 'POST', '/api/loop/heal/merge', {
@@ -142,7 +142,7 @@ async function run() {
   });
   assert.strictEqual(refused.status, 400);
   assert.strictEqual(fs.readFileSync(path.join(repo, 'app.js'), 'utf8'), 'console.log("ok");\n');
-  console.log('  ✔ confirmMerge required');
+  console.log('   confirmMerge required');
 
   console.log('4. HITL confirmMerge brings the patch onto main');
   const merged = await dispatch(server, 'POST', '/api/loop/heal/merge', {
@@ -152,16 +152,16 @@ async function run() {
   assert.strictEqual(merged.status, 200);
   assert.strictEqual(merged.body.success, true);
   assert.strictEqual(fs.readFileSync(path.join(repo, 'app.js'), 'utf8'), 'console.log("healed");\n');
-  console.log('  ✔ HITL merge');
+  console.log('   HITL merge');
 
   console.log('\n======================================================');
-  console.log('  ✅ HEAL WORKTREE CONTRACTS PASSED');
+  console.log('  PASS: HEAL WORKTREE CONTRACTS PASSED');
   console.log('======================================================\n');
 }
 
 if (require.main === module) {
   run().catch(err => {
-    console.error('❌ Heal worktree test failed:', err);
+    console.error('FAIL: Heal worktree test failed:', err);
     process.exit(1);
   });
 }

@@ -28,7 +28,7 @@ async function run() {
     if (REQUIRE_BROWSER) {
       throw new Error('playwright is required. Install with npm install and retry.');
     }
-    console.log('  ⚠ playwright not installed — skipping operator browser flows');
+    console.log('  WARNING: playwright not installed — skipping operator browser flows');
     return;
   }
 
@@ -37,7 +37,7 @@ async function run() {
     browser = await playwright.chromium.launch({ headless: true });
   } catch (err) {
     if (REQUIRE_BROWSER) throw err;
-    console.log(`  ⚠ Chromium unavailable (${err.message}) — skipping operator browser flows`);
+    console.log(`  WARNING: Chromium unavailable (${err.message}) — skipping operator browser flows`);
     console.log('    Install with: npx playwright install chromium');
     return;
   }
@@ -66,14 +66,14 @@ async function run() {
     const dagActive = await page.locator('#view-dag').evaluate(el => el.classList.contains('active'));
     assert.ok(dagActive, 'DAG view must be the default operator surface');
     await page.waitForSelector('#nav-dag[aria-current="page"]', { timeout: 5000 });
-    console.log('  ✔ DAG view boots as the default surface');
+    console.log('   DAG view boots as the default surface');
 
     await page.click('#nav-workspace');
     await page.waitForSelector('#view-workspace.active', { timeout: 10000 });
     await page.waitForSelector('#monaco-editor-host', { state: 'attached', timeout: 5000 });
     const fileBadge = await page.locator('#code-viewer-file-badge').textContent();
     assert.ok(fileBadge && fileBadge.trim().length > 0, 'workspace must show an open file badge');
-    console.log('  ✔ workspace view exposes Monaco host and file badge');
+    console.log('   workspace view exposes Monaco host and file badge');
 
     const studioViews = [
       ['#nav-knowledge-graph', '#view-knowledge-graph'],
@@ -95,7 +95,7 @@ async function run() {
     await page.click('#btn-open-settings');
     await page.waitForSelector('#settings-modal', { state: 'visible', timeout: 5000 });
     await page.click('#settings-modal-close');
-    console.log('  ✔ remaining Studio views, sessions drawer, and settings open');
+    console.log('   remaining Studio views, sessions drawer, and settings open');
 
     await page.click('#nav-vault');
     await page.waitForSelector('#view-vault.active', { timeout: 8000 });
@@ -118,7 +118,7 @@ async function run() {
       const el = document.getElementById('hitl-modal');
       return el && getComputedStyle(el).display === 'none';
     }, null, { timeout: 5000 });
-    console.log('  ✔ HITL modal opens and approve dismisses it');
+    console.log('   HITL modal opens and approve dismisses it');
 
     await page.click('#btn-open-github-pr');
     await page.waitForSelector('#github-pr-modal', { state: 'visible', timeout: 5000 });
@@ -151,7 +151,7 @@ async function run() {
       const el = document.getElementById('github-pr-modal');
       return el && getComputedStyle(el).display === 'none';
     }, null, { timeout: 5000 });
-    console.log('  ✔ Inbox modal imports items and stays honest without a GitHub adapter');
+    console.log('   Inbox modal imports items and stays honest without a GitHub adapter');
 
     await page.click('#btn-open-arena');
     await page.waitForSelector('#arena-benchmark-modal', { state: 'visible', timeout: 5000 });
@@ -165,7 +165,7 @@ async function run() {
       const el = document.getElementById('arena-benchmark-modal');
       return el && getComputedStyle(el).display === 'none';
     }, null, { timeout: 5000 });
-    console.log('  ✔ Arena modal labels pass@k eval harness scoring');
+    console.log('   Arena modal labels pass@k eval harness scoring');
   } finally {
     await context.close();
     await browser.close();

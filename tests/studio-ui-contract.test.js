@@ -93,7 +93,7 @@ async function runStudioContractTests() {
   assert.ok(resIndex.body.includes('Work inbox'), 'index.html must label the GitHub modal as Work inbox');
   assert.ok(resIndex.body.includes('id="arena-must-contain"'), 'Arena must expose custom graders');
   assert.ok(resIndex.body.includes('local hash-vectors (not pgvector)'), 'Memory vault must not claim hosted pgvector');
-  console.log('  ✔ index.html contains command palette and HITL elements');
+  console.log('   index.html contains command palette and HITL elements');
 
   // 2. Static Asset Serving: styles.css
   console.log('2. Verifying GET /styles.css');
@@ -104,7 +104,7 @@ async function runStudioContractTests() {
   assert.ok(resCss.body.includes('.command-palette-backdrop'), 'styles.css must contain command palette styles');
   assert.ok(resCss.body.includes('.hitl-modal-overlay'), 'styles.css must contain HITL modal styles');
   assert.ok(resCss.body.includes('.edge-animated'), 'styles.css must contain animated DAG edge styles');
-  console.log('  ✔ styles.css contains Cyber-Linear design system and component styles');
+  console.log('   styles.css contains Cyber-Linear design system and component styles');
 
   // 3. Static Asset Serving: app.js + ES modules
   console.log('3. Verifying GET /app.js and GET /js modules');
@@ -121,7 +121,7 @@ async function runStudioContractTests() {
   assert.ok(studioJs.includes('getApiToken'), 'Studio JS must read the control-plane API token');
   assert.ok(studioJs.includes("headers.set('Authorization'"), 'Studio JS must attach Authorization headers to API calls');
   assert.ok(studioJs.includes('getSseStreamUrl'), 'Studio JS must send credentials on the SSE stream');
-  console.log('  ✔ app.js module graph contains client-side controller, modal handlers, and SSE logic');
+  console.log('   app.js module graph contains client-side controller, modal handlers, and SSE logic');
 
   // 4. Catalog API
   console.log('4. Verifying GET /api/catalog');
@@ -132,7 +132,7 @@ async function runStudioContractTests() {
   assert.ok(Array.isArray(catalog.skills), 'Catalog must have skills array');
   assert.ok(Array.isArray(catalog.commands), 'Catalog must have commands array');
   assert.ok(catalog.agents.length > 0, 'Catalog must contain loaded agents');
-  console.log(`  ✔ Catalog loaded ${catalog.agents.length} agents, ${catalog.skills.length} skills, ${catalog.commands.length} commands`);
+  console.log(`   Catalog loaded ${catalog.agents.length} agents, ${catalog.skills.length} skills, ${catalog.commands.length} commands`);
 
   // 5. Knowledge Graph API
   console.log('5. Verifying GET /api/graph');
@@ -141,7 +141,7 @@ async function runStudioContractTests() {
   const graph = JSON.parse(resGraph.body);
   assert.ok(graph.nodes && graph.nodes.length > 0, 'Graph must contain relational nodes');
   assert.ok(graph.edges && graph.edges.length > 0, 'Graph must contain relational edges');
-  console.log(`  ✔ Knowledge Graph loaded ${graph.nodes.length} nodes and ${graph.edges.length} edges`);
+  console.log(`   Knowledge Graph loaded ${graph.nodes.length} nodes and ${graph.edges.length} edges`);
 
   // 6. Filesystem Explorer API
   console.log('6. Verifying GET /api/fs/tree & /api/fs/read');
@@ -154,7 +154,7 @@ async function runStudioContractTests() {
   assert.strictEqual(resRead.statusCode, 200);
   const fileData = JSON.parse(resRead.body);
   assert.ok(fileData.content.includes('oas-universal'), 'FS read must return file content');
-  console.log('  ✔ Filesystem directory traversal and sandbox read verified');
+  console.log('   Filesystem directory traversal and sandbox read verified');
 
   // 7. Command Execution API
   console.log('7. Verifying POST /api/commands/execute');
@@ -165,7 +165,7 @@ async function runStudioContractTests() {
   assert.strictEqual(resCmd.statusCode, 200);
   const cmdData = JSON.parse(resCmd.body);
   assert.ok(cmdData.output, 'Command execution must return output payload');
-  console.log('  ✔ Slash command execution engine verified');
+  console.log('   Slash command execution engine verified');
 
   // 8. Platform Settings API
   console.log('8. Verifying GET & POST /api/settings');
@@ -179,7 +179,7 @@ async function runStudioContractTests() {
     sandboxEnabled: true
   });
   assert.strictEqual(resSaveSettings.statusCode, 200);
-  console.log('  ✔ Platform settings persistence verified');
+  console.log('   Platform settings persistence verified');
 
   // 9. Memory Vault Lifecycle
   console.log('9. Verifying Memory Vault (POST, GET, DELETE /api/memory)');
@@ -199,7 +199,7 @@ async function runStudioContractTests() {
 
   const resDelMem = await simulateRequest(server, 'DELETE', `/api/memory/${memRecord.id}`);
   assert.strictEqual(resDelMem.statusCode, 200);
-  console.log('  ✔ Memory vault CRUD lifecycle verified');
+  console.log('   Memory vault CRUD lifecycle verified');
 
   // 10. Plan Artifacts API
   console.log('10. Verifying Plan Artifacts (POST, GET, PUT /api/artifacts)');
@@ -217,7 +217,7 @@ async function runStudioContractTests() {
     annotations: [{ author: 'Lead Architect', text: 'Approved for launch' }]
   });
   assert.strictEqual(resUpdateArt.statusCode, 200);
-  console.log('  ✔ Plan artifacts management and annotations verified');
+  console.log('   Plan artifacts management and annotations verified');
 
   // 11. Multi-Session Lifecycle
   console.log('11. Verifying Session Management (POST, RENAME, EXPORT, DELETE /api/sessions)');
@@ -240,7 +240,7 @@ async function runStudioContractTests() {
 
   const resDelSess = await simulateRequest(server, 'DELETE', `/api/sessions/${newSess.id}`);
   assert.strictEqual(resDelSess.statusCode, 200);
-  console.log('  ✔ Multi-session lifecycle and export verified');
+  console.log('   Multi-session lifecycle and export verified');
 
   // 12. Intervention API Endpoint: Pause / Resume / Abort
   console.log('12. Verifying POST /api/sessions/:id/intervene');
@@ -262,22 +262,22 @@ async function runStudioContractTests() {
 
   const resAbort = await simulateRequest(server, 'POST', `/api/sessions/${sessionId}/intervene`, { action: 'abort' });
   assert.strictEqual(resAbort.statusCode, 200);
-  console.log('  ✔ Intervention lifecycle (pause -> resume -> feedback -> abort) verified');
+  console.log('   Intervention lifecycle (pause -> resume -> feedback -> abort) verified');
 
   console.log('13. Verifying desktop Studio devUrl matches oas-studio port');
   const tauriConf = JSON.parse(fs.readFileSync(path.join(__dirname, '../apps/desktop/src-tauri/tauri.conf.json'), 'utf8'));
   assert.strictEqual(tauriConf.build.devUrl, 'http://127.0.0.1:3458', 'Tauri devUrl must target the Studio control plane');
   assert.ok(typeof tauriConf.app.security.csp === 'string' && tauriConf.app.security.csp.includes("default-src 'self'"), 'Tauri CSP must not be null');
-  console.log('  ✔ Tauri desktop shell targets Studio on port 3458');
+  console.log('   Tauri desktop shell targets Studio on port 3458');
 
   console.log('\n======================================================');
-  console.log('  ✅ ALL 13 STUDIO SUBSYSTEM CONTRACTS PASSED (100%)');
+  console.log('  PASS: ALL 13 STUDIO SUBSYSTEM CONTRACTS PASSED (100%)');
   console.log('======================================================\n');
 }
 
 if (require.main === module) {
   runStudioContractTests().catch(err => {
-    console.error('❌ Studio contract test failed:', err);
+    console.error('FAIL: Studio contract test failed:', err);
     process.exit(1);
   });
 }

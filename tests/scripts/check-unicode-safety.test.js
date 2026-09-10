@@ -216,6 +216,27 @@ if (
   passed++;
 else failed++;
 
+if (
+  test('skips local OAS worktree and memory directories', () => {
+    const root = makeTempRoot('oas-unicode-worktrees-');
+    fs.mkdirSync(path.join(root, '.oas-worktrees', 'heal_example'), { recursive: true });
+    fs.mkdirSync(path.join(root, '.oas', 'memory'), { recursive: true });
+    fs.writeFileSync(
+      path.join(root, '.oas-worktrees', 'heal_example', 'notes.md'),
+      `hello ${rocketEmoji}\n`
+    );
+    fs.writeFileSync(
+      path.join(root, '.oas', 'memory', 'note.md'),
+      `hello ${rocketEmoji}\n`
+    );
+
+    const result = runCheck(root);
+    assert.strictEqual(result.status, 0, result.stdout + result.stderr);
+  })
+)
+  passed++;
+else failed++;
+
 console.log(`\nPassed: ${passed}`);
 console.log(`Failed: ${failed}`);
 process.exit(failed > 0 ? 1 : 0);

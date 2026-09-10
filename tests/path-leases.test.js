@@ -86,7 +86,7 @@ async function run() {
   assert.strictEqual(pathsOverlap('src/app.js', 'src/app.js'), true);
   assert.strictEqual(pathsOverlap('src', 'src/app.js'), true);
   assert.strictEqual(pathsOverlap('docs/a.md', 'src/app.js'), false);
-  console.log('  ✔ overlap rules');
+  console.log('   overlap rules');
 
   console.log('2. Registry grants exclusive leases and rejects overlap');
   const mem = new MemoryStore({ storagePath: path.join(tmpDir('oas-lease-mem-'), 'store.json') });
@@ -113,7 +113,7 @@ async function run() {
   registry.release(first.id);
   const second = registry.acquire({ holderId: 'tdd-guide', paths: ['apps/api/src/server.js'] });
   assert.strictEqual(second.holderId, 'tdd-guide');
-  console.log('  ✔ exclusive acquire / release');
+  console.log('   exclusive acquire / release');
 
   console.log('3. Expired leases are purged; SQLite round-trips');
   let now = 1_000_000;
@@ -126,7 +126,7 @@ async function run() {
   afterExpiry.acquire({ holderId: 'security-reviewer', paths: ['packages/db/src/index.js'] });
   const reloaded = new PathLeaseRegistry({ store: sql, clock: () => now });
   assert.strictEqual(reloaded.list().length, 1);
-  console.log('  ✔ TTL + sqlite persistence');
+  console.log('   TTL + sqlite persistence');
 
   console.log('4. Control plane leases block overlapping FS writes');
   const workspace = tmpDir('oas-lease-ws-');
@@ -159,7 +159,7 @@ async function run() {
   });
   assert.strictEqual(owned.status, 200);
   assert.strictEqual(fs.readFileSync(path.join(workspace, 'note.txt'), 'utf8'), 'planner-ok\n');
-  console.log('  ✔ FS write respects holder');
+  console.log('   FS write respects holder');
 
   console.log('5. Proximity scan uses live leases instead of the sample roster');
   const prox = await dispatch(server, 'GET', '/api/proximity');
@@ -167,16 +167,16 @@ async function run() {
   assert.strictEqual(prox.body.source, 'leases');
   assert.ok(prox.body.leases.some(l => l.holderId === 'planner'));
   assert.ok((prox.body.positions || []).some(p => p.agentId === 'planner'));
-  console.log('  ✔ proximity source=leases');
+  console.log('   proximity source=leases');
 
   console.log('\n======================================================');
-  console.log('  ✅ PATH LEASE CONTRACTS PASSED');
+  console.log('  PASS: PATH LEASE CONTRACTS PASSED');
   console.log('======================================================\n');
 }
 
 if (require.main === module) {
   run().catch(err => {
-    console.error('❌ Path lease test failed:', err);
+    console.error('FAIL: Path lease test failed:', err);
     process.exit(1);
   });
 }

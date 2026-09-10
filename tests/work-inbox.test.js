@@ -118,7 +118,7 @@ async function run() {
   assert.strictEqual(summary.github.openIssues, 1);
   assert.strictEqual(summary.github.openPullRequests, 2);
   assert.strictEqual(summary.mergeQueue.length, 1);
-  console.log('  ✔ payload mapping + queue math');
+  console.log('   payload mapping + queue math');
 
   console.log('2. Import persists items and HUD reads live inbox counts');
   const store = new MemoryStore({ storagePath: path.join(tmpDir('oas-inbox-mem-'), 'store.json') });
@@ -155,7 +155,7 @@ async function run() {
   assert.strictEqual(hud.body.queueState.github.openIssues, 1);
   assert.strictEqual(hud.body.queueState.source, 'inbox');
   assert.ok(hud.body.sync.Linear.health);
-  console.log('  ✔ import + HUD queueState.source=inbox');
+  console.log('   import + HUD queueState.source=inbox');
 
   console.log('3. SQLite round-trips work items');
   const sql = new OasSqliteStore({ storagePath: path.join(tmpDir('oas-inbox-sql-'), 'db.sqlite') });
@@ -163,7 +163,7 @@ async function run() {
   assert.strictEqual(sql.listWorkItems().length, 1);
   const reloaded = new OasSqliteStore({ storagePath: sql.storagePath });
   assert.strictEqual(reloaded.listWorkItems()[0].title, 'Fix timeout');
-  console.log('  ✔ sqlite persistence');
+  console.log('   sqlite persistence');
 
   console.log('4. Claim spawns a worktree; PR publish and merge require HITL');
   const repo = tmpDir('oas-inbox-git-');
@@ -172,7 +172,7 @@ async function run() {
     initGitRepo(repo);
   } catch {
     gitReady = false;
-    console.log('  ⚠ skip git worktree inbox tests: git init blocked');
+    console.log('  WARNING: skip git worktree inbox tests: git init blocked');
   }
   if (gitReady) {
   const gitServer = new OasControlPlaneServer({
@@ -213,7 +213,7 @@ async function run() {
   const merged = await dispatch(gitServer, 'POST', `/api/inbox/${itemId}/merge`, { confirmMerge: true });
   assert.strictEqual(merged.status, 200);
   assert.strictEqual(merged.body.merged, true);
-  console.log('  ✔ claim / draft PR / HITL publish / HITL merge');
+  console.log('   claim / draft PR / HITL publish / HITL merge');
 
   console.log('5. Webhook upserts an inbox item without applying to main');
   const hook = await dispatch(gitServer, 'POST', '/api/webhooks/github', {
@@ -224,13 +224,13 @@ async function run() {
   assert.ok(hook.body.workItemId);
   const afterHook = await dispatch(gitServer, 'GET', '/api/inbox');
   assert.ok(afterHook.body.items.some(item => item.sourceId === '99'));
-  console.log('  ✔ webhook seeds inbox');
+  console.log('   webhook seeds inbox');
   }
 
   const html = fs.readFileSync(path.join(__dirname, '../apps/web/index.html'), 'utf8');
   assert.ok(html.includes('Work inbox') || html.includes('id="inbox-list"'));
-  assert.ok(!html.includes('✓ 40/40 E2E Passing'));
-  console.log('  ✔ Studio inbox surface is honest');
+  assert.ok(!html.includes('PASS: 40/40 E2E Passing'));
+  console.log('   Studio inbox surface is honest');
 
   console.log('6. Unconfigured GitHub import is 503; token fetch stays injectable');
   const prevGithubToken = process.env.GITHUB_TOKEN;
@@ -283,7 +283,7 @@ async function run() {
     const tokenImport = await dispatch(tokenServer, 'POST', '/api/inbox/import', { source: 'github', repo: 'acme/app' });
     assert.strictEqual(tokenImport.status, 200);
     assert.strictEqual(tokenImport.body.items[0].title, 'Imported via token');
-    console.log('  ✔ unconfigured 503 + injectable token import');
+    console.log('   unconfigured 503 + injectable token import');
   } finally {
     if (prevGithubToken === undefined) delete process.env.GITHUB_TOKEN;
     else process.env.GITHUB_TOKEN = prevGithubToken;
@@ -292,13 +292,13 @@ async function run() {
   }
 
   console.log('\n======================================================');
-  console.log('  ✅ WORK INBOX CONTRACTS PASSED');
+  console.log('  PASS: WORK INBOX CONTRACTS PASSED');
   console.log('======================================================\n');
 }
 
 if (require.main === module) {
   run().catch(err => {
-    console.error('❌ Work inbox test failed:', err);
+    console.error('FAIL: Work inbox test failed:', err);
     process.exit(1);
   });
 }

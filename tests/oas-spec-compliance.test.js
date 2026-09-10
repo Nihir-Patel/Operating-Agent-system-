@@ -115,7 +115,7 @@ async function runTests() {
   assert.ok(hud.sync.Linear, 'sync must contain Linear');
   assert.ok(hud.sync.GitHub, 'sync must contain GitHub');
   assert.ok(hud.sync.handoff, 'sync must contain handoff');
-  console.log('  ✔ /api/hud-status satisfies all 10 canonical contract blocks\n');
+  console.log('   /api/hud-status satisfies all 10 canonical contract blocks\n');
 
   // Test 2: 12-Target Harness Adapter Compliance Matrix
   console.log('2. Testing GET /api/harness/compliance (12-target scorecard)...');
@@ -131,7 +131,7 @@ async function runTests() {
     assert.ok(rec, `Harness record must exist for ${exp}`);
     assert.ok(['Native', 'Adapter-backed', 'Instruction-backed', 'Reference-only'].includes(rec.state), `Invalid state for ${exp}: ${rec.state}`);
   }
-  console.log('  ✔ /api/harness/compliance successfully verified 12 harness targets\n');
+  console.log('   /api/harness/compliance successfully verified 12 harness targets\n');
 
   // Test 3: AgentShield Security & Supply Chain IOC Scanner
   console.log('3. Testing POST /api/security/scan and GET /api/security/iocs...');
@@ -149,7 +149,7 @@ async function runTests() {
   assert.ok(Array.isArray(iocRes.data.indicators));
   assert.strictEqual(typeof iocRes.data.dependenciesTracked, 'number');
   assert.ok(['CLEAN', 'PATTERNS_DETECTED'].includes(iocRes.data.status));
-  console.log('  ✔ AgentShield security scan and IOC registry verified\n');
+  console.log('   AgentShield security scan and IOC registry verified\n');
 
   // Test 4: File-First Memory Vault with Secret Rejection & SHA-256
   console.log('4. Testing Memory Vault secret-shape rejection & .oas/memory disk persistence...');
@@ -188,7 +188,7 @@ async function runTests() {
   const deleted = server.store.deleteMemory(validMem.id);
   assert.strictEqual(deleted, true);
   assert.strictEqual(fs.existsSync(expectedFilePath), false, 'Disk file should be unlinked on deletion');
-  console.log('  ✔ Secret rejection, SHA-256 generation, and .oas/memory disk file persistence verified\n');
+  console.log('   Secret rejection, SHA-256 generation, and .oas/memory disk file persistence verified\n');
 
   // Test 5: Selective Install Profiles & Module Plans
   console.log('5. Testing GET /api/install/profiles & /api/install/plan...');
@@ -200,7 +200,7 @@ async function runTests() {
   const planRes = await executeRequest(server, 'GET', '/api/install/plan?profile=minimal');
   assert.strictEqual(planRes.statusCode, 200);
   assert.ok(planRes.data.selectedModules || planRes.data.operations, 'Plan must contain selectedModules or operations');
-  console.log('  ✔ Selective install profiles and plan resolution verified\n');
+  console.log('   Selective install profiles and plan resolution verified\n');
 
   // Test 6: System Diagnostics & Doctor
   console.log('6. Testing GET /api/system/doctor...');
@@ -208,7 +208,7 @@ async function runTests() {
   assert.strictEqual(docRes.statusCode, 200);
   assert.ok(['ok', 'warning', 'error'].includes(docRes.data.status));
   assert.ok(docRes.data.summary || docRes.data.checks);
-  console.log('  ✔ System diagnostics & doctor report verified\n');
+  console.log('   System diagnostics & doctor report verified\n');
 
   // Test 7: TCAS Layer 4 Agent Proximity & Collision Avoidance
   console.log('7. Testing GET /api/proximity (TCAS Layer 4 airspace scan)...');
@@ -218,7 +218,7 @@ async function runTests() {
   assert.ok(tcasRes.data.positions, 'Must return 3D agent positions');
   assert.ok(Array.isArray(tcasRes.data.advisories), 'Must return advisories list');
   assert.ok(Array.isArray(tcasRes.data.triggers), 'Must return steering/holding triggers');
-  console.log('  ✔ TCAS Layer 4 agent proximity & spatial deconfliction verified\n');
+  console.log('   TCAS Layer 4 agent proximity & spatial deconfliction verified\n');
 
   // Test 8: OAS 2.0 Observability Readiness Gate
   console.log('8. Testing GET /api/observability/readiness...');
@@ -227,14 +227,14 @@ async function runTests() {
   assert.strictEqual(obsRes.data.overall_score, 21, 'Must score 21/21 on readiness rubric');
   assert.strictEqual(obsRes.data.ready, true, 'Readiness gate must be true');
   assert.ok(Array.isArray(obsRes.data.checks), 'Must return checks array');
-  console.log('  ✔ Observability readiness gate (21/21 rubric) verified\n');
+  console.log('   Observability readiness gate (21/21 rubric) verified\n');
 
   // Test 9: Autonomous Execution Loop Inspector
   console.log('9. Testing GET /api/loop/status...');
   const loopRes = await executeRequest(server, 'GET', '/api/loop/status');
   assert.strictEqual(loopRes.statusCode, 200);
   assert.ok(Array.isArray(loopRes.data.sessions), 'Must return sessions array');
-  console.log('  ✔ Autonomous loop status inspector verified\n');
+  console.log('   Autonomous loop status inspector verified\n');
 
   // Test 10: Session Adapters Registry (oas.session.v1)
   console.log('10. Testing GET /api/sessions/adapters...');
@@ -247,14 +247,14 @@ async function runTests() {
   assert.ok(adapterIds.includes('dmux-tmux'), 'Must include dmux-tmux adapter');
   assert.ok(adapterIds.includes('codex-worktree'), 'Must include codex-worktree adapter');
   assert.ok(adapterIds.includes('opencode'), 'Must include opencode adapter');
-  console.log('  ✔ Canonical session adapters registry verified\n');
+  console.log('   Canonical session adapters registry verified\n');
 
   console.log('======================================================');
-  console.log('  ✅ ALL 10 OAS 2.0 SPEC COMPLIANCE TESTS PASSED (100%)');
+  console.log('  PASS: ALL 10 OAS 2.0 SPEC COMPLIANCE TESTS PASSED (100%)');
   console.log('======================================================\n');
 }
 
 runTests().catch(err => {
-  console.error('\n❌ Test failure:', err);
+  console.error('\nFAIL: Test failure:', err);
   process.exit(1);
 });

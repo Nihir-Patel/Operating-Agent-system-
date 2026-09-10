@@ -111,7 +111,7 @@ async function run() {
   assert.strictEqual(failed.passed, false);
   const regex = gradeOutput('token bucket limiter', [{ type: 'regex', value: 'token\\s+bucket', flags: 'i' }]);
   assert.strictEqual(regex.passed, true);
-  console.log('  ✔ estimator + graders');
+  console.log('   estimator + graders');
 
   console.log('2. Golden tasks resolve; ungraded custom prompts stay honest');
   const tasks = listGoldenTasks();
@@ -132,7 +132,7 @@ async function run() {
   assert.strictEqual(fromFields.length, 2);
   assert.strictEqual(fromFields[0].type, 'contains');
   assert.strictEqual(fromFields[1].type, 'notContains');
-  console.log('  ✔ task resolution');
+  console.log('   task resolution');
 
   console.log('3. Model summary and winners use pass@k, not output length');
   const summary = summarizeModelEval({
@@ -161,7 +161,7 @@ async function run() {
   const winners = pickArenaWinners([summary, longLoser]);
   assert.strictEqual(winners.reasoningWinner, 'stub-a');
   assert.notStrictEqual(winners.reasoningWinner, 'verbose');
-  console.log('  ✔ pass@k winners ignore verbose failures');
+  console.log('   pass@k winners ignore verbose failures');
 
   console.log('4. POST /api/arena/compare grades stubbed traces at k=3');
   const store = new MemoryStore({ storagePath: path.join(tmpDir('oas-arena-mem-'), 'store.json') });
@@ -193,7 +193,7 @@ async function run() {
   const catalog = await dispatch(server, 'GET', '/api/arena/tasks');
   assert.strictEqual(catalog.status, 200);
   assert.ok(catalog.body.tasks.length >= 2);
-  console.log('  ✔ compare + persisted traces');
+  console.log('   compare + persisted traces');
 
   console.log('5. SQLite round-trips arena traces');
   const sql = new OasSqliteStore({ storagePath: path.join(tmpDir('oas-arena-sql-'), 'db.sqlite') });
@@ -209,7 +209,7 @@ async function run() {
   assert.strictEqual(sql.listArenaTraces().length, 1);
   const reloaded = new OasSqliteStore({ storagePath: sql.storagePath });
   assert.strictEqual(reloaded.listArenaTraces()[0].output, 'READY');
-  console.log('  ✔ sqlite traces');
+  console.log('   sqlite traces');
 
   console.log('6. Ungraded custom prompts are traces, not fake reasoning scores');
   server.gateway.streamCompletion = stubGateway(['a very long ungraded essay about nothing in particular']);
@@ -222,7 +222,7 @@ async function run() {
   assert.strictEqual(poem.body.capability, 'ungraded-trace');
   assert.strictEqual(poem.body.models[0].scoringMethod, 'ungraded_trace');
   assert.strictEqual(poem.body.winners.reasoningWinner, 'n/a (ungraded)');
-  console.log('  ✔ ungraded honesty');
+  console.log('   ungraded honesty');
 
   server.gateway.streamCompletion = stubGateway(['PING']);
   const customGraded = await dispatch(server, 'POST', '/api/arena/compare', {
@@ -236,23 +236,23 @@ async function run() {
   assert.strictEqual(customGraded.status, 200);
   assert.strictEqual(customGraded.body.capability, 'eval-harness');
   assert.strictEqual(customGraded.body.models[0].passAtK, 1);
-  console.log('  ✔ custom mustContain graders');
+  console.log('   custom mustContain graders');
 
   const html = fs.readFileSync(path.join(__dirname, '../apps/web/index.html'), 'utf8');
   assert.ok(html.includes('data-capability="eval-harness"') || html.includes('Eval harness'));
   assert.ok(html.includes('id="arena-must-contain"'));
   assert.ok(html.includes('id="arena-trace-list"'));
   assert.ok(!html.includes('Heuristic scoring (length and latency), not an eval harness.'));
-  console.log('  ✔ Studio Arena copy is eval-harness');
+  console.log('   Studio Arena copy is eval-harness');
 
   console.log('\n======================================================');
-  console.log('  ✅ ARENA EVAL HARNESS CONTRACTS PASSED');
+  console.log('  PASS: ARENA EVAL HARNESS CONTRACTS PASSED');
   console.log('======================================================\n');
 }
 
 if (require.main === module) {
   run().catch(err => {
-    console.error('❌ Arena eval harness test failed:', err);
+    console.error('FAIL: Arena eval harness test failed:', err);
     process.exit(1);
   });
 }
