@@ -124,6 +124,7 @@
     "scripts/lib/",
     "scripts/list-installed.js",
     "scripts/loop-status.js",
+    "scripts/oas-studio-mcp.js",
     "scripts/plan-canvas.js",
     "scripts/orchestration-status.js",
     "scripts/orchestrate-codex-worker.sh",

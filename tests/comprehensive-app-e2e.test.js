@@ -561,6 +561,14 @@ async function runComprehensiveE2EBattery() {
   // ----------------------------------------------------
   console.log('\n--- 21. Direction C: Semantic Search, CycloneDX SBOM & AIPOM ---');
   await testAsync('GET /api/memory expands semantic aliases (test -> tdd/coverage)', async () => {
+    const seed = await dispatch(server, 'POST', '/api/memory', {
+      title: 'TDD coverage gate',
+      scope: 'team',
+      kind: 'policy',
+      body: 'Unit and integration coverage assertions must pass before merge.'
+    });
+    assert.strictEqual(seed.status, 201);
+
     const res = await dispatch(server, 'GET', '/api/memory?query=test');
     assert.strictEqual(res.status, 200);
     assert(Array.isArray(res.body));

@@ -194,6 +194,14 @@ async function runTests() {
 
   // 6. Memory Vault Verification
   console.log('[Test] 6. Verifying /api/memory query, creation, and deletion...');
+  const seedMemRes = await dispatch(serverInstance, 'POST', '/api/memory', {
+    title: 'Project Immutability Contract',
+    scope: 'project',
+    kind: 'convention',
+    body: 'Always return new object instances instead of in-place mutation.'
+  });
+  assert.strictEqual(seedMemRes.status, 201, 'Memory vault must accept a seeded immutability record');
+
   const memListRes = await dispatch(serverInstance, 'GET', '/api/memory');
   assert.strictEqual(memListRes.status, 200);
   assert(Array.isArray(memListRes.body), 'Memory vault must return array');
