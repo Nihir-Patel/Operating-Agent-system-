@@ -167,7 +167,7 @@ test('pull-request CI packs once and exports the exact installer artifact identi
   assert.match(pack, /name:\s*oas-ci-installer-artifact/);
 });
 
-test('pull-request CI runs the same packed installer on Linux, macOS, and Windows', () => {
+test('packed installer matrix stays defined for Linux, macOS, and Windows', () => {
   const source = load('.github/workflows/ci.yml');
   const lifecycle = jobBlock(source, 'packed-install-lifecycle', 'validate');
   assert.match(lifecycle, /needs:\s*pack-installer/);
@@ -177,6 +177,10 @@ test('pull-request CI runs the same packed installer on Linux, macOS, and Window
   assert.match(lifecycle, /OAS_RELEASE_PACKAGE:\s*release-artifacts\/\$\{\{ needs\.pack-installer\.outputs\.package_file \}\}/);
   assert.match(lifecycle, /OAS_RELEASE_SHA256:\s*\$\{\{ needs\.pack-installer\.outputs\.package_sha256 \}\}/);
   assert.match(lifecycle, /node tests\/ci\/packed-artifact-lifecycle\.js/);
+  assert.match(
+    lifecycle,
+    /if:\s*github\.event_name != 'pull_request' \|\| matrix\.os == 'ubuntu-latest'/
+  );
   assert.doesNotMatch(lifecycle, /\$\{\{\s*secrets\./);
 });
 
