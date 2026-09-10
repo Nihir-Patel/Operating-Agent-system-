@@ -6,6 +6,8 @@ on:
     tags: ['v*']
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
 
 # Prevent duplicate runs
 concurrency:
@@ -21,10 +23,9 @@ jobs:
     name: Test (${{ matrix.os }}, Node ${{ matrix.node }}, ${{ matrix.pm }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
-    # Pull requests run the primary Linux/npm lane. The full OS/PM matrix
-    # stays defined below and runs on push to main/release/** so a private
-    # free org cannot exhaust included Actions minutes on every PR.
-    if: github.event_name != 'pull_request' || (matrix.os == 'ubuntu-latest' && matrix.node == '20.x' && matrix.pm == 'npm')
+    # Full OS/PM matrix on push to main/release. PRs, workflow_dispatch, and
+    # other refs run only ubuntu/Node 20/npm so a free org cannot exhaust minutes.
+    if: (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/tags/'))) || (matrix.os == 'ubuntu-latest' && matrix.node == '20.x' && matrix.pm == 'npm')
 
     strategy:
       fail-fast: false
@@ -152,7 +153,7 @@ jobs:
     needs: pack-installer
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
-    if: github.event_name != 'pull_request' || matrix.os == 'ubuntu-latest'
+    if: (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/tags/'))) || matrix.os == 'ubuntu-latest'
     strategy:
       fail-fast: false
       matrix:

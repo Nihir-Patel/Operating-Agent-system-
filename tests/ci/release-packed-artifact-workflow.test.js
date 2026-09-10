@@ -179,7 +179,7 @@ test('packed installer matrix stays defined for Linux, macOS, and Windows', () =
   assert.match(lifecycle, /node tests\/ci\/packed-artifact-lifecycle\.js/);
   assert.match(
     lifecycle,
-    /if:\s*github\.event_name != 'pull_request' \|\| matrix\.os == 'ubuntu-latest'/
+    /if:\s*\(github\.event_name == 'push' && \(github\.ref == 'refs\/heads\/main' \|\| startsWith\(github\.ref, 'refs\/heads\/release\/'\) \|\| startsWith\(github\.ref, 'refs\/tags\/'\)\)\) \|\| matrix\.os == 'ubuntu-latest'/
   );
   assert.doesNotMatch(lifecycle, /\$\{\{\s*secrets\./);
 });
