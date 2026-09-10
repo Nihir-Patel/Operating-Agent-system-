@@ -76,10 +76,15 @@ function tmpDir(prefix) {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
 }
 
+function readLf(filePath) {
+  return fs.readFileSync(filePath, 'utf8').replace(/\r\n/g, '\n');
+}
+
 function initGitRepo(dir) {
   execFileSync('git', ['init', '-b', 'main'], { cwd: dir, stdio: 'ignore' });
   execFileSync('git', ['config', 'user.email', 'oas@example.test'], { cwd: dir, stdio: 'ignore' });
   execFileSync('git', ['config', 'user.name', 'OAS Test'], { cwd: dir, stdio: 'ignore' });
+  execFileSync('git', ['config', 'core.autocrlf', 'false'], { cwd: dir, stdio: 'ignore' });
   fs.writeFileSync(path.join(dir, 'app.js'), 'console.log("ok");\n');
   execFileSync('git', ['add', '-A'], { cwd: dir, stdio: 'ignore' });
   execFileSync('git', ['commit', '-m', 'init'], { cwd: dir, stdio: 'ignore' });
@@ -113,7 +118,7 @@ async function run() {
   assert.strictEqual(suggest.body.capability, 'suggest-only');
   assert.strictEqual(suggest.body.applied, false);
   assert.strictEqual(suggest.body.appliedInWorktree, false);
-  assert.strictEqual(fs.readFileSync(path.join(repo, 'app.js'), 'utf8'), 'console.log("ok");\n');
+  assert.strictEqual(readLf(path.join(repo, 'app.js')), 'console.log("ok");\n');
   console.log('   suggest-only leaves main clean');
 
   console.log('2. apply=true writes the suggestion in an isolated worktree');
@@ -131,8 +136,8 @@ async function run() {
   assert.ok(applied.body.worktree && applied.body.worktree.id);
   assert.strictEqual(applied.body.written, 'app.js');
   assert.strictEqual(applied.body.verified, true);
-  assert.strictEqual(fs.readFileSync(path.join(repo, 'app.js'), 'utf8'), 'console.log("ok");\n');
-  const isolated = fs.readFileSync(path.join(applied.body.worktree.path, 'app.js'), 'utf8');
+  assert.strictEqual(readLf(path.join(repo, 'app.js')), 'console.log("ok");\n');
+  const isolated = readLf(path.join(applied.body.worktree.path, 'app.js'));
   assert.strictEqual(isolated, 'console.log("healed");\n');
   console.log('   isolated apply + verify');
 
@@ -141,7 +146,7 @@ async function run() {
     worktreeId: applied.body.worktree.id
   });
   assert.strictEqual(refused.status, 400);
-  assert.strictEqual(fs.readFileSync(path.join(repo, 'app.js'), 'utf8'), 'console.log("ok");\n');
+  assert.strictEqual(readLf(path.join(repo, 'app.js')), 'console.log("ok");\n');
   console.log('   confirmMerge required');
 
   console.log('4. HITL confirmMerge brings the patch onto main');
@@ -151,7 +156,7 @@ async function run() {
   });
   assert.strictEqual(merged.status, 200);
   assert.strictEqual(merged.body.success, true);
-  assert.strictEqual(fs.readFileSync(path.join(repo, 'app.js'), 'utf8'), 'console.log("healed");\n');
+  assert.strictEqual(readLf(path.join(repo, 'app.js')), 'console.log("healed");\n');
   console.log('   HITL merge');
 
   console.log('\n======================================================');
