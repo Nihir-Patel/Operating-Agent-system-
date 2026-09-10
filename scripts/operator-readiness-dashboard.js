@@ -609,7 +609,7 @@ function extractGrowthBaseline(hypergrowth) {
 }
 
 function buildGrowthSummary(rootDir) {
-  const hypergrowth = readText(rootDir, 'docs/releases/2.0.0/oas-2-hypergrowth-release-command-center.md');
+  const hypergrowth = readText(rootDir, 'docs/releases/2.0.0/ecc-2-hypergrowth-release-command-center.md');
   const partnerPack = readText(rootDir, 'docs/releases/2.0.0-rc.1/partner-sponsor-talks-pack.md');
   const baseline = extractGrowthBaseline(hypergrowth || partnerPack);
 
@@ -631,7 +631,7 @@ function buildRequirements(rootDir, platformReport) {
   const releasePublicationChecklist = readText(rootDir, 'docs/releases/2.0.0-rc.1/release-name-plugin-publication-checklist-2026-05-18.md');
   const releaseUrlLedger = readText(rootDir, 'docs/releases/2.0.0-rc.1/release-url-ledger-2026-05-19.md');
   const publicationEvidenceMay19 = readText(rootDir, 'docs/releases/2.0.0-rc.1/publication-evidence-2026-05-19.md');
-  const hypergrowthCommandCenter = readText(rootDir, 'docs/releases/2.0.0/oas-2-hypergrowth-release-command-center.md');
+  const hypergrowthCommandCenter = readText(rootDir, 'docs/releases/2.0.0/ecc-2-hypergrowth-release-command-center.md');
   const partnerSponsorTalksPack = readText(rootDir, 'docs/releases/2.0.0-rc.1/partner-sponsor-talks-pack.md');
   const releaseVideoProduction = readText(rootDir, 'docs/releases/2.0.0-rc.1/video-suite-production.md');
   const ownerQueueCleanup = readText(rootDir, 'docs/releases/2.0.0-rc.1/owner-queue-cleanup-2026-05-18.md');
@@ -869,7 +869,7 @@ function buildRequirements(rootDir, platformReport) {
     buildRequirement(
       'hypergrowth-command-center',
       'Create a second-phase hypergrowth release command center',
-      'docs/releases/2.0.0/oas-2-hypergrowth-release-command-center.md plus May 19 evidence',
+      'docs/releases/2.0.0/ecc-2-hypergrowth-release-command-center.md plus May 19 evidence',
       hypergrowthCommandCenterReady ? 'current' : 'in_progress',
       hypergrowthCommandCenterReady
         ? 'current MRR, target MRR, gap, release claim, video lane, distribution plan, and approval boundaries are in-tree'

@@ -33,7 +33,7 @@ const zhCnReadmePath = path.join(repoRoot, 'docs', 'zh-CN', 'README.md');
 const selectiveInstallArchitecturePath = path.join(repoRoot, 'docs', 'SELECTIVE-INSTALL-ARCHITECTURE.md');
 const opencodePackageJsonPath = path.join(repoRoot, '.opencode', 'package.json');
 const opencodePackageLockPath = path.join(repoRoot, '.opencode', 'package-lock.json');
-const opencodeHooksPluginPath = path.join(repoRoot, '.opencode', 'plugins', 'oas-hooks.ts');
+const opencodeHooksPluginPath = path.join(repoRoot, '.opencode', 'plugins', 'ecc-hooks.ts');
 const hooksReadmePath = path.join(repoRoot, 'hooks', 'README.md');
 const semverPattern = '[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?';
 const installPrPublishedBaseline = '2.1.0';
@@ -170,10 +170,10 @@ test('docs/SELECTIVE-INSTALL-ARCHITECTURE.md repoVersion example matches package
   assert.strictEqual(match[1], expectedVersion);
 });
 
-test('.opencode/plugins/oas-hooks.ts active plugin banner matches package.json', () => {
+test('.opencode/plugins/ecc-hooks.ts active plugin banner matches package.json', () => {
   const source = fs.readFileSync(opencodeHooksPluginPath, 'utf8');
   const match = source.match(new RegExp(`## Active Plugin: OAS v(${semverPattern})`));
-  assert.ok(match, 'Expected .opencode/plugins/oas-hooks.ts to declare an active plugin banner');
+  assert.ok(match, 'Expected .opencode/plugins/ecc-hooks.ts to declare an active plugin banner');
   assert.strictEqual(match[1], expectedVersion);
 });
 
@@ -567,8 +567,8 @@ test('marketplace local plugin source is a self-contained native Codex bundle', 
 // on #2097; these tests pin the manifest sync and the parent-relative refs.
 console.log('\n=== plugins/oas Codex marketplace plugin folder ===\n');
 
-const marketplacePluginManifestPath = path.join(repoRoot, 'plugins', 'oas', '.codex-plugin', 'plugin.json');
-const marketplacePluginManifest = loadJsonObject(marketplacePluginManifestPath, 'plugins/oas/.codex-plugin/plugin.json');
+const marketplacePluginManifestPath = path.join(repoRoot, 'plugins', 'ecc', '.codex-plugin', 'plugin.json');
+const marketplacePluginManifest = loadJsonObject(marketplacePluginManifestPath, 'plugins/ecc/.codex-plugin/plugin.json');
 const rootCodexManifest = loadJsonObject(path.join(repoRoot, '.codex-plugin', 'plugin.json'), '.codex-plugin/plugin.json');
 
 test('plugins/oas manifest name matches the root Codex manifest', () => {
@@ -609,8 +609,8 @@ test('plugins/oas manifest interface assets resolve to root assets', () => {
 });
 
 test('plugins/oas README marks the thin folder as a legacy compatibility artifact', () => {
-  const readmePath = path.join(repoRoot, 'plugins', 'oas', 'README.md');
-  assert.ok(fs.existsSync(readmePath), 'Expected plugins/oas/README.md');
+  const readmePath = path.join(repoRoot, 'plugins', 'ecc', 'README.md');
+  assert.ok(fs.existsSync(readmePath), 'Expected plugins/ecc/README.md');
   const source = fs.readFileSync(readmePath, 'utf8');
   assert.ok(source.includes('legacy compatibility artifact'));
   assert.ok(source.includes('repository root'));

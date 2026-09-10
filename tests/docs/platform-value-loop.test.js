@@ -93,7 +93,7 @@ test('release docs link the platform value loop into the rc surface', () => {
   const crossHarness = read('docs/architecture/cross-harness.md');
   const previewManifest = read('docs/releases/2.0.0-rc.1/preview-pack-manifest.md');
   const itoPack = read('docs/releases/2.0.0-rc.1/ito-prediction-market-skill-pack.md');
-  const hypergrowth = read('docs/releases/2.0.0/oas-2-hypergrowth-release-command-center.md');
+  const hypergrowth = read('docs/releases/2.0.0/ecc-2-hypergrowth-release-command-center.md');
 
   for (const source of [crossHarness, previewManifest, itoPack, hypergrowth]) {
     assert.ok(

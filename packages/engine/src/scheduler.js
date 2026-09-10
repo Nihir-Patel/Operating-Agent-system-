@@ -10,6 +10,24 @@ class AgentDagScheduler extends EventEmitter {
     super();
     this.activeRuns = new Map();
     this.store = options.store;
+    this.hydrateFromStore();
+  }
+
+  cloneRun(run) {
+    return JSON.parse(JSON.stringify(run));
+  }
+
+  persistRun(run) {
+    if (!run || !this.store || typeof this.store.savePipeline !== 'function') return;
+    this.store.savePipeline(this.cloneRun(run));
+  }
+
+  hydrateFromStore() {
+    if (!this.store || typeof this.store.listPipelines !== 'function') return;
+    const runs = this.store.listPipelines() || [];
+    for (const run of runs) {
+      if (run && run.id) this.activeRuns.set(run.id, this.cloneRun(run));
+    }
   }
 
   /**
@@ -50,6 +68,7 @@ class AgentDagScheduler extends EventEmitter {
     };
 
     this.activeRuns.set(taskId, run);
+    this.persistRun(run);
     return run;
   }
 
@@ -65,6 +84,7 @@ class AgentDagScheduler extends EventEmitter {
     const run = this.activeRuns.get(taskId);
     if (!run) return null;
     run.status = 'paused';
+    this.persistRun(run);
     this.emit('agent:intervention:paused', { taskId, timestamp: new Date().toISOString() });
     return run;
   }
@@ -73,6 +93,7 @@ class AgentDagScheduler extends EventEmitter {
     const run = this.activeRuns.get(taskId);
     if (!run) return null;
     run.status = 'running';
+    this.persistRun(run);
     this.emit('agent:intervention:resumed', { taskId, timestamp: new Date().toISOString() });
     return run;
   }
@@ -81,6 +102,7 @@ class AgentDagScheduler extends EventEmitter {
     const run = this.activeRuns.get(taskId);
     if (!run) return null;
     run.status = 'aborted';
+    this.persistRun(run);
     this.emit('agent:intervention:aborted', { taskId, timestamp: new Date().toISOString() });
     return run;
   }
@@ -93,6 +115,7 @@ class AgentDagScheduler extends EventEmitter {
       content: feedback,
       timestamp: new Date().toISOString()
     });
+    this.persistRun(run);
     this.emit('agent:human_in_the_loop:feedback', { taskId, feedback });
     return run;
   }
@@ -133,7 +156,14 @@ class AgentDagScheduler extends EventEmitter {
     }
 
     this.emit('agent:step', { taskId, step: stepRecord });
+    this.persistRun(run);
     return stepRecord;
+  }
+
+  getNextRunnableNode(taskId) {
+    const run = this.activeRuns.get(taskId);
+    if (!run || run.status === 'paused' || run.status === 'aborted') return null;
+    return run.nodes.find(n => n.status === 'running') || run.nodes.find(n => n.status === 'pending') || null;
   }
 }
 

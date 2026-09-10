@@ -1,5 +1,5 @@
 ---
-name: operating-agent-systems
+name: everything-claude-code
 description: Development conventions and patterns for operating-agent-systems. JavaScript project with conventional commits.
 ---
 

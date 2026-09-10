@@ -117,7 +117,7 @@ async function runTests() {
       );
       assert.strictEqual(
         normalizeGitHubGitOrigin('git@github.com:neal0709/Operating-Agent-system-.git'),
-        'neal0709/oas'
+        'neal0709/operating-agent-system-'
       );
     }],
     ['resolves marketplace provenance with execFile and exact Git argv', async () => {

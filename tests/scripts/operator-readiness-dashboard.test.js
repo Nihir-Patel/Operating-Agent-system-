@@ -221,7 +221,7 @@ function seedRepo(rootDir, overrides = {}) {
       '$1,728/mo',
       '$8,272/mo'
     ].join('\n'),
-    'docs/releases/2.0.0/oas-2-hypergrowth-release-command-center.md': [
+    'docs/releases/2.0.0/ecc-2-hypergrowth-release-command-center.md': [
       'harness-native operator system',
       '| MRR | `$1,728/mo` | `$10,000/mo` | `$8,272/mo` |',
       'Video Suite',

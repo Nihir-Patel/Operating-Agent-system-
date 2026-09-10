@@ -41,6 +41,13 @@
       "args": ["-y", "@supabase/mcp-server-supabase@latest", "--project-ref=YOUR_PROJECT_REF"],
       "description": "Supabase database operations"
     },
+    "oas-studio-read": {
+      "command": "oas-studio-mcp",
+      "env": {
+        "OAS_STUDIO_ROOT": "YOUR_REPO_ROOT_HERE"
+      },
+      "description": "Read-only Studio plane: list_sessions, get_diff, worktree_status. No writes. Does not merge OAS2 stores. Opt-in, not enabled by default."
+    },
     "oas-memory-vault": {
       "command": "oas-memory-mcp",
       "env": {

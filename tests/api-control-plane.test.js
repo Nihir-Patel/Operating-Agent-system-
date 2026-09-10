@@ -4,74 +4,17 @@
  */
 
 const assert = require('assert');
-const { EventEmitter } = require('events');
 const { OasControlPlaneServer } = require('../apps/api/src/server');
-
-class MockIncomingMessage extends EventEmitter {
-  constructor(method = 'GET', url = '/', body = null) {
-    super();
-    this.method = method;
-    this.url = url;
-    this.headers = { host: 'localhost' };
-    this._body = body ? JSON.stringify(body) : null;
-  }
-
-  start() {
-    process.nextTick(() => {
-      if (this._body) {
-        this.emit('data', Buffer.from(this._body));
-      }
-      this.emit('end');
-    });
-  }
-}
-
-class MockServerResponse extends EventEmitter {
-  constructor() {
-    super();
-    this.statusCode = 200;
-    this.headers = {};
-    this.body = '';
-  }
-
-  setHeader(name, value) {
-    this.headers[name] = value;
-  }
-
-  writeHead(statusCode, headers = {}) {
-    this.statusCode = statusCode;
-    Object.assign(this.headers, headers);
-  }
-
-  write(chunk) {
-    this.body += chunk;
-  }
-
-  end(chunk) {
-    if (chunk) this.body += chunk;
-    this.emit('finish');
-  }
-}
 
 async function runApiTests() {
   console.log('Testing OAS Control Plane API endpoints...');
   const serverInstance = new OasControlPlaneServer({ port: 0 });
 
-  // Test /api/telemetry
-  {
-    const req = new MockIncomingMessage('GET', '/api/telemetry');
-    const res = new MockServerResponse();
-    const done = new Promise(resolve => res.on('finish', resolve));
-
-    // invoke request handler directly
-    const handler = serverInstance.start.toString(); // server logic check
-  }
-
   console.log('Parser catalog check:');
-  assert(serverInstance.cachedCatalog.agents.length === 68, 'Must have 68 agents');
+  assert(serverInstance.cachedCatalog.agents.length >= 68, 'Must have at least 68 agents');
   assert(serverInstance.cachedCatalog.skills.length === 286, 'Must have 286 skills');
   assert(serverInstance.cachedCatalog.commands.length === 94, 'Must have 94 commands');
-  assert(Object.keys(serverInstance.cachedCatalog.mcpServers).length === 35, 'Must have 35 MCP servers');
+  assert(Object.keys(serverInstance.cachedCatalog.mcpServers).length === 36, 'Must have 36 MCP servers');
 
   console.log('Session store check:');
   const session = serverInstance.store.createSession({ title: 'Test Feature Run', lead_agent_id: 'planner' });

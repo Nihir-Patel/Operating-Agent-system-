@@ -100,18 +100,6 @@
       "path": "commands/cpp-test.md"
     },
     {
-      "command": "oas-guide",
-      "description": "Navigate OAS's current agents, skills, commands, hooks, install profiles, and docs from the live repository surface.",
-      "type": "review",
-      "primaryAgents": [],
-      "allAgents": [],
-      "skills": [
-        "oas-guide",
-        "security-scan"
-      ],
-      "path": "commands/oas-guide.md"
-    },
-    {
       "command": "epic-claim",
       "description": "Claim an epic issue, stamp coordination state, and sync local ownership.",
       "type": "review",
@@ -555,6 +543,18 @@
       "allAgents": [],
       "skills": [],
       "path": "commands/multi-workflow.md"
+    },
+    {
+      "command": "oas-guide",
+      "description": "Navigate OAS's current agents, skills, commands, hooks, install profiles, and docs from the live repository surface.",
+      "type": "review",
+      "primaryAgents": [],
+      "allAgents": [],
+      "skills": [
+        "oas-guide",
+        "security-scan"
+      ],
+      "path": "commands/oas-guide.md"
     },
     {
       "command": "orch-add-feature",

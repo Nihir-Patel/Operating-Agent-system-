@@ -1100,7 +1100,7 @@ function runTests() {
   })) passed++; else failed++;
 
   if (test('every schema target enum value has a matching adapter (regression guard)', () => {
-    const schemaPath = path.join(__dirname, '..', '..', 'schemas', 'oas-install-config.schema.json');
+    const schemaPath = path.join(__dirname, '..', '..', 'schemas', 'ecc-install-config.schema.json');
     const schema = JSON.parse(require('fs').readFileSync(schemaPath, 'utf8'));
     const schemaTargets = schema.properties.target.enum;
     const adapters = listInstallTargetAdapters();
@@ -1116,7 +1116,7 @@ function runTests() {
   })) passed++; else failed++;
 
   if (test('every adapter target is listed in the schema enum (regression guard)', () => {
-    const schemaPath = path.join(__dirname, '..', '..', 'schemas', 'oas-install-config.schema.json');
+    const schemaPath = path.join(__dirname, '..', '..', 'schemas', 'ecc-install-config.schema.json');
     const schema = JSON.parse(require('fs').readFileSync(schemaPath, 'utf8'));
     const schemaTargets = schema.properties.target.enum;
     const adapters = listInstallTargetAdapters();

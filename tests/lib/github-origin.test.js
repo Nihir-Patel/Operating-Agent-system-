@@ -25,15 +25,15 @@ console.log('\nGitHub origin normalization');
 if (test('accepts only authenticated or TLS GitHub origins', () => {
   assert.strictEqual(
     normalizeGitHubGitOrigin('https://github.com/neal0709/Operating-Agent-system-.git'),
-    'neal0709/oas'
+    'neal0709/operating-agent-system-'
   );
   assert.strictEqual(
     normalizeGitHubGitOrigin('ssh://git@github.com/neal0709/Operating-Agent-system-/'),
-    'neal0709/oas'
+    'neal0709/operating-agent-system-'
   );
   assert.strictEqual(
     normalizeGitHubGitOrigin('git@github.com:neal0709/Operating-Agent-system-.git'),
-    'neal0709/oas'
+    'neal0709/operating-agent-system-'
   );
 })) passed++; else failed++;
 

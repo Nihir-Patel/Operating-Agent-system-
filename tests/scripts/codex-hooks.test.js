@@ -204,8 +204,11 @@ ${includePnpm ? functionStub('pnpm', false) : ''}
       PATH: toBashPath(binDir),
       BASH_ENV: toBashPath(bashEnv),
       OAS_PREPUSH_AUDIT: audit ? '1' : '0',
+      ECC_PREPUSH_AUDIT: audit ? '1' : '0',
       OAS_SKIP_GIT_HOOKS: '0',
+      ECC_SKIP_GIT_HOOKS: '0',
       OAS_SKIP_PREPUSH: '0',
+      ECC_SKIP_PREPUSH: '0',
       MSYS_NO_PATHCONV: '1',
     },
     cwd: projectDir,
@@ -392,7 +395,7 @@ if (
 
       assert.strictEqual(result.status, 1, `${result.stdout}\n${result.stderr}`);
       assert.match(result.stdout, /Cached plugin manifest missing/);
-      assert.match(result.stdout, /codex plugin marketplace add neal0709\/OAS/);
+      assert.match(result.stdout, /codex plugin marketplace add neal0709\/Operating-Agent-system-/);
     } finally {
       cleanup(homeDir);
     }
