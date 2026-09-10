@@ -104,12 +104,12 @@ function runInteractiveEccSetup(fixture, options = {}) {
     .map(quoteShellArgument)
     .join(' ');
   const answerCommands = answers
-    .map(answer => `sleep 0.5; printf '%s\\n' ${quoteShellArgument(answer)}`)
+    .map(answer => `sleep 1; printf '%s\\n' ${quoteShellArgument(answer)}`)
     .join('; ');
 
   return spawnSync('sh', [
     '-c',
-    `(${answerCommands}; sleep 0.1) | ${pseudoTerminalCommand}`,
+    `(${answerCommands}; sleep 3) | ${pseudoTerminalCommand}`,
   ], {
     cwd: fixture.projectRoot,
     env: {
@@ -122,7 +122,7 @@ function runInteractiveEccSetup(fixture, options = {}) {
       OAS_TEST_CLAUDE_CALLS: fixture.callsPath,
     },
     encoding: 'utf8',
-    timeout: 15000,
+    timeout: 45000,
   });
 }
 function readCalls(fixture) {

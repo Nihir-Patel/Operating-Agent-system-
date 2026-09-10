@@ -35,12 +35,13 @@ function isCoveredByAncestor(target, roots) {
   return false
 }
 
-function buildExpectedPublishPaths(repoRoot) {
+function buildExpectedPublishPaths(repoRoot, packageJson) {
   const modules = JSON.parse(
     fs.readFileSync(path.join(repoRoot, "manifests", "install-modules.json"), "utf8")
   ).modules
 
   const extraPaths = [
+    ...Object.values(packageJson.bin || {}),
     "manifests",
     "scripts/oas.js",
     "scripts/feedback.js",
@@ -88,7 +89,7 @@ function buildExpectedPublishPaths(repoRoot) {
     "scripts/codex/merge-codex-config.js",
     "scripts/codex/merge-mcp-config.js",
     ".codex-plugin",
-    "plugins/oas",
+    "plugins/ecc",
     ".mcp.json",
     "install.sh",
     "install.ps1",
@@ -103,7 +104,7 @@ function buildExpectedPublishPaths(repoRoot) {
     "assets/images/community",
     "docs/CODEX-NAVIGATION-GUIDE.md",
     "docs/COMMAND-AGENT-MAP.md",
-    "docs/design/oas-memory-vault.md",
+    "docs/design/ecc-memory-vault.md",
     "assets/images/sponsors",
   ]
   const exclusionPaths = [
@@ -134,7 +135,7 @@ function main() {
     fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")
   )
 
-  const expectedPublishPaths = buildExpectedPublishPaths(repoRoot)
+  const expectedPublishPaths = buildExpectedPublishPaths(repoRoot, packageJson)
   const actualPublishPaths = packageJson.files.map(normalizePublishPath).sort()
 
   const tests = [
@@ -163,6 +164,7 @@ function main() {
         "scripts/ito.js",
         "scripts/memory.js",
         "scripts/memory-mcp.mjs",
+        "scripts/oas-studio-mcp.js",
         "scripts/nasiko.js",
         "scripts/lib/nasiko-release.js",
         "scripts/lib/memory-vault-format.js",
@@ -192,14 +194,14 @@ function main() {
         ".cursor/skills/unified-memory/SKILL.md",
         "COMMANDS-QUICK-REF.md",
         "CONTRIBUTING.md",
-        "plugins/oas/.codex-plugin/plugin.json",
+        "plugins/ecc/.codex-plugin/plugin.json",
         "assets/oas-icon.svg",
         "assets/hero.png",
         "assets/images/community/discord.svg",
         "assets/images/community/heart.svg",
         "docs/CODEX-NAVIGATION-GUIDE.md",
         "docs/COMMAND-AGENT-MAP.md",
-        "docs/design/oas-memory-vault.md",
+        "docs/design/ecc-memory-vault.md",
         "schemas/install-state.schema.json",
         "schemas/memory.schema.json",
         "skills/backend-patterns/SKILL.md",

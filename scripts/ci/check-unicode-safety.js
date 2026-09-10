@@ -21,6 +21,9 @@ const ignoredDirs = new Set([
   '.cache',
   'coverage',
   'venv',
+  '.oas',
+  '.oas-worktrees',
+  '.cursor',
 ]);
 
 const textExtensions = new Set([

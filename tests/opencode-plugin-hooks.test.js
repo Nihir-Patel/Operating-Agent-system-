@@ -31,7 +31,7 @@ async function loadPlugin() {
   })
   assert.strictEqual(buildResult.status, 0, buildResult.stderr || buildResult.stdout)
   const pluginUrl = pathToFileURL(
-    path.join(repoRoot, ".opencode", "dist", "plugins", "oas-hooks.js")
+    path.join(repoRoot, ".opencode", "dist", "plugins", "ecc-hooks.js")
   ).href
   return import(pluginUrl)
 }

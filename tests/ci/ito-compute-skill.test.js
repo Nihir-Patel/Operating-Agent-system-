@@ -83,7 +83,7 @@ function main() {
     ["keeps README and integration docs aligned with the separated auth contract", () => {
       for (const relativePath of [
         "README.md",
-        "docs/design/oas-ito-compute-integration.md",
+        "docs/design/ecc-ito-compute-integration.md",
       ]) {
         const source = read(relativePath);
         assert.match(source, /oas ito login \[?--no-browser\]?/i, relativePath);

@@ -67,7 +67,7 @@ function seedRepo(rootDir, overrides = {}, options = {}) {
       },
     }, null, 2),
     [`${releaseDir}/video-suite-production.md`]: videoManifestContent(),
-    'docs/releases/2.0.0/oas-2-hypergrowth-release-command-center.md': [
+    'docs/releases/2.0.0/ecc-2-hypergrowth-release-command-center.md': [
       'Keep raw absolute paths out of public docs',
       'Pick final video cuts, upload after approval, and attach public URLs',
     ].join('\n'),

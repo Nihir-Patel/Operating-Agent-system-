@@ -6,7 +6,7 @@
  * while taking advantage of OpenCode's more sophisticated 20+ event types.
  */
 
-export { OASHooksPlugin, default } from "./oas-hooks.js"
+export { OASHooksPlugin, default } from "./ecc-hooks.js"
 
 // Re-export for named imports
-export * from "./oas-hooks.js"
+export * from "./ecc-hooks.js"

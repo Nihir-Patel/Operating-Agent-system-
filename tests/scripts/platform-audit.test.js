@@ -287,10 +287,10 @@ function runTests() {
       const shimPath = writeGhShim(projectRoot, {
         'pr list --repo neal0709/Operating-Agent-system- --state open --json number,title,isDraft,mergeStateStatus,updatedAt,url,author': [],
         'issue list --repo neal0709/Operating-Agent-system- --state open --json number,title,updatedAt,url,author,labels': [],
-        [discussionEnabledGhKey('neal0709', 'OAS')]: {
+        [discussionEnabledGhKey('neal0709', 'Operating-Agent-system-')]: {
           data: { repository: { hasDiscussionsEnabled: true } }
         },
-        [discussionGhKey('neal0709', 'OAS')]: {
+        [discussionGhKey('neal0709', 'Operating-Agent-system-')]: {
           data: {
             repository: {
               hasDiscussionsEnabled: true,
@@ -356,10 +356,10 @@ function runTests() {
       const shimPath = writeGhShim(projectRoot, {
         'pr list --repo neal0709/Operating-Agent-system- --state open --json number,title,isDraft,mergeStateStatus,updatedAt,url,author': prs,
         'issue list --repo neal0709/Operating-Agent-system- --state open --json number,title,updatedAt,url,author,labels': [],
-        [discussionEnabledGhKey('neal0709', 'OAS')]: {
+        [discussionEnabledGhKey('neal0709', 'Operating-Agent-system-')]: {
           data: { repository: { hasDiscussionsEnabled: true } }
         },
-        [discussionGhKey('neal0709', 'OAS')]: {
+        [discussionGhKey('neal0709', 'Operating-Agent-system-')]: {
           data: {
             repository: {
               hasDiscussionsEnabled: true,

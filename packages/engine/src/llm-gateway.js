@@ -6,79 +6,179 @@
 const https = require('https');
 const http = require('http');
 const url = require('url');
+const { inferProvider, resolveDefaultModel } = require('./model-registry');
+const { wrapUntrustedContent, wrapUserMessages } = require('./prompt-guard');
+const { toAnthropicTools } = require('./agent-tools');
+
+const DEFAULT_TIMEOUT_MS = Number(process.env.OAS_LLM_TIMEOUT_MS) || 60000;
+const DEFAULT_RETRIES = Number(process.env.OAS_LLM_RETRIES) || 1;
+
+function extractGeminiText(raw) {
+  if (!raw || typeof raw !== 'string') return '';
+  const texts = [];
+  const trimmed = raw.trim();
+  try {
+    const parsed = JSON.parse(trimmed);
+    const chunks = Array.isArray(parsed) ? parsed : [parsed];
+    for (const chunk of chunks) {
+      const parts = chunk?.candidates?.[0]?.content?.parts || [];
+      for (const part of parts) {
+        if (part && typeof part.text === 'string') texts.push(part.text);
+      }
+    }
+    if (texts.length) return texts.join('');
+  } catch {
+    // Fall through to regex extraction of streamed JSON fragments
+  }
+  const regex = /"text"\s*:\s*"((?:\\.|[^"\\])*)"/g;
+  let match;
+  while ((match = regex.exec(raw)) !== null) {
+    texts.push(JSON.parse(`"${match[1]}"`));
+  }
+  return texts.join('');
+}
+
+function resolveLlmTimeoutMs(params, fallbackMs) {
+  const n = Number(params && params.timeoutMs);
+  if (Number.isFinite(n) && n > 0) return n;
+  return fallbackMs;
+}
+
+function isLiveLlmUnavailable(err) {
+  if (!err) return false;
+  const code = String(err.code || '');
+  if (
+    code === 'NO_PROVIDER_CONFIGURED'
+    || code === 'LLM_TIMEOUT'
+    || code === 'ECONNREFUSED'
+    || code === 'ENOTFOUND'
+    || code === 'ETIMEDOUT'
+    || code === 'ECONNRESET'
+  ) {
+    return true;
+  }
+  return /ECONNREFUSED|ENOTFOUND|ETIMEDOUT|not configured|timed out/i.test(String(err.message || ''));
+}
+
+function isRetryableError(err) {
+  if (!err) return false;
+  if (err.code === 'NO_PROVIDER_CONFIGURED') return false;
+  if (err.code === 'LLM_TIMEOUT') return true;
+  return /ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE|socket hang up|5\d\d/i.test(String(err.code || err.message || ''));
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 class UniversalModelGateway {
   constructor(options = {}) {
+    this.activeProvider = options.provider || process.env.OAS_DEFAULT_PROVIDER || 'auto';
     this.anthropicApiKey = options.anthropicApiKey || process.env.ANTHROPIC_API_KEY || '';
     this.openaiApiKey = options.openaiApiKey || process.env.OPENAI_API_KEY || '';
     this.geminiApiKey = options.geminiApiKey || process.env.GEMINI_API_KEY || '';
-    this.ollamaBaseUrl = options.ollamaBaseUrl || process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+    this.ollamaBaseUrl = options.ollamaHost || options.ollamaBaseUrl || process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+    this.ollamaModel = options.ollamaModel || process.env.OLLAMA_MODEL || resolveDefaultModel();
+    this.timeoutMs = options.timeoutMs || DEFAULT_TIMEOUT_MS;
+    this.maxRetries = options.maxRetries !== undefined ? options.maxRetries : DEFAULT_RETRIES;
   }
 
-  /**
-   * Determine model provider and normalized model identifier
-   */
+  updateSettings(settings = {}) {
+    if (settings.provider) this.activeProvider = settings.provider;
+    if (settings.anthropicApiKey !== undefined) this.anthropicApiKey = settings.anthropicApiKey;
+    if (settings.openaiApiKey !== undefined) this.openaiApiKey = settings.openaiApiKey;
+    if (settings.geminiApiKey !== undefined) this.geminiApiKey = settings.geminiApiKey;
+    if (settings.ollamaHost) this.ollamaBaseUrl = settings.ollamaHost;
+    if (settings.ollamaModel) this.ollamaModel = settings.ollamaModel;
+    if (settings.timeoutMs) this.timeoutMs = Number(settings.timeoutMs);
+    if (settings.maxRetries !== undefined) this.maxRetries = Number(settings.maxRetries);
+  }
+
   resolveProvider(modelName) {
-    const name = (modelName || '').toLowerCase();
-    if (name.includes('sonnet') || name.includes('opus') || name.includes('haiku') || name.includes('claude')) {
-      return { provider: 'anthropic', model: name.includes('opus') ? 'claude-3-7-opus' : (name.includes('haiku') ? 'claude-3-5-haiku' : 'claude-3-7-sonnet') };
-    }
-    if (name.includes('gpt') || name.includes('o3') || name.includes('o1')) {
-      return { provider: 'openai', model: name.includes('o3') ? 'o3-mini' : 'gpt-4o' };
-    }
-    if (name.includes('gemini')) {
-      return { provider: 'gemini', model: 'gemini-2.5-pro' };
-    }
-    if (name.includes('llama') || name.includes('qwen') || name.includes('deepseek') || name.includes('ollama')) {
-      return { provider: 'ollama', model: name };
-    }
-    // Default to Anthropic Sonnet tier as standard in OAS
-    return { provider: 'anthropic', model: 'claude-3-7-sonnet' };
+    return inferProvider(modelName, this.activeProvider, this.ollamaModel);
   }
 
-  /**
-   * Stream completion with real-time chunk callbacks
-   */
   async streamCompletion(params, callbacks = {}) {
-    const { onToken, onToolCall, onComplete, onError } = callbacks;
+    const { onError } = callbacks;
     const { provider, model } = this.resolveProvider(params.model);
 
-    // If API keys are absent, provide deterministic high-fidelity agent reasoning
     if (provider === 'anthropic' && !this.anthropicApiKey) {
-      return this.simulateAgentInference(params, callbacks);
+      const err = new Error('Anthropic API key not configured. Go to Settings to add your API key, or switch to Ollama.');
+      err.code = 'NO_PROVIDER_CONFIGURED';
+      if (onError) onError(err);
+      throw err;
     }
     if (provider === 'openai' && !this.openaiApiKey) {
-      return this.simulateAgentInference(params, callbacks);
+      const err = new Error('OpenAI API key not configured. Go to Settings to add your API key, or switch to Ollama.');
+      err.code = 'NO_PROVIDER_CONFIGURED';
+      if (onError) onError(err);
+      throw err;
     }
     if (provider === 'gemini' && !this.geminiApiKey) {
-      return this.simulateAgentInference(params, callbacks);
+      const err = new Error('Gemini API key not configured. Go to Settings to add your API key, or switch to Ollama.');
+      err.code = 'NO_PROVIDER_CONFIGURED';
+      if (onError) onError(err);
+      throw err;
     }
 
-    try {
-      if (provider === 'anthropic') {
-        return await this.callAnthropicStream(params, model, callbacks);
-      } else if (provider === 'openai') {
-        return await this.callOpenAiStream(params, model, callbacks);
-      } else if (provider === 'gemini') {
-        return await this.callGeminiStream(params, model, callbacks);
-      } else if (provider === 'ollama') {
-        return await this.callOllamaStream(params, model, callbacks);
+    let lastError;
+    const guardedParams = {
+      ...params,
+      prompt: wrapUntrustedContent(params.prompt, params),
+      messages: wrapUserMessages(params.messages, params)
+    };
+    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+      try {
+        if (provider === 'anthropic') {
+          return await this.callAnthropicStream(guardedParams, model, callbacks);
+        }
+        if (provider === 'openai') {
+          return await this.callOpenAiStream(guardedParams, model, callbacks);
+        }
+        if (provider === 'gemini') {
+          return await this.callGeminiStream(guardedParams, model, callbacks);
+        }
+        if (provider === 'ollama') {
+          return await this.callOllamaStream(guardedParams, model, callbacks);
+        }
+        const err = new Error(`No supported LLM provider found for: ${provider}. Configure a provider in Settings.`);
+        err.code = 'NO_PROVIDER_CONFIGURED';
+        throw err;
+      } catch (err) {
+        lastError = err;
+        if (!isRetryableError(err) || attempt === this.maxRetries) {
+          if (onError) onError(err);
+          throw err;
+        }
+        await sleep(200 * (attempt + 1));
       }
-    } catch (err) {
-      if (onError) onError(err);
-      // Fallback to deterministic completion so workflow continues
-      return this.simulateAgentInference(params, callbacks);
     }
+    if (onError) onError(lastError);
+    throw lastError;
+  }
+
+  attachTimeout(req, reject, timeoutMs) {
+    const ms = resolveLlmTimeoutMs({ timeoutMs }, this.timeoutMs);
+    req.setTimeout(ms, () => {
+      const err = new Error(`LLM request timed out after ${ms}ms`);
+      err.code = 'LLM_TIMEOUT';
+      req.destroy(err);
+      reject(err);
+    });
   }
 
   async callAnthropicStream(params, model, callbacks) {
-    const payload = JSON.stringify({
+    const body = {
       model,
       max_tokens: params.maxTokens || 4096,
       system: params.systemPrompt || '',
       messages: params.messages || [{ role: 'user', content: params.prompt || 'Execute task' }],
       stream: true
-    });
+    };
+    if (params.tools && params.tools.length) {
+      body.tools = toAnthropicTools(params.tools);
+    }
+    const payload = JSON.stringify(body);
 
     return new Promise((resolve, reject) => {
       const req = https.request({
@@ -104,7 +204,9 @@ class UniversalModelGateway {
                   fullText += parsed.delta.text;
                   if (callbacks.onToken) callbacks.onToken(parsed.delta.text);
                 }
-              } catch {}
+              } catch {
+                // Ignore malformed SSE JSON chunks
+              }
             }
           }
         });
@@ -114,6 +216,7 @@ class UniversalModelGateway {
         });
       });
 
+      this.attachTimeout(req, reject, resolveLlmTimeoutMs(params, this.timeoutMs));
       req.on('error', reject);
       req.write(payload);
       req.end();
@@ -121,14 +224,18 @@ class UniversalModelGateway {
   }
 
   async callOpenAiStream(params, model, callbacks) {
-    const payload = JSON.stringify({
+    const body = {
       model,
       messages: [
         ...(params.systemPrompt ? [{ role: 'system', content: params.systemPrompt }] : []),
         ...(params.messages || [{ role: 'user', content: params.prompt || 'Execute task' }])
       ],
       stream: true
-    });
+    };
+    if (params.tools && params.tools.length) {
+      body.tools = params.tools;
+    }
+    const payload = JSON.stringify(body);
 
     return new Promise((resolve, reject) => {
       const req = https.request({
@@ -154,7 +261,9 @@ class UniversalModelGateway {
                   fullText += delta;
                   if (callbacks.onToken) callbacks.onToken(delta);
                 }
-              } catch {}
+              } catch {
+                // Ignore malformed SSE JSON chunks
+              }
             }
           }
         });
@@ -164,6 +273,7 @@ class UniversalModelGateway {
         });
       });
 
+      this.attachTimeout(req, reject, resolveLlmTimeoutMs(params, this.timeoutMs));
       req.on('error', reject);
       req.write(payload);
       req.end();
@@ -171,7 +281,6 @@ class UniversalModelGateway {
   }
 
   async callGeminiStream(params, model, callbacks) {
-    // Google Gemini API REST call
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${this.geminiApiKey}`;
     const payload = JSON.stringify({
       contents: [{ parts: [{ text: (params.systemPrompt ? params.systemPrompt + '\n\n' : '') + (params.prompt || 'Execute task') }] }]
@@ -185,17 +294,18 @@ class UniversalModelGateway {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       }, res => {
-        let fullText = '';
+        let raw = '';
         res.on('data', chunk => {
-          const text = chunk.toString();
-          fullText += text;
-          if (callbacks.onToken) callbacks.onToken(text);
+          raw += chunk.toString();
         });
         res.on('end', () => {
+          const fullText = extractGeminiText(raw);
+          if (callbacks.onToken && fullText) callbacks.onToken(fullText);
           if (callbacks.onComplete) callbacks.onComplete(fullText);
           resolve({ text: fullText, provider: 'gemini', model });
         });
       });
+      this.attachTimeout(req, reject, resolveLlmTimeoutMs(params, this.timeoutMs));
       req.on('error', reject);
       req.write(payload);
       req.end();
@@ -204,74 +314,87 @@ class UniversalModelGateway {
 
   async callOllamaStream(params, model, callbacks) {
     const parsed = url.parse(this.ollamaBaseUrl);
-    const payload = JSON.stringify({
-      model: model || 'llama3.3',
-      prompt: (params.systemPrompt ? params.systemPrompt + '\n\n' : '') + (params.prompt || 'Execute task'),
-      stream: true
-    });
+    const selectedModel = model || this.ollamaModel || resolveDefaultModel();
+    const messages = [
+      ...(params.systemPrompt ? [{ role: 'system', content: params.systemPrompt }] : []),
+      ...(params.messages || [{ role: 'user', content: params.prompt || 'Execute task' }])
+    ];
+    const chatBody = {
+      model: selectedModel,
+      messages,
+      stream: true,
+      options: {
+        num_predict: params.maxTokens || 2048,
+        num_ctx: params.numCtx || params.contextWindow || 32768
+      }
+    };
+    if (params.tools && params.tools.length) {
+      chatBody.tools = params.tools;
+    }
+    const payload = JSON.stringify(chatBody);
 
     return new Promise((resolve, reject) => {
       const client = parsed.protocol === 'https:' ? https : http;
       const req = client.request({
         hostname: parsed.hostname,
         port: parsed.port || 11434,
-        path: '/api/generate',
+        path: '/api/chat',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       }, res => {
         let fullText = '';
+        let buffer = '';
+        let toolCalls = [];
         res.on('data', chunk => {
-          try {
-            const data = JSON.parse(chunk.toString());
-            if (data.response) {
-              fullText += data.response;
-              if (callbacks.onToken) callbacks.onToken(data.response);
+          buffer += chunk.toString();
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+            try {
+              const data = JSON.parse(trimmed);
+              const token = data.message?.content || data.response || '';
+              if (token) {
+                fullText += token;
+                if (callbacks.onToken) callbacks.onToken(token);
+              }
+              if (Array.isArray(data.message?.tool_calls) && data.message.tool_calls.length) {
+                toolCalls = data.message.tool_calls;
+              }
+            } catch {
+              // Ignore malformed Ollama stream chunks
             }
-          } catch {}
+          }
         });
         res.on('end', () => {
+          if (buffer.trim()) {
+            try {
+              const data = JSON.parse(buffer.trim());
+              const token = data.message?.content || data.response || '';
+              if (token) fullText += token;
+              if (Array.isArray(data.message?.tool_calls) && data.message.tool_calls.length) {
+                toolCalls = data.message.tool_calls;
+              }
+            } catch {
+              // Ignore trailing incomplete Ollama JSON
+            }
+          }
           if (callbacks.onComplete) callbacks.onComplete(fullText);
-          resolve({ text: fullText, provider: 'ollama', model });
+          resolve({ text: fullText, toolCalls, provider: 'ollama', model: selectedModel });
         });
       });
+      this.attachTimeout(req, reject, resolveLlmTimeoutMs(params, this.timeoutMs));
       req.on('error', reject);
       req.write(payload);
       req.end();
     });
   }
-
-  /**
-   * Deterministic high-fidelity inference fallback when API key is unconfigured
-   */
-  async simulateAgentInference(params, callbacks) {
-    const agentId = params.agentId || 'planner';
-    const chunks = [
-      `[${agentId}] Initiating live inference cycle under Universal Model Gateway.\n`,
-      `[${agentId}] Context review complete. Analyzing repository invariants and dependency constraints.\n`,
-      `[${agentId}] Preparing tool invocation: scanning active workspace files and validating test coverage.\n`,
-      `[${agentId}] Step complete. Generated clean diff with 0 security regressions.`
-    ];
-
-    let fullText = '';
-    for (const chunk of chunks) {
-      fullText += chunk;
-      if (callbacks.onToken) callbacks.onToken(chunk);
-      // Small simulated streaming cadence
-      await new Promise(r => setTimeout(r, 60));
-    }
-
-    if (callbacks.onToolCall) {
-      callbacks.onToolCall({
-        tool: 'read_file',
-        args: { path: 'packages/engine/src/scheduler.js' }
-      });
-    }
-
-    if (callbacks.onComplete) callbacks.onComplete(fullText);
-    return { text: fullText, provider: 'local_deterministic', model: params.model || 'claude-3-7-sonnet' };
-  }
 }
 
 module.exports = {
-  UniversalModelGateway
+  UniversalModelGateway,
+  extractGeminiText,
+  resolveLlmTimeoutMs,
+  isLiveLlmUnavailable
 };

@@ -193,7 +193,7 @@ test('owner approval packet consolidates the final gated decisions', () => {
   const packet = read('docs/releases/2.0.0-rc.1/owner-approval-packet-2026-05-19.md');
   const manifest = read('docs/releases/2.0.0-rc.1/preview-pack-manifest.md');
   const publicationReadiness = read('docs/releases/2.0.0-rc.1/publication-readiness.md');
-  const hypergrowth = read('docs/releases/2.0.0/oas-2-hypergrowth-release-command-center.md');
+  const hypergrowth = read('docs/releases/2.0.0/ecc-2-hypergrowth-release-command-center.md');
 
   for (const marker of [
     'Owner Approval Packet',
@@ -295,7 +295,7 @@ test('launch checklist records the oas2 alpha version policy', () => {
 test('release video suite manifest gates the content launch lane', () => {
   const videoManifest = read('docs/releases/2.0.0-rc.1/video-suite-production.md');
   const launchChecklist = read('docs/releases/2.0.0-rc.1/launch-checklist.md');
-  const hypergrowth = read('docs/releases/2.0.0/oas-2-hypergrowth-release-command-center.md');
+  const hypergrowth = read('docs/releases/2.0.0/ecc-2-hypergrowth-release-command-center.md');
   const packageJson = JSON.parse(read('package.json'));
 
   for (const marker of [
@@ -352,7 +352,7 @@ test('partner sponsor talks pack gates the hypergrowth outbound lane', () => {
   const manifest = read('docs/releases/2.0.0-rc.1/preview-pack-manifest.md');
   const releaseNotes = read('docs/releases/2.0.0-rc.1/release-notes.md');
   const launchChecklist = read('docs/releases/2.0.0-rc.1/launch-checklist.md');
-  const hypergrowth = read('docs/releases/2.0.0/oas-2-hypergrowth-release-command-center.md');
+  const hypergrowth = read('docs/releases/2.0.0/ecc-2-hypergrowth-release-command-center.md');
 
   for (const marker of [
     'Partner, Sponsor, and Talks Pack',
@@ -385,7 +385,7 @@ test('partner sponsor talks pack gates the hypergrowth outbound lane', () => {
 });
 
 test('release video suite public docs do not expose private media paths', () => {
-  const releaseVideoDocs = ['docs/releases/2.0.0-rc.1/video-suite-production.md', 'docs/releases/2.0.0/oas-2-hypergrowth-release-command-center.md'];
+  const releaseVideoDocs = ['docs/releases/2.0.0-rc.1/video-suite-production.md', 'docs/releases/2.0.0/ecc-2-hypergrowth-release-command-center.md'];
 
   const offenders = [];
   for (const relativePath of releaseVideoDocs) {
@@ -457,7 +457,7 @@ test('publication readiness checklist gates public release actions on evidence',
 test('release name and plugin publication checklist freezes rc.1 surfaces', () => {
   const checklist = read('docs/releases/2.0.0-rc.1/release-name-plugin-publication-checklist-2026-05-18.md');
   const launchChecklist = read('docs/releases/2.0.0-rc.1/launch-checklist.md');
-  const referenceArchitecture = read('docs/OAS-2.0-REFERENCE-ARCHITECTURE.md');
+  const referenceArchitecture = read('docs/ECC-2.0-REFERENCE-ARCHITECTURE.md');
 
   for (const value of [
     'Ship `v2.0.0-rc.1` as **OAS**',
