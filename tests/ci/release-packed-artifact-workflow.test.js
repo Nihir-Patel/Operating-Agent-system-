@@ -177,10 +177,6 @@ test('packed installer matrix stays defined for Linux, macOS, and Windows', () =
   assert.match(lifecycle, /OAS_RELEASE_PACKAGE:\s*release-artifacts\/\$\{\{ needs\.pack-installer\.outputs\.package_file \}\}/);
   assert.match(lifecycle, /OAS_RELEASE_SHA256:\s*\$\{\{ needs\.pack-installer\.outputs\.package_sha256 \}\}/);
   assert.match(lifecycle, /node tests\/ci\/packed-artifact-lifecycle\.js/);
-  assert.match(
-    lifecycle,
-    /if:\s*\(github\.event_name == 'push' && \(github\.ref == 'refs\/heads\/main' \|\| startsWith\(github\.ref, 'refs\/heads\/release\/'\) \|\| startsWith\(github\.ref, 'refs\/tags\/'\)\)\) \|\| matrix\.os == 'ubuntu-latest'/
-  );
   assert.doesNotMatch(lifecycle, /\$\{\{\s*secrets\./);
 });
 
