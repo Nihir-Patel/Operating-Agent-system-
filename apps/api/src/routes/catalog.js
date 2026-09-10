@@ -8,7 +8,7 @@ const path = require('path');
 const { resolveDefaultModel } = require('../../../../packages/engine/src/model-registry');
 const { writeSkillPromotion } = require('../../../../packages/engine/src/skill-promotion');
 
-module.exports = async function catalogRoutes(req, res, pathname, parsedUrl) {
+module.exports = async function catalogRoutes(req, res, pathname, _parsedUrl) {
 // --- CATALOG APIS ---
 if (pathname === '/api/catalog') {
   if (!this.cachedCatalog) this.initCatalog();

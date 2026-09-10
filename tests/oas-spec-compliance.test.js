@@ -70,7 +70,7 @@ function executeRequest(server, method, url, body = null) {
       try {
         const parsed = res.body ? JSON.parse(res.body) : null;
         resolve({ statusCode: res.statusCode, headers: res.headers, data: parsed });
-      } catch (err) {
+      } catch (_err) {
         resolve({ statusCode: res.statusCode, headers: res.headers, rawBody: res.body });
       }
     });

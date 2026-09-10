@@ -87,7 +87,7 @@ async function runComprehensiveE2EBattery() {
   let totalTests = 0;
   let passedTests = 0;
 
-  function test(name, fn) {
+  function _test(name, fn) {
     totalTests++;
     try {
       fn();

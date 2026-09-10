@@ -34,7 +34,7 @@ function cloudKeyMissing(provider, label) {
   };
 }
 
-module.exports = async function settingsRoutes(req, res, pathname, parsedUrl) {
+module.exports = async function settingsRoutes(req, res, pathname, _parsedUrl) {
 if (pathname === '/api/settings' && req.method === 'GET') {
   return this.sendJson(res, 200, this.store.getSettings());
 }
@@ -78,7 +78,7 @@ if (pathname === '/api/settings/test' && req.method === 'POST') {
               models,
               message: `Connected to Ollama! Found ${models.length} model(s): ${models.join(', ')}`
             });
-          } catch (e) {
+          } catch (_e) {
             return this.sendJson(res, 200, { success: true, provider: 'ollama', models: [], message: 'Connected to Ollama endpoint.' });
           }
         });

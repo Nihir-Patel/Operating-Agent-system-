@@ -156,7 +156,9 @@ if (pathname === '/api/security/scan' && req.method === 'POST') {
         }
       }
     }
-  } catch {}
+  } catch {
+    // package.json may be missing or unreadable
+  }
 
   // Count actual files in workspace
   const countFiles = (dir, count = 0) => {
@@ -171,7 +173,9 @@ if (pathname === '/api/security/scan' && req.method === 'POST') {
           count++;
         }
       }
-    } catch {}
+    } catch {
+      // Skip unreadable directories while counting files
+    }
     return count;
   };
   filesScanned = countFiles(this.workspaceRoot);
@@ -241,7 +245,9 @@ if (pathname === '/api/security/iocs' && req.method === 'GET') {
         if (/child_process/.test(content) && /exec\s*\(/.test(content)) { indicators.push(`ast:child-process-exec:${target}`); }
         if (/BEGIN.*PRIVATE KEY/.test(content)) { indicators.push(`entropy:unencrypted-private-key:${target}`); detectedPatterns++; }
         if (/curl|wget/.test(content) && /\|\s*sh/.test(content)) { indicators.push(`network:pipe-to-shell:${target}`); detectedPatterns++; }
-      } catch {}
+      } catch {
+        // Skip files that cannot be read during the lightweight scan
+      }
     }
   }
 
@@ -250,7 +256,9 @@ if (pathname === '/api/security/iocs' && req.method === 'GET') {
   try {
     const pkg = JSON.parse(fs.readFileSync(path.join(this.workspaceRoot, 'package.json'), 'utf8'));
     depCount = Object.keys(pkg.dependencies || {}).length + Object.keys(pkg.devDependencies || {}).length;
-  } catch {}
+  } catch {
+    // package.json is optional for the IOC summary
+  }
 
   return this.sendJson(res, 200, {
     scannedAt: new Date().toISOString(),

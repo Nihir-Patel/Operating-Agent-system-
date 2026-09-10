@@ -8,7 +8,6 @@ const path = require('path');
 const { OasParser } = require('../packages/parser/src/parser');
 const { MemoryStore } = require('../packages/db/src/index');
 const { AgentDagScheduler, ExecutionSandbox, StrategicCompactor } = require('../packages/engine/src/index');
-const { OasControlPlaneServer } = require('../apps/api/src/server');
 
 async function runTestSuite() {
   console.log('=== RUNNING OAS PLATFORM TEST SUITE ===');
@@ -139,7 +138,9 @@ async function runTestSuite() {
   try {
     const fs = require('fs');
     fs.unlinkSync(path.join(__dirname, '.test-store.json'));
-  } catch {}
+  } catch {
+    // Temp store may already have been removed
+  }
 
   console.log('\n======================================================');
   console.log('  ALL OAS PLATFORM TESTS PASSED WITH 100% SUCCESS');

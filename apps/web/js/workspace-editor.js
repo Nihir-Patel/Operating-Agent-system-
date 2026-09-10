@@ -237,7 +237,7 @@ export async function loadWorkspaceTree() {
         openWorkspaceFile('package.json');
       }
     }
-  } catch (err) {
+  } catch {
     container.innerHTML = '<div style="color: var(--status-error); padding: 8px;">Failed to load filesystem tree</div>';
   }
 }
@@ -276,7 +276,7 @@ function renderFsTree(items, parentEl, depth = 0) {
 }
 
 export async function openWorkspaceFile(filePath) {
-  const { codeDisplay, editor, btnEdit, btnSave, btnCancel } = workspaceEls();
+  const { codeDisplay } = workspaceEls();
   const badge = document.getElementById('code-viewer-file-badge');
   const statsBadge = document.getElementById('code-viewer-stats');
 

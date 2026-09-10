@@ -22,7 +22,7 @@ function sendFile(res, filePath, contentType) {
   return res.end(fs.readFileSync(filePath));
 }
 
-module.exports = async function staticAssetsRoutes(req, res, pathname, parsedUrl) {
+module.exports = async function staticAssetsRoutes(req, res, pathname, _parsedUrl) {
   if (pathname === '/' || pathname === '/index.html') {
     const indexPath = path.join(WEB_ROOT, 'index.html');
     if (fs.existsSync(indexPath)) {

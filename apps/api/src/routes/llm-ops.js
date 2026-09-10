@@ -12,7 +12,7 @@ const { fromGithubWebhook } = require('../../../../packages/engine/src/work-inbo
 const { resolveSandboxedSpawn, isOsIsolationUnavailable } = require('../../../../packages/engine/src/os-sandbox');
 const { isLiveLlmUnavailable } = require('../../../../packages/engine/src/llm-gateway');
 
-module.exports = async function llmOpsRoutes(req, res, pathname, parsedUrl) {
+module.exports = async function llmOpsRoutes(req, res, pathname, _parsedUrl) {
 // --- STEP 1: LIVE TERMINAL EXECUTION & AUTONOMOUS SELF-HEALING LOOP ---
 if (pathname === '/api/terminal/execute' && req.method === 'POST') {
   try {

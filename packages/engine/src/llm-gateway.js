@@ -204,7 +204,9 @@ class UniversalModelGateway {
                   fullText += parsed.delta.text;
                   if (callbacks.onToken) callbacks.onToken(parsed.delta.text);
                 }
-              } catch {}
+              } catch {
+                // Ignore malformed SSE JSON chunks
+              }
             }
           }
         });
@@ -259,7 +261,9 @@ class UniversalModelGateway {
                   fullText += delta;
                   if (callbacks.onToken) callbacks.onToken(delta);
                 }
-              } catch {}
+              } catch {
+                // Ignore malformed SSE JSON chunks
+              }
             }
           }
         });
@@ -358,7 +362,9 @@ class UniversalModelGateway {
               if (Array.isArray(data.message?.tool_calls) && data.message.tool_calls.length) {
                 toolCalls = data.message.tool_calls;
               }
-            } catch {}
+            } catch {
+              // Ignore malformed Ollama stream chunks
+            }
           }
         });
         res.on('end', () => {
@@ -370,7 +376,9 @@ class UniversalModelGateway {
               if (Array.isArray(data.message?.tool_calls) && data.message.tool_calls.length) {
                 toolCalls = data.message.tool_calls;
               }
-            } catch {}
+            } catch {
+              // Ignore trailing incomplete Ollama JSON
+            }
           }
           if (callbacks.onComplete) callbacks.onComplete(fullText);
           resolve({ text: fullText, toolCalls, provider: 'ollama', model: selectedModel });

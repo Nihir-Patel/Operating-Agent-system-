@@ -9,7 +9,7 @@ const url = require('url');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const { exec, execSync } = require('child_process');
+const { execSync } = require('child_process');
 
 const { OasParser } = require('../../../packages/parser/src/parser');
 const { MemoryStore } = require('../../../packages/db/src/index');
@@ -918,7 +918,9 @@ class OasControlPlaneServer {
             try {
               res.writeHead(500, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ error: err.message || 'Internal Server Error' }));
-            } catch {}
+            } catch {
+              // Response already closed
+            }
           }
         });
       });

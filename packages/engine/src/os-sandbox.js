@@ -33,7 +33,7 @@ function detectBwrap(platform = process.platform, existsSync = fs.existsSync) {
   return null;
 }
 
-function writeSeatbeltProfileFile(workspaceRoot) {
+function writeSeatbeltProfileFile(_workspaceRoot) {
   const file = path.join(os.tmpdir(), `oas-seatbelt-${process.pid}-${Date.now()}.sb`);
   fs.writeFileSync(file, buildSeatbeltProfile(), 'utf8');
   return file;

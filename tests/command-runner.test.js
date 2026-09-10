@@ -74,7 +74,9 @@ async function testCommands() {
   try {
     const fs = require('fs');
     fs.unlinkSync(path.join(__dirname, '.cmd-test-store.json'));
-  } catch {}
+  } catch {
+    // Temp store may already have been removed
+  }
 
   console.log('\n======================================================');
   console.log('  INTERACTIVE SLASH COMMAND TESTS PASSED (100%)');

@@ -95,8 +95,8 @@ class ExecutionSandbox {
     for (const [key, val] of Object.entries(sanitized)) {
       if (typeof val === 'string') {
         sanitized[key] = val
-          .replace(/(bearer\s+)[a-zA-Z0-9_\-\.]{16,}/gi, '$1[REDACTED_TOKEN]')
-          .replace(/(api[_-]?key\s*[:=]\s*)[a-zA-Z0-9_\-\.]{16,}/gi, '$1[REDACTED_API_KEY]')
+          .replace(/(bearer\s+)[a-zA-Z0-9_.-]{16,}/gi, '$1[REDACTED_TOKEN]')
+          .replace(/(api[_-]?key\s*[:=]\s*)[a-zA-Z0-9_.-]{16,}/gi, '$1[REDACTED_API_KEY]')
           .replace(/(ghp_[a-zA-Z0-9]{20,})/g, '[REDACTED_GITHUB_TOKEN]');
       }
     }

@@ -38,6 +38,11 @@ Public OAS plugin repo (agents, skills, commands, hooks, rules, install surfaces
 - Public truth: GitHub issues and PRs
 - Internal execution truth: linked Linear work items under the OAS program
 - Studio operator surface: `http://127.0.0.1:3458` after `npm run studio`
+- Current linked Linear items:
+  - `OAS-206` ecosystem CI baseline
+  - `OAS-207` PR backlog audit and merge-policy enforcement
+  - `OAS-208` context hygiene
+  - `OAS-210` skills-first workflow migration and command compatibility retirement
 
 ## Update Rule
 
@@ -46,7 +51,6 @@ Keep this file detailed for only the current sprint, blockers, and next actions.
 ## Latest Execution Notes
 
 - 2026-09-10: Started Studio 0.9 honesty pass. Relabeled Cloud/Enterprise chrome to Local Studio 0.9, DAG Auto Run now POSTs `/pipeline/run` instead of simulating `/step`, security UI is a lightweight workspace scan (not AgentShield 102-rules), `/api/settings/test` live-probes cloud providers, `/health` reports `studioVersion` 0.9.0 vs plugin `VERSION`.
-
 
 ## Historical notes (2026-04, not current catalog truth)
 
@@ -100,21 +104,7 @@ The April 2026 notes below are a salvage/backlog archive. Catalog counts in thos
   - `#894` Jira integration
   - `#814` + `#808` rebuild as a single consolidated notifications lane for Opencode and cross-harness surfaces
 
-## Interfaces
-
-- Public truth: GitHub issues and PRs
-- Internal execution truth: linked Linear work items under the OAS program
-- Current linked Linear items:
-  - `OAS-206` ecosystem CI baseline
-  - `OAS-207` PR backlog audit and merge-policy enforcement
-  - `OAS-208` context hygiene
-  - `OAS-210` skills-first workflow migration and command compatibility retirement
-
-## Update Rule
-
-Keep this file detailed for only the current sprint, blockers, and next actions. Summarize completed work into archive or repo docs once it is no longer actively shaping execution.
-
-## Latest Execution Notes
+## Historical execution notes (2026-04)
 
 - 2026-04-05: Continued `#1213` overlap cleanup by narrowing `coding-standards` into the baseline cross-project conventions layer instead of deleting it. The skill now explicitly points detailed React/UI guidance to `frontend-patterns`, backend/API structure to `backend-patterns` / `api-design`, and keeps only reusable naming, readability, immutability, and code-quality expectations.
 - 2026-04-05: Added a packaging regression guard for the OpenCode release path after `#1287` showed the published `v1.10.0` artifact was still stale. `tests/scripts/build-opencode.test.js` now asserts the `npm pack --dry-run` tarball includes `.opencode/dist/index.js` plus compiled plugin/tool entrypoints, so future releases cannot silently omit the built OpenCode payload.

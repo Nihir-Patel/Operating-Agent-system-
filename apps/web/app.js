@@ -5,8 +5,8 @@
 
 import { state, nodeMetadata, viewTitles } from './js/studio-state.js';
 import { escapeHtml, showToast, formatUnifiedDiffHtml } from './js/ui.js';
-import { persistApiToken, getApiToken, attachAuthHeaders, getSseStreamUrl, installAuthenticatedFetch } from './js/api-client.js';
-import { initWorkspaceFilesystem, loadWorkspaceTree, openWorkspaceFile, hideWorkspaceEditors } from './js/workspace-editor.js';
+import { persistApiToken, getApiToken, getSseStreamUrl, installAuthenticatedFetch } from './js/api-client.js';
+import { initWorkspaceFilesystem, loadWorkspaceTree, hideWorkspaceEditors } from './js/workspace-editor.js';
 
 installAuthenticatedFetch({ onAuthRetry: () => connectSseStream() });
 
@@ -561,7 +561,7 @@ let sseReconnectAttempts = 0;
 
 function connectSseStream() {
   if (sseEventSource) {
-    try { sseEventSource.close(); } catch {}
+    try { sseEventSource.close(); } catch { /* already closed */ }
   }
 
   try {
@@ -581,7 +581,7 @@ function connectSseStream() {
       if (indicator) {
         indicator.innerHTML = '<div class="status-dot" style="background: var(--status-warning);"></div><span>Reconnecting SSE...</span>';
       }
-      try { sseEventSource.close(); } catch {}
+      try { sseEventSource.close(); } catch { /* already closed */ }
       const timeout = Math.min(10000, 1000 * Math.pow(1.5, sseReconnectAttempts));
       setTimeout(connectSseStream, timeout);
     };
@@ -636,7 +636,7 @@ function connectSseStream() {
     });
 
     // Human-in-the-Loop Intervention: Resumed
-    sseEventSource.addEventListener('agent:intervention:resumed', e => {
+    sseEventSource.addEventListener('agent:intervention:resumed', _e => {
       if (window.dismissHitlModal) {
         window.dismissHitlModal();
       }
@@ -644,7 +644,7 @@ function connectSseStream() {
     });
 
     // Human-in-the-Loop Intervention: Aborted
-    sseEventSource.addEventListener('agent:intervention:aborted', e => {
+    sseEventSource.addEventListener('agent:intervention:aborted', _e => {
       if (window.dismissHitlModal) {
         window.dismissHitlModal();
       }
@@ -1906,7 +1906,7 @@ function updateSkillPreview() {
   const preview = document.getElementById('builder-skill-preview');
   if (!preview) return;
   const id = document.getElementById('builder-skill-id')?.value.trim() || 'custom-skill';
-  const domain = document.getElementById('builder-skill-domain')?.value || 'Engineering Workflows';
+  const _domain = document.getElementById('builder-skill-domain')?.value || 'Engineering Workflows';
   const triggers = document.getElementById('builder-skill-triggers')?.value.trim() || 'custom, workflow';
   const desc = document.getElementById('builder-skill-desc')?.value.trim() || 'Custom workflow skill.';
   const prompt = document.getElementById('builder-skill-prompt')?.value || 'Instructions for this skill...';
@@ -2058,7 +2058,7 @@ async function renderDynamicDag() {
         });
       }
     }
-  } catch (err) {
+  } catch {
     // Keep local layout fallback
   }
 
@@ -2070,8 +2070,8 @@ async function renderDynamicDag() {
     const from = dagNodesData[i];
     const to = dagNodesData[i + 1];
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    const sx = from.x + 140;
-    const sy = from.y + 45;
+    const _sx = from.x + 140;
+    const _sy = from.y + 45;
     const isFlowing = to.status === 'running';
     path.setAttribute('class', `dag-edge ${isFlowing ? 'edge-animated' : ''}`);
     if (from.status === 'completed' && to.status === 'completed') {
@@ -2483,7 +2483,7 @@ async function switchKgLayout(mode) {
       const data = await res.json();
       if (data.coordinates) coordinates = data.coordinates;
     }
-  } catch (err) {
+  } catch {
     // network or endpoint fallback
   }
 
@@ -2565,7 +2565,7 @@ async function pollKgTelemetry() {
         updateKgInspector(selectedKgNode);
       }
     }
-  } catch (err) {
+  } catch {
     // Polling failure handled gracefully
   }
 }
@@ -3313,7 +3313,7 @@ function initKnowledgeGraph() {
               }
             }
           }
-        } catch (err) {
+        } catch {
           // Keep local filter matches
         }
       }, 300);
@@ -3383,7 +3383,7 @@ function initKnowledgeGraph() {
         if (res.ok) {
           impact = await res.json();
         }
-      } catch (err) {
+      } catch {
         // Fallback to client-side BFS traversal
       }
 
@@ -5198,10 +5198,10 @@ function initHitlSecurityController() {
 
   if (!modal) return;
 
-  let activeInterventionData = null;
+  let _activeInterventionData = null;
 
   window.triggerHitlModal = (data) => {
-    activeInterventionData = data;
+    _activeInterventionData = data;
     if (agentEl) agentEl.textContent = data.agentId || 'security-reviewer';
     if (toolEl) toolEl.textContent = data.tool || data.action || 'run_command';
     if (cmdEl) {
@@ -5213,7 +5213,7 @@ function initHitlSecurityController() {
 
   window.dismissHitlModal = () => {
     modal.style.display = 'none';
-    activeInterventionData = null;
+    _activeInterventionData = null;
   };
 
   async function sendInterventionAction(action, feedback) {
@@ -5396,8 +5396,15 @@ function initDagTimelineScrubberController() {
           if (typeof loadSessions === 'function') {
             await loadSessions();
           }
-          if (result.session?.id && typeof selectSession === 'function') {
-            await selectSession(result.session.id);
+          if (result.session?.id) {
+            state.activeSession = {
+              id: result.session.id,
+              title: result.session.title || result.session.id,
+              currentNode: 'node-tdd',
+              status: result.session.status || 'active'
+            };
+            await loadSessions();
+            await loadSessionSteps(result.session.id);
           }
         } else {
           const err = await res.json();
@@ -5694,7 +5701,7 @@ function initTerminalRunnerController() {
     outputPre.scrollTop = outputPre.scrollHeight;
   };
 
-  const notifySelfHealAvailable = (cmd, errorTrace) => {
+  const notifySelfHealAvailable = (_cmd, _errorTrace) => {
     if (tabHealer) {
       tabHealer.textContent = 'Auto-Healer Interceptor (1 Error!)';
       tabHealer.style.color = '#F87171';
@@ -6399,7 +6406,7 @@ function initComplianceVaultController() {
         } else {
           showToast('Dossier generated and attested in compliance vault.');
         }
-      } catch (err) {
+      } catch {
         showToast('Compliance Dossier exported.');
       }
     });

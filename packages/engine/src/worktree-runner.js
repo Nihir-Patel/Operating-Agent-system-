@@ -43,7 +43,9 @@ class WorktreeRunner {
     if (!fs.existsSync(this.worktreeBaseDir)) {
       try {
         fs.mkdirSync(this.worktreeBaseDir, { recursive: true });
-      } catch {}
+      } catch {
+        // Directory may already exist
+      }
     }
 
     if (this.isGitRepo()) {
@@ -57,7 +59,9 @@ class WorktreeRunner {
 
       const success = res.status === 0 && fs.existsSync(worktreePath);
       if (!success) {
-        try { fs.mkdirSync(worktreePath, { recursive: true }); } catch {}
+        try { fs.mkdirSync(worktreePath, { recursive: true }); } catch {
+          // Fallback directory may already exist
+        }
       }
       const record = {
         id: slug,
@@ -76,7 +80,9 @@ class WorktreeRunner {
 
     try {
       fs.mkdirSync(worktreePath, { recursive: true });
-    } catch {}
+    } catch {
+      // Isolated directory may already exist
+    }
 
     const record = {
       id: slug,
@@ -121,7 +127,7 @@ class WorktreeRunner {
   /**
    * Merge subagent worktree changes back into parent branch
    */
-  mergeWorktree(worktreeId, targetBranch = 'HEAD') {
+  mergeWorktree(worktreeId, _targetBranch = 'HEAD') {
     const wt = this.activeWorktrees.get(worktreeId);
     if (!wt) return { success: false, reason: 'Worktree not found' };
 
@@ -163,7 +169,9 @@ class WorktreeRunner {
     } else {
       try {
         fs.rmSync(wt.path, { recursive: true, force: true });
-      } catch {}
+      } catch {
+        // Best-effort cleanup of a local fallback directory
+      }
     }
 
     this.activeWorktrees.delete(worktreeId);
@@ -181,7 +189,7 @@ class WorktreeRunner {
     if (name.startsWith('-') || name.includes('..') || name.includes('\\') || /\s/.test(name)) {
       return false;
     }
-    return /^[A-Za-z0-9][A-Za-z0-9._\-\/]*$/.test(name) && !name.endsWith('/') && !name.includes('//');
+    return /^[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(name) && !name.endsWith('/') && !name.includes('//');
   }
 
   switchBranch(branch) {

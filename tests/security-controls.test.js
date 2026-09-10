@@ -65,7 +65,9 @@ function simulate(server, method, url, body, headers) {
     const res = new MockServerResponse();
     res.on('finish', () => {
       let data = res.body;
-      try { data = JSON.parse(res.body); } catch {}
+      try { data = JSON.parse(res.body); } catch {
+        // Keep the raw body when the response is not JSON
+      }
       resolve({ status: res.statusCode, body: data });
     });
     server.handleRequest(req, res).catch(reject);
@@ -247,7 +249,7 @@ test('extractGeminiText parses streamed envelope', () => {
     try {
       execFileSync('git', ['init', '-b', 'main'], { cwd: tmpRepo, stdio: 'ignore' });
       gitReady = true;
-    } catch (err) {
+    } catch (_err) {
       console.log('  WARNING: skip worktree git tests: git init blocked');
     }
     if (gitReady) {
@@ -285,7 +287,9 @@ test('extractGeminiText parses streamed envelope', () => {
     }
     }
   } finally {
-    try { fs.rmSync(tmpRepo, { recursive: true, force: true }); } catch {}
+    try { fs.rmSync(tmpRepo, { recursive: true, force: true }); } catch {
+      // Temp repo cleanup is best-effort
+    }
   }
 
   console.log(`\n=== RESULTS ===`);

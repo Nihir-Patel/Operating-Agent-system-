@@ -14,14 +14,18 @@ export function persistApiToken(token) {
   try {
     if (value) sessionStorage.setItem(OAS_API_TOKEN_STORAGE_KEY, value);
     else sessionStorage.removeItem(OAS_API_TOKEN_STORAGE_KEY);
-  } catch {}
+  } catch {
+    // sessionStorage can throw in private browsing
+  }
   try {
     if (value) {
       document.cookie = OAS_API_TOKEN_COOKIE + '=' + encodeURIComponent(value) + '; Path=/; SameSite=Strict';
     } else {
       document.cookie = OAS_API_TOKEN_COOKIE + '=; Path=/; Max-Age=0; SameSite=Strict';
     }
-  } catch {}
+  } catch {
+    // document.cookie can throw in restricted contexts
+  }
 }
 
 export function getApiToken() {
@@ -32,7 +36,9 @@ export function getApiToken() {
       persistApiToken(fromQuery);
       return fromQuery;
     }
-  } catch {}
+  } catch {
+    // Query parsing is best-effort
+  }
   try {
     return sessionStorage.getItem(OAS_API_TOKEN_STORAGE_KEY) || '';
   } catch {

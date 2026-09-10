@@ -5,7 +5,7 @@
 
 const crypto = require('crypto');
 
-module.exports = async function complianceRoutes(req, res, pathname, parsedUrl) {
+module.exports = async function complianceRoutes(req, res, pathname, _parsedUrl) {
 if (pathname === '/api/topology/3d' && req.method === 'GET') {
   try {
     const catalog = this.cachedCatalog || this.parser.parseAll();
@@ -138,7 +138,7 @@ if (pathname === '/api/compliance/audit-trail' && req.method === 'GET') {
     previousHash = genesisBlock.blockHash;
 
     // Session & memory audit blocks
-    sessions.forEach((s, idx) => {
+    sessions.forEach((s, _idx) => {
       const b = {
         blockHeight: blocks.length,
         timestamp: s.createdAt || new Date().toISOString(),
@@ -154,7 +154,7 @@ if (pathname === '/api/compliance/audit-trail' && req.method === 'GET') {
       previousHash = b.blockHash;
     });
 
-    memoryItems.forEach((m, idx) => {
+    memoryItems.forEach((m, _idx) => {
       const b = {
         blockHeight: blocks.length,
         timestamp: m.createdAt || new Date().toISOString(),
@@ -199,7 +199,7 @@ if (pathname === '/api/compliance/audit-trail' && req.method === 'GET') {
 
 if (pathname === '/api/compliance/dossier' && req.method === 'POST') {
   try {
-    const body = await this.parseBody(req);
+    const _body = await this.parseBody(req);
     const dossierId = `dossier-${Date.now()}`;
     const generatedAt = new Date().toISOString();
 

@@ -3,8 +3,6 @@
  * Route handlers bound to OasControlPlaneServer via .call(server)
  */
 
-const { resolveDefaultModel } = require('../../../../packages/engine/src/model-registry');
-
 module.exports = async function sessionsRoutes(req, res, pathname, parsedUrl) {
 if (pathname === '/api/sessions' && req.method === 'GET') {
   const sessions = this.store.getSessions();

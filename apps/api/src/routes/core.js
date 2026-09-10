@@ -14,7 +14,7 @@ function readPluginVersion(workspaceRoot) {
   }
 }
 
-module.exports = async function corejsRoutes(req, res, pathname, parsedUrl) {
+module.exports = async function corejsRoutes(req, res, pathname, _parsedUrl) {
 if (pathname === '/health' && req.method === 'GET') {
   return this.sendJson(res, 200, {
     status: 'ok',

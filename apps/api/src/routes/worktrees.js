@@ -3,7 +3,7 @@
  * Route handlers bound to OasControlPlaneServer via .call(server)
  */
 
-module.exports = async function worktreesjsRoutes(req, res, pathname, parsedUrl) {
+module.exports = async function worktreesjsRoutes(req, res, pathname, _parsedUrl) {
 if (pathname === '/api/worktrees' && req.method === 'GET') {
   return this.sendJson(res, 200, this.worktrees.listWorktrees());
 }
@@ -32,7 +32,9 @@ if (pathname === '/api/worktree/branches' && req.method === 'GET') {
         });
         return wt;
       });
-    } catch {}
+    } catch {
+      // git worktree list is optional when the workspace is not a checkout
+    }
 
     return this.sendJson(res, 200, {
       activeBranch: active,
