@@ -35,12 +35,13 @@ function isCoveredByAncestor(target, roots) {
   return false
 }
 
-function buildExpectedPublishPaths(repoRoot) {
+function buildExpectedPublishPaths(repoRoot, packageJson) {
   const modules = JSON.parse(
     fs.readFileSync(path.join(repoRoot, "manifests", "install-modules.json"), "utf8")
   ).modules
 
   const extraPaths = [
+    ...Object.values(packageJson.bin || {}),
     "manifests",
     "scripts/oas.js",
     "scripts/feedback.js",
@@ -134,7 +135,7 @@ function main() {
     fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")
   )
 
-  const expectedPublishPaths = buildExpectedPublishPaths(repoRoot)
+  const expectedPublishPaths = buildExpectedPublishPaths(repoRoot, packageJson)
   const actualPublishPaths = packageJson.files.map(normalizePublishPath).sort()
 
   const tests = [
@@ -163,6 +164,7 @@ function main() {
         "scripts/ito.js",
         "scripts/memory.js",
         "scripts/memory-mcp.mjs",
+        "scripts/oas-studio-mcp.js",
         "scripts/nasiko.js",
         "scripts/lib/nasiko-release.js",
         "scripts/lib/memory-vault-format.js",
