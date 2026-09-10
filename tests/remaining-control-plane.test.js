@@ -76,7 +76,7 @@ async function run() {
   assert.strictEqual(bwrap.isolation, 'bwrap');
   assert.strictEqual(bwrap.file, '/usr/bin/bwrap');
   assert.ok(bwrap.args.includes('--ro-bind'));
-  assert.ok(bwrap.args.includes('/tmp/ws'));
+  assert.ok(bwrap.args.includes(path.resolve('/tmp/ws')));
   console.log('   linux bwrap wraps command with read-only root');
 
   const win = resolveSandboxedSpawn('echo ok', 'C:\\\\ws', {

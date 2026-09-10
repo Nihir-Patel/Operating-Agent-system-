@@ -34,8 +34,14 @@ function run() {
   });
   assert.strictEqual(policy.isolation, 'policy-only');
   assert.deepStrictEqual(policy.args, ['-c', 'echo OAS_SANDBOX_OK']);
-  const echoed = spawnSync(policy.file, policy.args, { encoding: 'utf8', timeout: 5000 });
-  assert.ok(String(echoed.stdout || '').includes('OAS_SANDBOX_OK'));
+  if (process.platform === 'win32') {
+    const win = resolveSandboxedSpawn('echo OAS_SANDBOX_OK', process.cwd());
+    const echoed = spawnSync(win.file, win.args, { encoding: 'utf8', timeout: 5000 });
+    assert.ok(String(echoed.stdout || '').includes('OAS_SANDBOX_OK'));
+  } else {
+    const echoed = spawnSync(policy.file, policy.args, { encoding: 'utf8', timeout: 5000 });
+    assert.ok(String(echoed.stdout || '').includes('OAS_SANDBOX_OK'));
+  }
   console.log('   non-darwin stays policy-only');
 
   assert.strictEqual(isOsIsolationUnavailable('seatbelt', 71, ''), true);
