@@ -495,7 +495,7 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
               <!-- Toolbar -->
               <div class="kg-toolbar" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; background: rgba(11, 17, 32, 0.95); border-bottom: 1px solid var(--border-subtle); z-index: 10; flex-wrap: wrap; gap: 8px;">
                 <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                  <input type="text" id="kg-search-input" class="search-input" style="width: 220px; padding: 5px 10px; font-size: 11px;" placeholder="Search 483 nodes or enter intent...">
+                  <input type="text" id="kg-search-input" class="search-input" style="width: 220px; padding: 5px 10px; font-size: 11px;" placeholder="Search catalog nodes or enter intent...">
                   <div class="kg-filter-group" style="display: flex; gap: 4px;">
                     <button class="pill active" data-kg-filter="all" style="font-size: 10px; padding: 3px 8px;">All (483)</button>
                     <button class="pill" data-kg-filter="agent" style="font-size: 10px; padding: 3px 8px;">Agents (68)</button>
@@ -813,8 +813,8 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
               <div class="hud-metrics-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
                 <div style="background: rgba(15, 23, 42, 0.6); padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
                   <div style="font-size: 10px; color: var(--text-muted); font-weight: 600;">SESSION SPEND / BUDGET</div>
-                  <div style="font-size: 14px; font-weight: 700; color: #38BDF8; font-family: monospace;" id="hud-spend-val">$0.84 / $10.00</div>
-                  <div style="font-size: 10px; color: #34D399;" id="hud-trend-val">● within-budget</div>
+                  <div style="font-size: 14px; font-weight: 700; color: #38BDF8; font-family: monospace;" id="hud-spend-val">$0.00 / $0.00</div>
+                  <div style="font-size: 10px; color: #34D399;" id="hud-trend-val">● within-budget · local BYOK ledger, not OAS credits</div>
                 </div>
                 <div style="background: rgba(15, 23, 42, 0.6); padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
                   <div style="font-size: 10px; color: var(--text-muted); font-weight: 600;">RISK POSTURE</div>
@@ -1423,7 +1423,7 @@ Loading HUD status payload...
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           <div>
             <h3 id="tcas-modal-title" style="font-size: 15px; font-weight: 700; color: #F8FAFC;">TCAS Layer 4 Spatial Deconfliction & Collision Avoidance</h3>
-            <span style="font-size: 11px; color: var(--text-muted);">schema_version: oas.proximity.v1 • Traffic (TA) & Resolution (RA) Advisories</span>
+            <span style="font-size: 11px; color: var(--text-muted);">schema_version: oas.proximity.v1 • Live path leases only (no sample roster)</span>
           </div>
         </div>
         <div style="display: flex; gap: 8px;">

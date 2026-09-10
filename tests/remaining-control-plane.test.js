@@ -255,6 +255,41 @@ async function run() {
   assert.ok(html.includes('id="builder-skill-confirm-promote"'));
   assert.ok(html.includes('id="arena-model-judge"'));
   console.log('  ✔ Studio surfaces promotion HITL and model judge');
+
+  const emptyAirspace = await dispatch(server, 'GET', '/api/proximity');
+  assert.strictEqual(emptyAirspace.status, 200);
+  assert.strictEqual(emptyAirspace.body.source, 'none');
+  assert.notStrictEqual(emptyAirspace.body.source, 'sample');
+  assert.ok(Array.isArray(emptyAirspace.body.advisories));
+  console.log('  ✔ proximity stays empty instead of a fake sample roster');
+
+  let councilCalls = 0;
+  server.gateway.streamCompletion = async () => {
+    councilCalls += 1;
+    const err = new Error('connect ECONNREFUSED 127.0.0.1:11434');
+    err.code = 'ECONNREFUSED';
+    throw err;
+  };
+  const councilStarted = Date.now();
+  const council = await dispatch(server, 'POST', '/api/agents/council/deliberate', {
+    topic: 'Fail closed without hanging',
+    mode: 'architecture'
+  });
+  assert.strictEqual(council.status, 200);
+  assert.strictEqual(council.body.live, false);
+  assert.strictEqual(council.body.rounds.length, 4);
+  assert.ok(councilCalls <= 1, `council must fail-fast, got ${councilCalls} live calls`);
+  assert.ok(Date.now() - councilStarted < 3000, 'council must not wait on a dead Ollama');
+  console.log('  ✔ council fail-fast when the model is unreachable');
+
+  const heal = await dispatch(server, 'POST', '/api/loop/heal', {
+    errorTrace: 'TypeError: x at file.js:1:1',
+    apply: false
+  });
+  assert.strictEqual(heal.status, 200);
+  assert.strictEqual(heal.body.generatedBy, 'heuristic-template');
+  assert.doesNotMatch(String(heal.body.suggestedPatch || ''), /Auto-Healed by OAS/);
+  console.log('  ✔ heal patch is labeled as a heuristic template');
 }
 
 if (require.main === module) {

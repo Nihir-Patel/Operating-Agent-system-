@@ -346,3 +346,35 @@ jobs:
 
       - name: Run lint
         run: npm run lint
+
+  studio:
+    name: Local Studio 0.9
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '20.x'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run Local Studio honesty and control-plane tests
+        run: |
+          node tests/studio-honesty.test.js
+          node tests/os-sandbox.test.js
+          node tests/remaining-control-plane.test.js
+          node tests/path-leases.test.js
+          node tests/control-plane-durability.test.js
+          node tests/cost-ledger.test.js
+          node tests/security-controls.test.js
+          node tests/llm-gateway.test.js
+          node tests/work-inbox.test.js
+          node tests/heal-worktree.test.js

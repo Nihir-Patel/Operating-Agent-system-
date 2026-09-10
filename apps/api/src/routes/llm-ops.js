@@ -9,7 +9,8 @@ const { execSync, spawn } = require('child_process');
 const { isInsideWorkspace } = require('../../../../packages/engine/src/path-guard');
 const { resolveDefaultModel } = require('../../../../packages/engine/src/model-registry');
 const { fromGithubWebhook } = require('../../../../packages/engine/src/work-inbox');
-const { resolveSandboxedSpawn } = require('../../../../packages/engine/src/os-sandbox');
+const { resolveSandboxedSpawn, isOsIsolationUnavailable } = require('../../../../packages/engine/src/os-sandbox');
+const { isLiveLlmUnavailable } = require('../../../../packages/engine/src/llm-gateway');
 
 module.exports = async function llmOpsRoutes(req, res, pathname, parsedUrl) {
 // --- STEP 1: LIVE TERMINAL EXECUTION & AUTONOMOUS SELF-HEALING LOOP ---
@@ -40,59 +41,83 @@ if (pathname === '/api/terminal/execute' && req.method === 'POST') {
 
     const timeoutMs = Math.min(Number(body.timeoutMs) || 20000, 60000);
     const startTime = Date.now();
-    const launched = resolveSandboxedSpawn(cmd, targetCwd);
+    let launched = resolveSandboxedSpawn(cmd, targetCwd);
+    let retriedWithoutOsJail = false;
 
     res.oasPending = true;
-    const child = spawn(launched.file, launched.args, {
-      cwd: targetCwd,
-      env: {
-        ...process.env,
-        PATH: `/usr/local/bin:/opt/homebrew/bin:${process.env.PATH || ''}`
-      }
-    });
-    let stdout = '';
-    let stderr = '';
-    let settled = false;
-    const killer = setTimeout(() => {
-      try { child.kill('SIGKILL'); } catch { /* already exited */ }
-    }, timeoutMs);
-    const finish = (payload) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(killer);
-      if (launched.profileFile) {
-        try { fs.unlinkSync(launched.profileFile); } catch { /* tmp profile */ }
-      }
-      return this.sendJson(res, 200, payload);
+    const spawnEnv = {
+      ...process.env,
+      PATH: `/usr/local/bin:/opt/homebrew/bin:${process.env.PATH || ''}`
     };
-    child.stdout.on('data', chunk => { stdout += chunk; });
-    child.stderr.on('data', chunk => { stderr += chunk; });
-    child.on('close', (code) => {
-      const durationMs = Date.now() - startTime;
-      const exitCode = code == null ? 1 : code;
-      return finish({
-        command: cmd,
-        exitCode,
-        stdout: stdout.slice(0, 1024 * 1024 * 2),
-        stderr: stderr.slice(0, 1024 * 1024 * 2),
-        durationMs,
-        success: exitCode === 0,
-        isolation: launched.isolation,
-        timestamp: new Date().toISOString()
+
+    const runAttempt = (attempt) => {
+      const child = spawn(attempt.file, attempt.args, {
+        cwd: targetCwd,
+        env: spawnEnv
       });
-    });
-    child.on('error', (error) => {
-      return finish({
-        command: cmd,
-        exitCode: 1,
-        stdout: '',
-        stderr: error.message,
-        durationMs: Date.now() - startTime,
-        success: false,
-        isolation: launched.isolation,
-        timestamp: new Date().toISOString()
+      let stdout = '';
+      let stderr = '';
+      let settled = false;
+      const killer = setTimeout(() => {
+        try { child.kill('SIGKILL'); } catch { /* already exited */ }
+      }, timeoutMs);
+      const cleanupProfile = () => {
+        if (attempt.profileFile) {
+          try { fs.unlinkSync(attempt.profileFile); } catch { /* tmp profile */ }
+        }
+      };
+      const finish = (payload) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(killer);
+        cleanupProfile();
+        return this.sendJson(res, 200, payload);
+      };
+      child.stdout.on('data', chunk => { stdout += chunk; });
+      child.stderr.on('data', chunk => { stderr += chunk; });
+      child.on('close', (code) => {
+        const exitCode = code == null ? 1 : code;
+        if (
+          !retriedWithoutOsJail
+          && isOsIsolationUnavailable(attempt.isolation, exitCode, stderr)
+        ) {
+          retriedWithoutOsJail = true;
+          settled = true;
+          clearTimeout(killer);
+          cleanupProfile();
+          const fallback = resolveSandboxedSpawn(cmd, targetCwd, {
+            sandboxExecPath: null,
+            bwrapPath: null
+          });
+          return runAttempt(fallback);
+        }
+        return finish({
+          command: cmd,
+          exitCode,
+          stdout: stdout.slice(0, 1024 * 1024 * 2),
+          stderr: stderr.slice(0, 1024 * 1024 * 2),
+          durationMs: Date.now() - startTime,
+          success: exitCode === 0,
+          isolation: attempt.isolation,
+          isolationFallback: retriedWithoutOsJail ? 'os-jail-denied' : undefined,
+          timestamp: new Date().toISOString()
+        });
       });
-    });
+      child.on('error', (error) => {
+        return finish({
+          command: cmd,
+          exitCode: 1,
+          stdout: '',
+          stderr: error.message,
+          durationMs: Date.now() - startTime,
+          success: false,
+          isolation: attempt.isolation,
+          timestamp: new Date().toISOString()
+        });
+      });
+    };
+
+    runAttempt(launched);
     return;
   } catch (err) {
     return this.sendJson(res, 500, { error: err.message });
@@ -147,7 +172,7 @@ if (pathname === '/api/loop/heal' && req.method === 'POST') {
       lineNum = parseInt(lineMatch[2], 10);
     }
 
-    const suggestedPatch = `// [Auto-Healed by OAS build-error-resolver agent]\n// Resolved ${errorType} at line ${lineNum}\ntry {\n  /* validated safe execution block */\n} catch (guardErr) {\n  console.warn('[OAS Self-Heal Guard]', guardErr.message);\n}`;
+    const suggestedPatch = `// Heuristic template — not an LLM patch\n// Classified ${errorType} at line ${lineNum}\ntry {\n  /* review this block before applying */\n} catch (guardErr) {\n  console.warn('[OAS Self-Heal Guard]', guardErr.message);\n}`;
     const diff = `--- a/${extractedFile}\n+++ b/${extractedFile}\n@@ -${lineNum},3 +${lineNum},7 @@\n-${errorTrace.split('\n')[0] || '// offending code line'}\n+${suggestedPatch.split('\n').join('\n+')}`;
 
     const base = {
@@ -162,6 +187,7 @@ if (pathname === '/api/loop/heal' && req.method === 'POST') {
       applied: false,
       appliedInWorktree: false,
       verified: false,
+      generatedBy: 'heuristic-template',
       agent: 'build-error-resolver',
       timestamp: new Date().toISOString()
     };
@@ -239,19 +265,30 @@ if (pathname === '/api/agents/council/deliberate' && req.method === 'POST') {
 
     const settings = this.store.getSettings() || {};
     const rounds = [];
+    let live = true;
+    let liveError = null;
     for (const [i, member] of participants.entries()) {
       const agentDef = (this.cachedCatalog?.agents || []).find(a => a.id === member.id) || { id: member.id };
       let text = '';
-      try {
-        const completion = await this.gateway.streamCompletion({
-          model: settings.ollamaModel || settings.defaultModel || resolveDefaultModel(),
-          systemPrompt: agentDef.systemPrompt || `You are the OAS ${member.id} agent. Reply in 3 short sentences.`,
-          prompt: `Council mode: ${mode}\nTopic: ${topic}\nGive your stance and 3 short invariants as a bullet list.`,
-          maxTokens: 180
-        });
-        text = (completion.text || '').trim();
-      } catch (err) {
-        text = `${member.id} model call failed: ${err.code || err.message}`;
+      if (!live) {
+        text = `${member.id} skipped live model (${liveError && (liveError.code || liveError.message)}). Configure BYOK or Ollama in Settings.\n- No live model for ${member.id}\n- Topic remains: ${topic}\n- Fail-closed after the first unreachable provider`;
+      } else {
+        try {
+          const completion = await this.gateway.streamCompletion({
+            model: settings.ollamaModel || settings.defaultModel || resolveDefaultModel(),
+            systemPrompt: agentDef.systemPrompt || `You are the OAS ${member.id} agent. Reply in 3 short sentences.`,
+            prompt: `Council mode: ${mode}\nTopic: ${topic}\nGive your stance and 3 short invariants as a bullet list.`,
+            maxTokens: 180,
+            timeoutMs: Math.min(Number(body.timeoutMs) || 5000, 15000)
+          });
+          text = (completion.text || '').trim();
+        } catch (err) {
+          text = `${member.id} model call failed: ${err.code || err.message}`;
+          if (isLiveLlmUnavailable(err)) {
+            live = false;
+            liveError = err;
+          }
+        }
       }
       const invariants = text.split('\n').filter(line => /^\s*[-*]/.test(line)).slice(0, 3).map(l => l.replace(/^\s*[-*]\s*/, ''));
       rounds.push({
@@ -259,7 +296,7 @@ if (pathname === '/api/agents/council/deliberate' && req.method === 'POST') {
         speaker: member.speaker,
         avatar: member.avatar,
         stance: text || `${member.id} returned empty model output.`,
-        confidence: text.length > 40 ? 0.7 : 0.3,
+        confidence: live && text.length > 40 ? 0.7 : 0.3,
         keyInvariants: invariants.length ? invariants : ['No structured invariants returned']
       });
     }
@@ -271,6 +308,8 @@ if (pathname === '/api/agents/council/deliberate' && req.method === 'POST') {
       councilId: `council-${Date.now()}`,
       topic,
       mode,
+      live,
+      liveError: liveError ? (liveError.code || liveError.message) : undefined,
       consensusScore,
       status: 'DELIBERATED',
       participants: participants.map(p => p.id),

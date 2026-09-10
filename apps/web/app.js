@@ -2499,7 +2499,7 @@ async function switchKgLayout(mode) {
     } else if (mode === 'hierarchy') {
       const tiers = { 'Agents': 1, 'Skills': 2, 'Commands': 3, 'MCPs': 4 };
       const catCounts = { 'Agents': 0, 'Skills': 0, 'Commands': 0, 'MCPs': 0 };
-      const catTotals = { 'Agents': 68, 'Skills': 286, 'Commands': 94, 'MCPs': 35 };
+      const catTotals = { 'Agents': 68, 'Skills': 286, 'Commands': 94, 'MCPs': 36 };
       kgData.nodes.forEach(node => {
         const cat = node.category || 'Skills';
         const tier = tiers[cat] || 2;
@@ -2595,7 +2595,7 @@ function initKgSimulation() {
     'Agents':   { x: 210,  y: -110, z: 90,   spread: 220, count: 68 },
     'Skills':   { x: -180, y: 110,  z: -60,  spread: 280, count: 286 },
     'Commands': { x: -230, y: -130, z: 110,  spread: 210, count: 94 },
-    'MCPs':     { x: 210,  y: 150,  z: -50,  spread: 180, count: 35 }
+    'MCPs':     { x: 210,  y: 150,  z: -50,  spread: 180, count: 36 }
   };
 
   const catCounters = {};
@@ -4297,7 +4297,7 @@ async function loadHudStatus() {
       const payloadView = document.getElementById('hud-status-payload-view');
 
       if (elSpend && data.cost) elSpend.textContent = `$${data.cost.sessionUsd.toFixed(2)} / $${data.cost.budgetUsd.toFixed(2)}`;
-      if (elTrend && data.cost) elTrend.textContent = `● ${data.cost.trend}`;
+      if (elTrend && data.cost) elTrend.textContent = `● ${data.cost.trend} · local BYOK ledger, not OAS credits`;
       if (elRisk && data.risk) {
         elRisk.textContent = (data.risk.status || 'SAFE').toUpperCase();
         elRisk.style.color = data.risk.status === 'safe' ? 'var(--status-active)' : 'var(--status-warning)';
@@ -4317,7 +4317,14 @@ async function loadHudStatus() {
       if (elHandoff && data.sync?.handoff) elHandoff.textContent = data.sync.handoff.written ? '● Handoff written' : '○ Handoff pending';
 
       if (payloadView) {
-        payloadView.textContent = JSON.stringify(data, null, 2);
+        let ledger = null;
+        try {
+          const ledgerRes = await fetch('/api/cost/ledger');
+          if (ledgerRes.ok) ledger = await ledgerRes.json();
+        } catch {
+          ledger = { error: 'cost ledger unavailable' };
+        }
+        payloadView.textContent = JSON.stringify({ hud: data, costLedger: ledger }, null, 2);
       }
     }
   } catch (err) {
@@ -4563,13 +4570,18 @@ async function loadTcasAirspace() {
       const advisories = data.advisories || [];
       const positions = data.positions || {};
       const triggers = data.triggers || [];
+      const leases = data.leases || [];
+      const source = data.source || 'none';
+      const positionEntries = Array.isArray(positions)
+        ? positions.map(p => [p.agentId, p.position || []])
+        : Object.entries(positions);
 
       container.innerHTML = `
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
           <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 6px; padding: 10px;">
             <div style="font-size: 10px; color: var(--text-muted);">AIRSPACE AGENTS</div>
-            <div style="font-size: 16px; font-weight: 700; color: #F59E0B;">${data.counts?.agents || Object.keys(positions).length}</div>
-            <div style="font-size: 10px; color: var(--text-secondary);">Embedded in 3D Code-Space</div>
+            <div style="font-size: 16px; font-weight: 700; color: #F59E0B;">${data.counts?.agents || positionEntries.length}</div>
+            <div style="font-size: 10px; color: var(--text-secondary);">Source: ${escapeHtml(source)}${leases.length ? ` · ${leases.length} leases` : ''}</div>
           </div>
           <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; padding: 10px;">
             <div style="font-size: 10px; color: var(--text-muted);">TRAFFIC ADVISORIES</div>
@@ -4586,12 +4598,12 @@ async function loadTcasAirspace() {
         <div style="background: rgba(5, 9, 20, 0.9); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 12px; margin-bottom: 12px;">
           <div style="font-weight: 700; font-size: 12px; margin-bottom: 8px; color: #F1F5F9;">3D Code-Space Coordinates & Embedding</div>
           <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
-            ${Object.entries(positions).map(([agent, pos]) => `
+            ${positionEntries.length ? positionEntries.map(([agent, pos]) => `
               <div style="background: rgba(15, 23, 42, 0.6); padding: 8px 10px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-weight: 600; color: #38BDF8; font-size: 12px;">${escapeHtml(agent)}</span>
-                <span style="font-family: monospace; font-size: 10px; color: #94A3B8;">[${pos.map(n => n.toFixed(2)).join(', ')}]</span>
+                <span style="font-weight: 600; color: #38BDF8; font-size: 12px;">${escapeHtml(String(agent))}</span>
+                <span style="font-family: monospace; font-size: 10px; color: #94A3B8;">[${(Array.isArray(pos) ? pos : []).map(n => Number(n).toFixed(2)).join(', ')}]</span>
               </div>
-            `).join('')}
+            `).join('') : '<div style="color: #94A3B8; font-size: 11px;">No live path leases. Airspace is empty until agents acquire exclusive file leases.</div>'}
           </div>
         </div>
 

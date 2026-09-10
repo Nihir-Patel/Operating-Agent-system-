@@ -38,6 +38,28 @@ function extractGeminiText(raw) {
   return texts.join('');
 }
 
+function resolveLlmTimeoutMs(params, fallbackMs) {
+  const n = Number(params && params.timeoutMs);
+  if (Number.isFinite(n) && n > 0) return n;
+  return fallbackMs;
+}
+
+function isLiveLlmUnavailable(err) {
+  if (!err) return false;
+  const code = String(err.code || '');
+  if (
+    code === 'NO_PROVIDER_CONFIGURED'
+    || code === 'LLM_TIMEOUT'
+    || code === 'ECONNREFUSED'
+    || code === 'ENOTFOUND'
+    || code === 'ETIMEDOUT'
+    || code === 'ECONNRESET'
+  ) {
+    return true;
+  }
+  return /ECONNREFUSED|ENOTFOUND|ETIMEDOUT|not configured|timed out/i.test(String(err.message || ''));
+}
+
 function isRetryableError(err) {
   if (!err) return false;
   if (err.code === 'NO_PROVIDER_CONFIGURED') return false;
@@ -135,9 +157,10 @@ class UniversalModelGateway {
     throw lastError;
   }
 
-  attachTimeout(req, reject) {
-    req.setTimeout(this.timeoutMs, () => {
-      const err = new Error(`LLM request timed out after ${this.timeoutMs}ms`);
+  attachTimeout(req, reject, timeoutMs) {
+    const ms = resolveLlmTimeoutMs({ timeoutMs }, this.timeoutMs);
+    req.setTimeout(ms, () => {
+      const err = new Error(`LLM request timed out after ${ms}ms`);
       err.code = 'LLM_TIMEOUT';
       req.destroy(err);
       reject(err);
@@ -191,7 +214,7 @@ class UniversalModelGateway {
         });
       });
 
-      this.attachTimeout(req, reject);
+      this.attachTimeout(req, reject, resolveLlmTimeoutMs(params, this.timeoutMs));
       req.on('error', reject);
       req.write(payload);
       req.end();
@@ -246,7 +269,7 @@ class UniversalModelGateway {
         });
       });
 
-      this.attachTimeout(req, reject);
+      this.attachTimeout(req, reject, resolveLlmTimeoutMs(params, this.timeoutMs));
       req.on('error', reject);
       req.write(payload);
       req.end();
@@ -278,7 +301,7 @@ class UniversalModelGateway {
           resolve({ text: fullText, provider: 'gemini', model });
         });
       });
-      this.attachTimeout(req, reject);
+      this.attachTimeout(req, reject, resolveLlmTimeoutMs(params, this.timeoutMs));
       req.on('error', reject);
       req.write(payload);
       req.end();
@@ -353,7 +376,7 @@ class UniversalModelGateway {
           resolve({ text: fullText, toolCalls, provider: 'ollama', model: selectedModel });
         });
       });
-      this.attachTimeout(req, reject);
+      this.attachTimeout(req, reject, resolveLlmTimeoutMs(params, this.timeoutMs));
       req.on('error', reject);
       req.write(payload);
       req.end();
@@ -363,5 +386,7 @@ class UniversalModelGateway {
 
 module.exports = {
   UniversalModelGateway,
-  extractGeminiText
+  extractGeminiText,
+  resolveLlmTimeoutMs,
+  isLiveLlmUnavailable
 };

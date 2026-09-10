@@ -90,9 +90,18 @@ function resolveSandboxedSpawn(cmd, cwd, options = {}) {
   };
 }
 
+function isOsIsolationUnavailable(isolation, exitCode, stderr) {
+  if (isolation !== 'seatbelt' && isolation !== 'bwrap') return false;
+  if (Number(exitCode) === 71) return true;
+  const err = String(stderr || '');
+  return /sandbox_apply:\s*Operation not permitted/i.test(err)
+    || /bwrap:.*Operation not permitted/i.test(err);
+}
+
 module.exports = {
   buildSeatbeltProfile,
   detectSandboxExec,
   detectBwrap,
-  resolveSandboxedSpawn
+  resolveSandboxedSpawn,
+  isOsIsolationUnavailable
 };

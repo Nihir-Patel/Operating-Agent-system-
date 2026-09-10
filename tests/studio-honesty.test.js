@@ -89,6 +89,8 @@ async function run() {
   assert.doesNotMatch(indexHtml, /<(div|span|h1|title|button)[^>]*>\s*Cloud Control Plane/i);
   assert.doesNotMatch(indexHtml, /brand-badge">Cloud Control Plane/i);
   assert.doesNotMatch(indexHtml, /Enterprise v2\.2\.1/);
+  assert.doesNotMatch(indexHtml, /\$0\.84 \/ \$10\.00/);
+  assert.match(indexHtml, /not OAS credits/i);
   assert.ok(indexHtml.includes('Simulate Step'), 'DAG simulate button must be labeled Simulate Step');
   assert.ok(indexHtml.includes('title="Marks the next DAG node complete without calling a model"')
     || indexHtml.includes('without calling a model'), 'Simulate Step must disclose it is not an LLM run');
@@ -106,6 +108,8 @@ async function run() {
   assert.ok(appJs.includes('scanEngine') || appJs.includes('scanner'), 'security UI must render API scanner identity');
   assert.doesNotMatch(appJs, /142 indicators tracked/);
   assert.doesNotMatch(appJs, /Zero-Day IOC Scan/);
+  assert.match(appJs, /'MCPs':\s*36/);
+  assert.doesNotMatch(appJs, /'MCPs':\s*35/);
   console.log('  ✔ app.js Auto Run + honest security render');
 
   assert.match(workingContext, /2\.2\.1/);

@@ -4,7 +4,11 @@
 
 const assert = require('assert');
 const { spawnSync } = require('child_process');
-const { buildSeatbeltProfile, resolveSandboxedSpawn } = require('../packages/engine/src/os-sandbox');
+const {
+  buildSeatbeltProfile,
+  resolveSandboxedSpawn,
+  isOsIsolationUnavailable
+} = require('../packages/engine/src/os-sandbox');
 
 function run() {
   console.log('\n=== OS SANDBOX ===\n');
@@ -33,6 +37,15 @@ function run() {
   const echoed = spawnSync(policy.file, policy.args, { encoding: 'utf8', timeout: 5000 });
   assert.ok(String(echoed.stdout || '').includes('OAS_SANDBOX_OK'));
   console.log('  ✔ non-darwin stays policy-only');
+
+  assert.strictEqual(isOsIsolationUnavailable('seatbelt', 71, ''), true);
+  assert.strictEqual(
+    isOsIsolationUnavailable('seatbelt', 1, 'sandbox-exec: sandbox_apply: Operation not permitted'),
+    true
+  );
+  assert.strictEqual(isOsIsolationUnavailable('seatbelt', 0, ''), false);
+  assert.strictEqual(isOsIsolationUnavailable('policy-only', 71, ''), false);
+  console.log('  ✔ seatbelt denial (exit 71) is a policy-only fallback');
 }
 
 run();

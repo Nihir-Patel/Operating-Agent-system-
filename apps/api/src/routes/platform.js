@@ -347,7 +347,7 @@ if (pathname === '/api/proximity' && (req.method === 'GET' || req.method === 'PO
   try {
     const { scanAirspace, buildProximityTriggers } = require('../../../../scripts/lib/agent-proximity/index');
     let agentsList = [];
-    let source = 'sample';
+    let source = 'none';
     if (req.method === 'POST') {
       const body = await this.parseBody(req);
       if (Array.isArray(body.agents)) agentsList = body.agents;
@@ -360,13 +360,8 @@ if (pathname === '/api/proximity' && (req.method === 'GET' || req.method === 'PO
       source = 'leases';
     }
     if (!agentsList.length) {
-      agentsList = [
-        { agentId: 'planner', touchedFiles: [{ path: 'apps/api/src/server.js', lines: [100, 200] }], intent: ['apps/web/app.js'] },
-        { agentId: 'tdd-guide', touchedFiles: [{ path: 'apps/api/src/server.js', lines: [180, 240] }], intent: ['tests/oas-spec-compliance.test.js'] },
-        { agentId: 'code-reviewer', touchedFiles: [{ path: 'packages/db/src/index.js', lines: [10, 80] }] },
-        { agentId: 'security-reviewer', touchedFiles: [{ path: 'packages/db/src/index.js', lines: [20, 60] }], intent: ['apps/api/src/server.js'] }
-      ];
-      source = 'sample';
+      agentsList = [];
+      source = 'none';
     }
     const scanAgents = agentsList.map(toProximityScanAgent);
     const airspace = scanAirspace(scanAgents);

@@ -6,6 +6,7 @@
 const assert = require('assert');
 const path = require('path');
 const { UniversalModelGateway, AgentRunner, ExecutionSandbox, extractGeminiText } = require('../packages/engine/src/index');
+const { resolveLlmTimeoutMs, isLiveLlmUnavailable } = require('../packages/engine/src/llm-gateway');
 
 async function testGateway() {
   console.log('=== TESTING UNIVERSAL MODEL GATEWAY & AGENT RUNNER ===');
@@ -67,6 +68,14 @@ async function testGateway() {
   }));
   assert.strictEqual(geminiText, 'parsed-ok');
   console.log('[Test 4] Ollama default routing and provider integration verified.');
+
+  assert.strictEqual(resolveLlmTimeoutMs({ timeoutMs: 5000 }, 60000), 5000);
+  assert.strictEqual(resolveLlmTimeoutMs({}, 60000), 60000);
+  assert.strictEqual(isLiveLlmUnavailable({ code: 'ECONNREFUSED' }), true);
+  assert.strictEqual(isLiveLlmUnavailable({ code: 'LLM_TIMEOUT' }), true);
+  assert.strictEqual(isLiveLlmUnavailable({ code: 'NO_PROVIDER_CONFIGURED' }), true);
+  assert.strictEqual(isLiveLlmUnavailable({ code: 'RATE_LIMIT' }), false);
+  console.log('[Test 5] Per-request timeout and live-unavailable classification verified.');
 
   console.log('\n======================================================');
   console.log('  LIVE LLM EXECUTION INTEGRATION TESTS PASSED (100%)');
