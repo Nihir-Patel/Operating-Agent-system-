@@ -15,6 +15,7 @@ const { OasParser } = require('../../../packages/parser/src/parser');
 const { MemoryStore } = require('../../../packages/db/src/index');
 const { AgentDagScheduler, ExecutionSandbox, StrategicCompactor, UniversalModelGateway, AgentRunner, WorktreeRunner, CommandRunner, summarizeCostLedger, recordInferenceCost, resolveRoute, assertWithinBudget, PathLeaseRegistry, summarizeInbox } = require('../../../packages/engine/src/index');
 const { AuthMiddleware } = require('./middleware/auth');
+const { assertProviderReady } = require('../../../packages/engine/src/studio-first-run');
 const { isInsideWorkspace } = require('../../../packages/engine/src/path-guard');
 const { getContextWindow, resolveDefaultModel } = require('../../../packages/engine/src/model-registry');
 const { dispatchRoutes } = require('./routes');
@@ -108,6 +109,7 @@ class OasControlPlaneServer {
   }
 
   async executeActiveNode(sessionId, body = {}) {
+    assertProviderReady(this.store.getSettings() || {}, process.env);
     const ledger = this.getCostLedger();
     assertWithinBudget(ledger);
 

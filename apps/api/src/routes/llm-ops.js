@@ -9,6 +9,7 @@ const { execSync, spawn } = require('child_process');
 const { isInsideWorkspace } = require('../../../../packages/engine/src/path-guard');
 const { resolveDefaultModel } = require('../../../../packages/engine/src/model-registry');
 const { fromGithubWebhook } = require('../../../../packages/engine/src/work-inbox');
+const { formatGithubSessionTitle } = require('../../../../packages/engine/src/studio-labels');
 const { resolveSandboxedSpawn, isOsIsolationUnavailable } = require('../../../../packages/engine/src/os-sandbox');
 const { isLiveLlmUnavailable } = require('../../../../packages/engine/src/llm-gateway');
 
@@ -413,15 +414,20 @@ if (pathname === '/api/webhooks/github' && req.method === 'POST') {
     }
     const event = body.event || req.headers['x-github-event'] || 'issues';
     const action = body.action || 'labeled';
-    const issueNumber = body.issue ? body.issue.number : (body.issueNumber || 101);
-    const issueTitle = body.issue ? body.issue.title : (body.issueTitle || 'Fix intermittent timeout in test suite');
+    const issue = body.issue && typeof body.issue === 'object' ? body.issue : null;
+    const issueNumber = issue && issue.number != null ? issue.number : (body.issueNumber != null ? body.issueNumber : null);
+    const issueTitle = (issue && issue.title)
+      || body.issueTitle
+      || (issueNumber != null ? 'Untitled issue' : 'Webhook received (no issue payload)');
+    const htmlUrl = (issue && (issue.html_url || issue.url)) || body.html_url || '';
+    const sample = !/^https:\/\/github\.com\//i.test(String(htmlUrl));
 
-    const assignedAgent = (body.label === 'security' || issueTitle.includes('security'))
+    const assignedAgent = (body.label === 'security' || String(issueTitle).includes('security'))
       ? 'security-reviewer'
       : 'build-error-resolver';
 
     const newSession = this.store.createSession({
-      title: `GitHub Issue #${issueNumber}: ${issueTitle}`,
+      title: formatGithubSessionTitle({ issueNumber, issueTitle, sample }),
       lead_agent_id: assignedAgent,
       model: resolveDefaultModel(),
       status: 'running',
@@ -429,7 +435,8 @@ if (pathname === '/api/webhooks/github' && req.method === 'POST') {
         source: 'github-webhook',
         event,
         action,
-        issueNumber
+        issueNumber,
+        sample
       }
     });
 
@@ -437,9 +444,9 @@ if (pathname === '/api/webhooks/github' && req.method === 'POST') {
     if (this.store.saveWorkItem) {
       const workItem = fromGithubWebhook({
         ...body,
-        issue: body.issue || { number: issueNumber, title: issueTitle, html_url: body.html_url }
+        issue: issue || { number: issueNumber, title: issueTitle, html_url: htmlUrl }
       });
-      const saved = this.store.saveWorkItem({ ...workItem, sessionId: newSession.id });
+      const saved = this.store.saveWorkItem({ ...workItem, sessionId: newSession.id, sample });
       workItemId = saved && saved.id;
     }
 

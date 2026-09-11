@@ -5,11 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OAS Local Studio</title>
   <meta name="description" content="OAS Local Studio 0.9 — loopback operator UI for the OAS plugin catalog (68 agents, 286 skills, 94 commands). Runs on 127.0.0.1 with BYOK. Not a hosted cloud control plane.">
-  <link rel="stylesheet" href="styles.css?v=2.2.2">
+  <link rel="stylesheet" href="styles.css?v=2.2.21">
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to main content</a>
-  <div class="app-container" id="oas-app-root">
+  <div class="modal-overlay" id="first-run-checklist" style="display: none; z-index: 10001;" role="dialog" aria-modal="true" aria-labelledby="first-run-title">
+    <div class="modal-dialog" style="max-width: 640px;">
+      <div class="modal-header">
+        <div>
+          <h3 id="first-run-title" style="font-size: 16px; font-weight: 700;">Studio first-run checklist</h3>
+          <span class="badge-tag" style="margin-top: 4px;">Open and work</span>
+        </div>
+        <button type="button" class="btn btn-secondary" id="first-run-checklist-close" style="padding: 4px 8px;" aria-label="Close first-run checklist">Close</button>
+      </div>
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px;">
+        <p id="first-run-summary" style="font-size: 13px; color: var(--text-muted); margin: 0;">
+          Confirm a model provider, then use Settings for GitHub or Linear inbox tokens. OAS2, Itô, and multi-* commands are optional.
+        </p>
+        <ul id="first-run-items" style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px;"></ul>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; gap: 8px;">
+        <button type="button" class="btn btn-secondary" id="btn-first-run-open-settings">Open Settings</button>
+        <button type="button" class="btn btn-primary" id="btn-first-run-dismiss">Continue</button>
+      </div>
+    </div>
+  </div>
+  <div class="app-container cockpit-shell" id="oas-app-root">
     <!-- Left Navigation Sidebar -->
     <aside class="sidebar" id="oas-sidebar" aria-label="Studio views">
       <div class="brand-header">
@@ -74,8 +95,9 @@
       <!-- Top Navigation Header -->
       <header class="top-bar">
         <div class="top-bar-left">
+          <span class="ws-pane-kicker view-title-kicker" id="view-title-kicker">DAG</span>
           <h1 class="view-title" id="current-view-title" style="font-size: 14px;">
-            <span>Execution DAG Orchestrator</span>
+            <span>Execution DAG</span>
           </h1>
           <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
             <select id="global-session-select" class="session-dropdown" style="background: #0B1120; border: 1px solid var(--border-subtle); color: #93C5FD; font-size: 11px; padding: 4px 7px; border-radius: 6px; font-weight: 600; cursor: pointer; max-width: 175px;" title="Select active session"></select>
@@ -147,31 +169,31 @@
       </header>
 
       <!-- Subsystem Views Container -->
-      <div class="view-viewport">
+      <div class="view-viewport cockpit-fill">
         <!-- VIEW 1: AGENT EXECUTION CANVAS (INTERACTIVE DAG) -->
         <section class="view-panel active" id="view-dag" aria-label="Execution DAG Orchestrator">
           <div class="dag-container">
-            <div class="dag-canvas-area">
-              <div class="canvas-toolbar">
-                <div style="display: flex; gap: 8px; align-items: center;">
-                  <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Active Session:</span>
-                  <div style="display: flex; align-items: center; gap: 4px; background: rgba(5, 9, 20, 0.7); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px; padding: 2px 6px;">
-                    <input type="text" id="dag-session-input" class="editable-session-input" placeholder="Loading session..." style="background: transparent; border: none; color: #38BDF8; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; width: 220px;" title="Click to edit session ID or label" />
-                    <button class="btn btn-secondary" id="btn-save-session-name" style="padding: 2px 6px; font-size: 10px; height: 20px; line-height: 1; border-color: rgba(56, 189, 248, 0.3);" title="Save Session ID">✓</button>
-                  </div>
+            <div class="dag-canvas-area studio-pane">
+              <div class="canvas-toolbar cockpit-toolbar">
+                <div class="ws-pane-title-group">
+                  <span class="ws-pane-title">Execution Graph</span>
                   <span class="badge-tag" id="dag-session-label" style="color: var(--brand-blue); display: none;"></span>
-                  <span class="badge-tag" id="dag-session-status-badge" style="color: #10B981; border-color: rgba(16, 185, 129, 0.3); font-size: 10px; padding: 2px 6px;">ACTIVE</span>
+                  <span class="badge-tag" id="dag-session-status-badge" style="font-size: 10px; padding: 2px 6px;">IDLE</span>
                 </div>
-                <div style="display: flex; gap: 5px; align-items: center;">
+                <div class="dag-session-chip">
+                  <input type="text" id="dag-session-input" class="editable-session-input" placeholder="Session ID" title="Click to edit session ID or label" />
+                  <button class="btn btn-secondary" id="btn-save-session-name" style="padding: 2px 6px; font-size: 10px; height: 20px; line-height: 1; border-color: rgba(56, 189, 248, 0.3);" title="Save Session ID">Save</button>
+                </div>
+                <div class="cockpit-toolbar-cluster">
                   <button class="btn btn-secondary" id="btn-dag-zoom-in" style="font-size: 11px; padding: 4px 8px;" title="Zoom In">+</button>
                   <button class="btn btn-secondary" id="btn-dag-zoom-out" style="font-size: 11px; padding: 4px 8px;" title="Zoom Out">-</button>
                   <button class="btn btn-secondary" id="btn-dag-reset-zoom" style="font-size: 11px; padding: 4px 8px;" title="Reset View">Reset</button>
-                  <button class="btn btn-secondary" id="btn-dag-auto-layout" style="font-size: 11px; padding: 4px 8px;" title="Auto Layout">Auto Layout</button>
+                  <button class="btn btn-secondary" id="btn-dag-auto-layout" style="font-size: 11px; padding: 4px 8px;" title="Auto Layout">Layout</button>
                   <span style="width: 1px; height: 16px; background: var(--border-subtle); margin: 0 4px;"></span>
-                  <button class="btn btn-secondary" id="btn-dag-simulate-step" style="font-size: 11px; padding: 4px 9px;" title="Marks the next DAG node complete without calling a model">Simulate Step</button>
-                  <button class="btn btn-secondary" id="btn-dag-pause" style="font-size: 11px; padding: 4px 9px;">Pause</button>
-                  <button class="btn btn-primary" id="btn-dag-auto-run" style="font-size: 11px; padding: 4px 9px;" title="POST /pipeline/run — executes pending DAG nodes with the configured LLM">Auto Run</button>
-                  <button class="btn btn-secondary" id="btn-toggle-3d-topology" style="font-size: 11px; padding: 4px 9px; color: #818CF8; border-color: rgba(129, 140, 248, 0.3);" title="Switch between 2D SVG Graph and Interactive 3D Architecture Topology">🌌 3D Topology</button>
+                  <button class="btn btn-secondary" id="btn-dag-simulate-step" style="font-size: 11px; padding: 4px 8px;" title="Marks the next DAG node complete without calling a model">Step</button>
+                  <button class="btn btn-secondary" id="btn-dag-pause" style="font-size: 11px; padding: 4px 8px;">Pause</button>
+                  <button class="btn btn-primary" id="btn-dag-auto-run" style="font-size: 11px; padding: 4px 8px;" title="POST /pipeline/run — executes pending DAG nodes with the configured LLM">Run</button>
+                  <button class="btn btn-secondary" id="btn-toggle-3d-topology" style="font-size: 11px; padding: 4px 8px; color: #818CF8; border-color: rgba(129, 140, 248, 0.3);" title="Switch between 2D SVG Graph and Interactive 3D Architecture Topology">3D</button>
                 </div>
               </div>
 
@@ -210,7 +232,11 @@
               </svg>
 
               <!-- Interactive 3D Architecture Topology Canvas (Step 4) -->
-              <canvas id="topology-3d-canvas" style="display: none; width: 100%; height: 560px; border-radius: 8px; cursor: grab; background: radial-gradient(circle at center, #0B1528 0%, #030712 100%);"></canvas>
+              <canvas id="topology-3d-canvas" class="topology-3d-canvas"></canvas>
+              <div id="topology-3d-hud" class="topology-3d-hud">
+                <span class="topology-3d-hud-kicker">3D TOPOLOGY</span>
+                <span id="topology-3d-counts" class="topology-3d-hud-counts">Loading /api/topology/3d</span>
+              </div>
 
               <!-- Time-Travel Execution Scrubber Bar (Direction B) -->
               <div id="dag-timeline-scrubber" class="dag-timeline-scrubber" style="display: flex; align-items: center; justify-content: space-between; padding: 6px 14px; background: rgba(5, 10, 24, 0.9); border-top: 1px solid rgba(56, 189, 248, 0.15); gap: 12px; z-index: 10;">
@@ -236,12 +262,13 @@
             </div>
 
             <!-- Right Node Inspector (Detail & Live Editable) -->
-            <div class="dag-inspector" id="dag-node-inspector">
-              <div class="inspector-title" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(56, 189, 248, 0.14); padding-bottom: 10px;">
-                <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="dag-inspector studio-pane" id="dag-node-inspector">
+              <div class="inspector-title cockpit-toolbar" style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="ws-pane-title-group">
+                  <span class="ws-pane-kicker">INSPECT</span>
                   <span class="status-dot" id="inspector-status-dot" style="width: 8px; height: 8px;"></span>
                   <span id="inspector-node-name" style="font-size: 14px; font-weight: 700; color: #F8FAFC;">tdd-guide</span>
-                  <span class="badge-tag font-mono" id="inspector-status-badge" style="font-size: 10px; color: #38BDF8; padding: 2px 6px;">RUNNING</span>
+                  <span class="badge-tag font-mono" id="inspector-status-badge" style="font-size: 10px; color: #94A3B8; padding: 2px 6px;">IDLE</span>
                 </div>
                 <select id="inspector-node-status-select" style="background: rgba(5, 9, 20, 0.9); border: 1px solid rgba(56, 189, 248, 0.25); color: #94A3B8; font-size: 10px; padding: 3px 6px; border-radius: 4px; cursor: pointer;" title="Change node lifecycle state">
                   <option value="running">RUNNING</option>
@@ -316,15 +343,13 @@
                   </div>
                 </div>
 
-                <!-- Save & Apply Changes -->
-                <div style="display: flex; gap: 6px; margin-top: 2px;">
-                  <button class="btn btn-primary" id="btn-save-agent-params" style="flex: 1; font-size: 11px; justify-content: center; height: 28px;">
+              </div>
+              <div class="inspector-footer">
+                <button class="btn btn-primary" id="btn-save-agent-params" style="flex: 1; font-size: 11px; justify-content: center; height: 32px;">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                    <span>Apply & Save Node</span>
-                  </button>
-                </div>
-
-                <div style="display: flex; gap: 8px; margin-top: auto;">
+                    <span>Apply &amp; Save Node</span>
+                </button>
+                <div class="inspector-footer-row">
                   <button class="btn btn-secondary" style="flex: 1; font-size: 11px; justify-content: center;" id="btn-inspector-diff">View Diff</button>
                   <button class="btn btn-secondary" style="flex: 1; font-size: 11px; justify-content: center; color: #F59E0B; border-color: rgba(245, 158, 11, 0.3);" id="btn-inspector-intervene">Intervene</button>
                 </div>
@@ -335,45 +360,49 @@
 
         <!-- VIEW 2: STREAMING WORKSPACE & VIRTUAL TERMINAL -->
         <section class="view-panel" id="view-workspace" aria-label="Live Streaming Workspace">
-          <div class="workspace-container" style="display: grid; grid-template-columns: 240px 1.15fr 1.15fr; gap: 12px; height: 100%;">
+          <div class="workspace-container workspace-cockpit">
             <!-- 1. Left: Workspace Filesystem Explorer -->
-            <div class="fs-explorer-pane" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); display: flex; flex-direction: column; overflow: hidden;">
-              <div class="pane-header" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--border-subtle);">
-                <span style="font-size: 12px; font-weight: 700; color: var(--text-primary);">Workspace Files</span>
-                <div style="display: flex; gap: 4px; align-items: center;">
-                  <button class="btn btn-secondary" id="btn-create-file" style="padding: 2px 6px; font-size: 9.5px;" title="Create New File">+ File</button>
-                  <button class="btn btn-secondary" id="btn-create-folder" style="padding: 2px 6px; font-size: 9.5px;" title="Create New Folder">+ Dir</button>
-                  <button class="btn btn-secondary" id="btn-refresh-fs" style="padding: 2px 6px; font-size: 10px;" title="Refresh Files">↺</button>
+            <div class="fs-explorer-pane ws-pane">
+              <div class="pane-header ws-pane-header">
+                <div class="ws-pane-title-group">
+                  <span class="ws-pane-kicker">FS</span>
+                  <span class="ws-pane-title">Workspace Files</span>
+                </div>
+                <div class="ws-pane-actions">
+                  <button class="btn btn-secondary ws-icon-btn" id="btn-create-file" title="Create New File">+ File</button>
+                  <button class="btn btn-secondary ws-icon-btn" id="btn-create-folder" title="Create New Folder">+ Dir</button>
+                  <button class="btn btn-secondary ws-icon-btn" id="btn-refresh-fs" title="Refresh Files">↺</button>
                 </div>
               </div>
-              <div style="padding: 8px 10px; border-bottom: 1px solid var(--border-subtle);">
-                <input type="text" id="fs-search-input" class="search-input" style="padding: 4px 8px; font-size: 11px; width: 100%; box-sizing: border-box;" placeholder="Filter files...">
+              <div class="ws-search-wrap">
+                <input type="text" id="fs-search-input" class="search-input" placeholder="Filter files...">
               </div>
-              <div class="fs-tree-scroll" id="fs-tree-container" tabindex="0" aria-label="Workspace files" style="flex: 1; overflow-y: auto; padding: 8px 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px;">
-                <div style="color: var(--text-muted); padding: 8px; text-align: center;">Loading file tree...</div>
+              <div class="fs-tree-scroll" id="fs-tree-container" tabindex="0" aria-label="Workspace files">
+                <div class="ws-tree-loading">Loading file tree...</div>
               </div>
             </div>
 
             <!-- 2. Center: Agent Thought Stream & Mission Dispatcher -->
-            <div class="thought-stream-pane" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); display: flex; flex-direction: column; overflow: hidden; position: relative;">
-              <div class="pane-header" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--border-subtle);">
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <span style="font-size: 12px; font-weight: 700;">Agent Thought Stream</span>
-                  <span id="agent-active-badge" class="badge-tag" style="font-size: 9.5px; color: #38BDF8;">planner active</span>
+            <div class="thought-stream-pane ws-pane">
+              <div class="pane-header ws-pane-header">
+                <div class="ws-pane-title-group">
+                  <span class="ws-pane-kicker">STREAM</span>
+                  <span class="ws-pane-title">Agent Thought Stream</span>
+                  <span id="agent-active-badge" class="badge-tag ws-agent-badge is-standby">STANDBY</span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <span class="badge-tag font-mono" id="stream-step-count" style="font-size: 9.5px; color: #94A3B8;">0 Steps</span>
-                  <span class="badge-tag" style="color: var(--status-active);">Live (SSE)</span>
+                <div class="ws-pane-meta">
+                  <span class="badge-tag font-mono" id="stream-step-count">0 Steps</span>
+                  <span class="badge-tag ws-sse-pill">Live SSE</span>
                 </div>
               </div>
 
               <!-- Stream scroll area -->
-              <div class="stream-scroll" id="thought-stream-content" style="flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+              <div class="stream-scroll" id="thought-stream-content">
                 <!-- Dynamically populated by loadSessionSteps(activeSessionId) -->
               </div>
 
               <!-- Integrated Control Dock (Clean, In-Flow, Non-Overlapping) -->
-              <div class="workspace-action-dock" style="display: flex; gap: 5px; padding: 6px 12px; background: rgba(5, 9, 20, 0.95); border-top: 1px solid var(--border-subtle); flex-wrap: wrap; align-items: center;">
+              <div class="workspace-action-dock">
                 <button class="btn btn-primary btn-sm dock-btn active" id="dock-run-loop" style="font-size: 10px; padding: 3px 9px; display: inline-flex; align-items: center; gap: 4px;">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                   <span>Run Loop</span>
@@ -397,7 +426,7 @@
               </div>
 
               <!-- Quick Starter Action Chips -->
-              <div class="mission-chips-bar" style="display: flex; gap: 4px; padding: 5px 12px; background: rgba(8, 14, 28, 0.85); overflow-x: auto; border-top: 1px solid rgba(56, 189, 248, 0.1);">
+              <div class="mission-chips-bar">
                 <button class="pill mission-chip" data-prompt="Run full TDD cycle for pending capabilities and verify 80%+ test coverage" style="font-size: 9.5px; padding: 2px 7px;">⚡ TDD Loop</button>
                 <button class="pill mission-chip" data-prompt="Run the lightweight workspace security scan and report IOC plus secret-shape findings" style="font-size: 9.5px; padding: 2px 7px;">Security Audit</button>
                 <button class="pill mission-chip" data-prompt="Diagnose and resolve all TypeScript/Node build errors" style="font-size: 9.5px; padding: 2px 7px;">🛠️ Build & Fix</button>
@@ -406,13 +435,13 @@
               </div>
 
               <!-- Agent Mission Prompt Composer -->
-              <div class="agent-prompt-composer" style="padding: 8px 12px; background: rgba(5, 9, 20, 0.98); border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 6px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span style="font-size: 9.5px; font-weight: 700; color: #93C5FD; display: flex; align-items: center; gap: 4px;">
-                    <span style="width: 6px; height: 6px; border-radius: 50%; background: #38BDF8; display: inline-block;"></span>
+              <div class="agent-prompt-composer">
+                <div class="ws-composer-head">
+                  <span class="ws-composer-label">
+                    <span class="ws-signal-dot" aria-hidden="true"></span>
                     AGENT MISSION COMPOSER
                   </span>
-                  <select id="agent-model-select" aria-label="Agent model" style="background: #0F172A; border: 1px solid rgba(56, 189, 248, 0.25); color: #38BDF8; font-size: 9.5px; padding: 1px 6px; border-radius: 4px;">
+                  <select id="agent-model-select" aria-label="Agent model">
                     <option value="Claude 3.7 Sonnet">Claude 3.7 Sonnet (Default)</option>
                     <option value="Claude 3.7 Opus">Claude 3.7 Opus</option>
                     <option value="GPT-4o">GPT-4o</option>
@@ -420,9 +449,9 @@
                     <option value="OAS Local">OAS Local Engine</option>
                   </select>
                 </div>
-                <div style="display: flex; gap: 8px; align-items: flex-end;">
-                  <textarea id="agent-mission-input" rows="2" aria-label="Agent mission prompt" style="flex: 1; background: #060B18; border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; padding: 6px 10px; font-family: 'Inter', sans-serif; font-size: 11px; color: #F1F5F9; resize: none; outline: none; line-height: 1.4;" placeholder="Direct active agent (e.g. 'Implement Redis caching with fallback' or click a quick chip above)..."></textarea>
-                  <button class="btn btn-primary" id="btn-send-mission" style="padding: 6px 12px; font-size: 11px; height: 32px; display: inline-flex; align-items: center; gap: 4px;" title="Execute mission with active agent">
+                <div class="ws-composer-row">
+                  <textarea id="agent-mission-input" rows="2" aria-label="Agent mission prompt" placeholder="Direct active agent (e.g. 'Implement Redis caching with fallback' or click a quick chip above)..."></textarea>
+                  <button class="btn btn-primary" id="btn-send-mission" title="Execute mission with active agent">
                     <span>Send</span>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                   </button>
@@ -431,26 +460,27 @@
             </div>
 
             <!-- 3. Right: File Code & Unified Diff Viewer + Terminal -->
-            <div class="diff-terminal-pane" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); display: flex; flex-direction: column; overflow: hidden; position: relative;">
-              <div class="pane-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--border-subtle); flex-wrap: wrap; gap: 6px;">
-                <div style="display: flex; gap: 6px; align-items: center;">
-                  <button class="btn btn-secondary active" id="tab-code-viewer" style="font-size: 10.5px; padding: 2px 7px;">Code Viewer</button>
-                  <button class="btn btn-secondary" id="tab-diff-viewer" style="font-size: 10.5px; padding: 2px 7px;">Terminal / Diff</button>
-                  <select id="workspace-worktree-select" style="background: #0B1120; border: 1px solid var(--border-subtle); color: #38BDF8; font-size: 10px; padding: 2px 6px; border-radius: 4px; cursor: pointer;" title="Switch Git Worktree / Branch">
+            <div class="diff-terminal-pane ws-pane">
+              <div class="pane-header ws-pane-header ws-pane-header-wrap">
+                <div class="ws-viewer-tabs">
+                  <span class="ws-pane-kicker">CODE</span>
+                  <button class="btn btn-secondary active" id="tab-code-viewer">Code Viewer</button>
+                  <button class="btn btn-secondary" id="tab-diff-viewer">Terminal / Diff</button>
+                  <select id="workspace-worktree-select" title="Switch Git Worktree / Branch">
                     <option value="main">Worktree: main (HEAD)</option>
                   </select>
                 </div>
-                <div style="display: flex; gap: 5px; align-items: center;">
-                  <span class="badge-tag font-mono" id="code-viewer-stats" style="font-size: 9.5px; color: var(--text-muted); display: none;">Lines: --</span>
-                  <button class="btn btn-secondary" id="btn-edit-workspace-file" style="font-size: 10px; padding: 2px 6px; color: #38BDF8; border-color: rgba(56, 189, 248, 0.3);" title="Edit file directly in browser">✏️ Edit</button>
-                  <button class="btn btn-primary" id="btn-save-workspace-file" style="display: none; font-size: 10px; padding: 2px 7px; background: #059669; border-color: #10B981;" title="Save file changes (⌘S)">💾 Save</button>
-                  <button class="btn btn-ghost" id="btn-cancel-edit-workspace-file" style="display: none; font-size: 10px; padding: 2px 6px;" title="Cancel edit">Cancel</button>
-                  <span class="badge-tag font-mono" id="code-viewer-file-badge" style="font-size: 10px;">package.json</span>
+                <div class="ws-viewer-meta">
+                  <span class="badge-tag font-mono" id="code-viewer-stats">Lines: --</span>
+                  <button class="btn btn-secondary" id="btn-edit-workspace-file" title="Edit file directly in browser">Edit</button>
+                  <button class="btn btn-primary" id="btn-save-workspace-file" title="Save file changes (⌘S)">Save</button>
+                  <button class="btn btn-ghost" id="btn-cancel-edit-workspace-file" title="Cancel edit">Cancel</button>
+                  <span class="badge-tag font-mono" id="code-viewer-file-badge">package.json</span>
                 </div>
               </div>
 
               <!-- Code Content Display with Line Numbers -->
-              <div id="workspace-code-display" tabindex="0" aria-label="File contents" style="flex: 1; overflow: auto; background: #050914; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #CBD5E1; line-height: 1.5; white-space: pre;">
+              <div id="workspace-code-display" tabindex="0" aria-label="File contents">
 // Loading workspace file...
               </div>
 
@@ -465,24 +495,24 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
               </div>
 
               <!-- Quick Terminal Command Chips -->
-              <div class="terminal-quick-chips" style="display: flex; gap: 4px; padding: 4px 12px; background: rgba(6, 11, 24, 0.95); border-top: 1px solid rgba(56, 189, 248, 0.1); overflow-x: auto; align-items: center;">
-                <span style="font-size: 9px; color: var(--text-muted); margin-right: 2px;">Quick:</span>
-                <button class="btn btn-ghost btn-sm term-chip" data-cmd="npm test" style="font-size: 9px; padding: 1px 6px;">npm test</button>
-                <button class="btn btn-ghost btn-sm term-chip" data-cmd="git status" style="font-size: 9px; padding: 1px 6px;">git status</button>
-                <button class="btn btn-ghost btn-sm term-chip" data-cmd="node -v" style="font-size: 9px; padding: 1px 6px;">node -v</button>
-                <button class="btn btn-ghost btn-sm term-chip" data-cmd="/security" style="font-size: 9px; padding: 1px 6px;">/security</button>
-                <button class="btn btn-ghost btn-sm term-chip" data-cmd="/tcas" style="font-size: 9px; padding: 1px 6px;">/tcas</button>
-                <button class="btn btn-ghost btn-sm term-chip" data-cmd="clear" style="font-size: 9px; padding: 1px 6px;">clear</button>
+              <div class="terminal-quick-chips">
+                <span class="ws-quick-label">Quick</span>
+                <button class="btn btn-ghost btn-sm term-chip" data-cmd="npm test">npm test</button>
+                <button class="btn btn-ghost btn-sm term-chip" data-cmd="git status">git status</button>
+                <button class="btn btn-ghost btn-sm term-chip" data-cmd="node -v">node -v</button>
+                <button class="btn btn-ghost btn-sm term-chip" data-cmd="/security">/security</button>
+                <button class="btn btn-ghost btn-sm term-chip" data-cmd="/tcas">/tcas</button>
+                <button class="btn btn-ghost btn-sm term-chip" data-cmd="clear">clear</button>
               </div>
 
               <!-- Terminal CLI & Slash Autocomplete -->
-              <div class="terminal-cli-bar" style="position: relative; display: flex; gap: 8px; padding: 8px 12px; background: #050914; border-top: 1px solid var(--border-subtle);">
+              <div class="terminal-cli-bar">
                 <!-- Floating Slash Command Autocomplete Menu -->
-                <div id="command-autocomplete" class="command-autocomplete-popup" style="display: none; position: absolute; bottom: 100%; left: 12px; right: 12px; max-height: 220px; overflow-y: auto; background: #0B1120; border: 1px solid var(--border-focus); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.6); z-index: 50; padding: 6px;"></div>
+                <div id="command-autocomplete" class="command-autocomplete-popup"></div>
 
-                <span style="color: var(--brand-blue); font-family: 'JetBrains Mono', monospace; font-size: 13px; align-self: center; font-weight: 700;">oas&gt;</span>
-                <input type="text" id="terminal-cli-input" class="search-input" style="padding: 8px 12px; font-size: 12px; font-family: 'JetBrains Mono', monospace; flex: 1;" placeholder="Type / for slash commands (/plan, /tdd, /compact, /worktree)...">
-                <button class="btn btn-primary" id="btn-terminal-exec" style="padding: 6px 14px; font-size: 12px;">Run</button>
+                <span class="ws-term-prompt">oas&gt;</span>
+                <input type="text" id="terminal-cli-input" class="search-input" placeholder="Type / for slash commands (/plan, /tdd, /compact, /worktree)...">
+                <button class="btn btn-primary" id="btn-terminal-exec">Run</button>
               </div>
             </div>
           </div>
@@ -490,22 +520,22 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
 
         <!-- VIEW: DEDICATED KNOWLEDGE GRAPH VISUALIZER -->
         <section class="view-panel" id="view-knowledge-graph">
-          <div class="kg-view-container" style="display: flex; gap: 12px; height: 100%;">
-            <div class="kg-canvas-area" style="flex: 1; background: #050914; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); display: flex; flex-direction: column; overflow: hidden; position: relative;">
+          <div class="kg-view-container" style="display: flex; height: 100%;">
+            <div class="kg-canvas-area" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative;">
               <!-- Toolbar -->
-              <div class="kg-toolbar" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; background: rgba(11, 17, 32, 0.95); border-bottom: 1px solid var(--border-subtle); z-index: 10; flex-wrap: wrap; gap: 8px;">
-                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <div class="kg-toolbar cockpit-toolbar" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; z-index: 10; gap: 8px;">
+                <div class="ws-pane-title-group">
                   <input type="text" id="kg-search-input" class="search-input" style="width: 220px; padding: 5px 10px; font-size: 11px;" placeholder="Search catalog nodes or enter intent...">
                   <div class="kg-filter-group" style="display: flex; gap: 4px;">
-                    <button class="pill active" data-kg-filter="all" style="font-size: 10px; padding: 3px 8px;">All (483)</button>
-                    <button class="pill" data-kg-filter="agent" style="font-size: 10px; padding: 3px 8px;">Agents (68)</button>
-                    <button class="pill" data-kg-filter="skill" style="font-size: 10px; padding: 3px 8px;">Skills (286)</button>
-                    <button class="pill" data-kg-filter="command" style="font-size: 10px; padding: 3px 8px;">Commands (94)</button>
-                    <button class="pill" data-kg-filter="mcp" style="font-size: 10px; padding: 3px 8px;">MCPs (35)</button>
+                    <button class="pill active" data-kg-filter="all" style="font-size: 10px; padding: 3px 8px;">All</button>
+                    <button class="pill" data-kg-filter="agent" style="font-size: 10px; padding: 3px 8px;">Agents</button>
+                    <button class="pill" data-kg-filter="skill" style="font-size: 10px; padding: 3px 8px;">Skills</button>
+                    <button class="pill" data-kg-filter="command" style="font-size: 10px; padding: 3px 8px;">Commands</button>
+                    <button class="pill" data-kg-filter="mcp" style="font-size: 10px; padding: 3px 8px;">MCPs</button>
                   </div>
                 </div>
 
-                <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                <div class="cockpit-toolbar-cluster">
                   <!-- Multi-Topology Layout Mode Buttons -->
                   <div class="kg-layout-mode-group" style="display: flex; gap: 3px; background: rgba(5, 9, 20, 0.8); padding: 2px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.2);">
                     <button class="pill active kg-layout-btn" data-kg-mode="galaxy" style="font-size: 9.5px; padding: 2px 7px;" title="Celestial 3D Spherical Fibonacci Lattice">🌌 Galaxy</button>
@@ -519,9 +549,12 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
                     3D Orbit
                   </button>
 
-                  <button class="btn btn-secondary" id="btn-kg-zoom-in" style="font-size: 11px; padding: 3px 7px;" title="Zoom In">+</button>
-                  <button class="btn btn-secondary" id="btn-kg-zoom-out" style="font-size: 11px; padding: 3px 7px;" title="Zoom Out">-</button>
-                  <button class="btn btn-secondary" id="btn-kg-reset" style="font-size: 10.5px; padding: 3px 8px;" title="Reset Camera Perspective">Reset</button>
+                  <div class="kg-zoom-cluster" role="group" aria-label="Camera zoom">
+                    <button type="button" class="btn btn-secondary" id="btn-kg-zoom-out" title="Zoom out (or -)" aria-label="Zoom out">-</button>
+                    <span id="kg-zoom-readout" class="kg-zoom-readout" aria-live="polite">100%</span>
+                    <button type="button" class="btn btn-secondary" id="btn-kg-zoom-in" title="Zoom in (or +)" aria-label="Zoom in">+</button>
+                  </div>
+                  <button type="button" class="btn btn-secondary" id="btn-kg-reset" style="font-size: 10.5px; padding: 3px 8px;" title="Reset camera (or 0)">Reset</button>
 
                   <!-- Turnkey Graph Export Dropdown -->
                   <select id="kg-export-select" class="btn btn-secondary" style="font-size: 10px; padding: 3px 8px; cursor: pointer; background: #0F172A; border-color: rgba(56, 189, 248, 0.3); color: #93C5FD;" title="Export Knowledge Graph">
@@ -536,10 +569,11 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
               <!-- HUD Telemetry Overlay (Positioned cleanly at bottom-right) -->
               <div class="kg-hud-telemetry">
                 <span class="kg-hud-tag"><span style="color:#38BDF8;">●</span> SYSTEM: <strong id="kg-hud-mode-label">3D GALAXY CORE</strong></span>
-                <span class="kg-hud-tag">NODES: <strong id="kg-hud-nodes-count">483</strong></span>
-                <span class="kg-hud-tag">SYNAPSES: <strong id="kg-hud-synapses-count">134</strong></span>
+                <span class="kg-hud-tag">NODES: <strong id="kg-hud-nodes-count">—</strong></span>
+                <span class="kg-hud-tag">SYNAPSES: <strong id="kg-hud-synapses-count">—</strong></span>
                 <span class="kg-hud-tag"><span style="color:#10B981;">●</span> LIVE RUNNING: <strong id="kg-live-active-count">0</strong></span>
-                <span class="kg-hud-tag" style="color: #64748B;">LMB: Orbit • Shift: Pan • Wheel: Zoom</span>
+                <span class="kg-hud-tag">ZOOM: <strong id="kg-hud-zoom">100%</strong></span>
+                <span class="kg-hud-tag" style="color: #64748B;">LMB Orbit • Shift Pan • Wheel Zoom • Dbl-click Focus</span>
               </div>
 
               <!-- Interactive Canvas -->
@@ -558,12 +592,15 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
             </div>
 
             <!-- Right Node Inspector -->
-            <div class="kg-inspector-pane" id="kg-inspector" style="width: 310px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 14px; display: flex; flex-direction: column; overflow-y: auto;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px;">NODE INSPECTOR</div>
+            <div class="kg-inspector-pane studio-pane" id="kg-inspector" style="width: 310px; display: flex; flex-direction: column; overflow-y: auto;">
+              <div class="cockpit-toolbar">
+                <div class="ws-pane-title-group">
+                  <span class="ws-pane-kicker">NODE</span>
+                  <span class="ws-pane-title">Inspector</span>
+                </div>
                 <div style="display: flex; align-items: center; gap: 5px;">
-                  <span class="status-dot" id="kg-inspector-status-dot" style="width: 7px; height: 7px; background: #34D399;"></span>
-                  <span id="kg-inspector-status-text" style="font-size: 10px; font-weight: 700; color: #34D399;">IDLE</span>
+                  <span class="status-dot" id="kg-inspector-status-dot" style="width: 7px; height: 7px; background: #64748B;"></span>
+                  <span id="kg-inspector-status-text" style="font-size: 10px; font-weight: 700; color: #64748B;">IDLE</span>
                 </div>
               </div>
 
@@ -572,8 +609,8 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
 
               <!-- Live Telemetry Card -->
               <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(56, 189, 248, 0.18); border-radius: 6px; padding: 8px 10px; margin-bottom: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 10.5px;">
-                <div><span style="color: var(--text-muted);">Total Missions:</span> <strong id="kg-stat-runs" style="color: #38BDF8;">0</strong></div>
-                <div><span style="color: var(--text-muted);">Avg Latency:</span> <strong id="kg-stat-latency" style="color: #34D399;">1.2s</strong></div>
+                <div><span style="color: var(--text-muted);">Total Missions:</span> <strong id="kg-stat-runs" style="color: #38BDF8;">—</strong></div>
+                <div><span style="color: var(--text-muted);">Avg Latency:</span> <strong id="kg-stat-latency" style="color: #34D399;">—</strong></div>
               </div>
 
               <!-- Action Buttons Row -->
@@ -652,15 +689,12 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
         <!-- VIEW 3: PLAN CANVAS PRO -->
         <section class="view-panel" id="view-plan-canvas">
           <div class="plan-canvas-container">
-            <div class="plan-document-pane">
-              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                <div>
-                  <h2 style="font-size: 20px; font-weight: 800; margin: 0 0 6px 0;">Capability Plan: Local Studio 0.9</h2>
-                  <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.6; margin: 0;">
-                    This plan formalizes the end-to-end full-stack integration for the OAS operating platform. Click on any section to leave human-in-the-loop annotations, toggle phase readiness, or inspect deliverables.
-                  </p>
+            <div class="plan-document-pane studio-pane">
+              <div class="cockpit-toolbar">
+                <div class="ws-pane-title-group">
+                  <span class="ws-pane-title">Capability Plan</span>
                 </div>
-                <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0; margin-left: 16px;">
+                <div class="ws-pane-actions">
                   <button class="btn btn-secondary btn-sm" id="btn-open-add-phase" style="font-size: 11px; padding: 5px 12px; gap: 5px;">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     <span>Add Phase</span>
@@ -670,12 +704,16 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
                   </button>
                 </div>
               </div>
+              <div class="cockpit-body cockpit-scanlines">
+              <p class="cockpit-lede">
+                    This plan formalizes the end-to-end full-stack integration for the OAS operating platform. Click on any section to leave human-in-the-loop annotations, toggle phase readiness, or inspect deliverables.
+              </p>
 
               <!-- Roadmap Progress Meter -->
-              <div class="plan-progress-bar-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 16px;">
+              <div class="plan-progress-bar-card cockpit-cell" style="margin-bottom: 16px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                  <span style="font-size: 11px; font-weight: 700; color: #38BDF8; letter-spacing: 0.5px;">ROADMAP COMPLETION PROGRESS</span>
-                  <span id="plan-progress-percent" class="badge-tag font-mono" style="color: #34D399; font-weight: 700;">100% (5/5 Phases Passed)</span>
+                  <span class="ws-pane-kicker">ROADMAP</span>
+                  <span id="plan-progress-percent" class="badge-tag font-mono" style="color: #34D399; font-weight: 700;">—</span>
                 </div>
                 <div style="background: rgba(3, 6, 15, 0.8); height: 7px; border-radius: 9999px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
                   <div id="plan-progress-fill" style="width: 100%; height: 100%; background: linear-gradient(90deg, #38BDF8 0%, #34D399 100%); transition: width 0.3s ease; box-shadow: 0 0 8px #38BDF8;"></div>
@@ -685,10 +723,17 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
               <div id="plan-phases-list" style="display: flex; flex-direction: column; gap: 12px;">
                 <!-- Dynamically populated via loadPlanCanvas() from /api/artifacts -->
               </div>
+              </div>
             </div>
 
-            <div class="plan-sidebar-pane">
-              <div class="stat-card">
+            <div class="plan-sidebar-pane studio-pane">
+              <div class="cockpit-toolbar">
+                <div class="ws-pane-title-group">
+                  <span class="ws-pane-kicker">REVIEW</span>
+                  <span class="ws-pane-title">Plan Control</span>
+                </div>
+              </div>
+              <div class="stat-card cockpit-cell">
                 <div class="stat-label">Plan Execution Status</div>
                 <div class="stat-value" id="plan-status-badge" style="color: var(--status-active);">READY</div>
                 <p id="plan-status-desc" style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Capability plan loaded from durable artifact store.</p>
@@ -704,7 +749,7 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
                 <button class="btn btn-primary" id="btn-execute-plan" style="margin-top: 10px; width: 100%;">Approve &amp; Execute All</button>
               </div>
 
-              <div class="stat-card" style="flex: 1; display: flex; flex-direction: column;">
+              <div class="stat-card cockpit-cell plan-annotation-card">
                 <div class="stat-label">Human Review Annotations</div>
                 <div id="plan-annotations-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; max-height: 240px; overflow-y: auto;">
                   <!-- Dynamically populated from artifact annotations and session interventions -->
@@ -730,15 +775,15 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
 
         <!-- VIEW 4: CAPABILITIES CATALOG & STUDIO -->
         <section class="view-panel" id="view-catalog">
-          <div class="catalog-container">
-            <div class="catalog-search-bar">
-              <input type="text" class="search-input" id="catalog-search" placeholder="Search 68 agents, 286 skills, 94 commands, 36 MCP servers...">
+          <div class="catalog-container studio-pane">
+            <div class="catalog-search-bar cockpit-toolbar">
+              <input type="text" class="search-input" id="catalog-search" placeholder="Search catalog from /api/catalog...">
               <div class="filter-pills">
-                <div class="pill active" data-filter="all">All (483)</div>
-                <div class="pill" data-filter="agents">Agents (68)</div>
-                <div class="pill" data-filter="skills">Skills (286)</div>
-                <div class="pill" data-filter="commands">Commands (94)</div>
-                <div class="pill" data-filter="mcp">MCPs (35)</div>
+                <div class="pill active" data-filter="all">All</div>
+                <div class="pill" data-filter="agents">Agents</div>
+                <div class="pill" data-filter="skills">Skills</div>
+                <div class="pill" data-filter="commands">Commands</div>
+                <div class="pill" data-filter="mcp">MCPs</div>
               </div>
               <select id="catalog-sort-select" class="search-input" style="width: 130px; flex: none; height: 36px; padding: 4px 8px; font-size: 11px; background: #0B1120;">
                 <option value="az">Sort: A-Z</option>
@@ -747,7 +792,7 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
               </select>
             </div>
             
-            <div class="profile-filter-row" style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; background: rgba(8, 14, 28, 0.6); padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid rgba(56, 189, 248, 0.12);">
+            <div class="profile-filter-row cockpit-subhud">
               <span style="font-size: 10px; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px;">INSTALL PROFILE:</span>
               <button class="pill active" data-profile="all" style="font-size: 10px; padding: 2px 8px;">All</button>
               <button class="pill" data-profile="minimal" style="font-size: 10px; padding: 2px 8px;">Minimal (Core 47)</button>
@@ -756,10 +801,10 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
               <button class="pill" data-profile="frontend" style="font-size: 10px; padding: 2px 8px;">Frontend</button>
               <button class="pill" data-profile="backend" style="font-size: 10px; padding: 2px 8px;">Backend</button>
               <button class="pill" data-profile="science" style="font-size: 10px; padding: 2px 8px;">Science</button>
-              <span id="catalog-profile-indicator" style="margin-left: auto; font-size: 11px; color: #38BDF8; font-family: monospace;">Viewing: All Entities (484)</span>
+                <span id="catalog-profile-indicator" style="margin-left: auto; font-size: 11px; color: #38BDF8; font-family: monospace;">Loading catalog...</span>
             </div>
 
-            <div class="catalog-grid" id="catalog-grid-cards">
+            <div class="catalog-grid cockpit-scanlines" id="catalog-grid-cards">
               <!-- Dynamically populated via JavaScript -->
             </div>
           </div>
@@ -767,36 +812,44 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
 
         <!-- VIEW 5: MEMORY VAULT & TELEMETRY DASHBOARD -->
         <section class="view-panel" id="view-vault">
-          <div class="vault-container">
-            <div class="telemetry-row">
-              <div class="stat-card">
-                <div class="stat-label">Total Catalog Entities</div>
-                <div class="stat-value" id="stat-entities">483</div>
-                <div class="stat-trend positive" id="stat-entities-breakdown">68 Agents • 286 Skills • 94 Commands • 36 MCPs</div>
+          <div class="vault-container studio-pane">
+            <div class="cockpit-toolbar">
+              <div class="ws-pane-meta">
+                <span class="badge-tag font-mono">/api/telemetry</span>
+                <span class="badge-tag ws-sse-pill">Live SSE</span>
               </div>
-              <div class="stat-card">
+            </div>
+            <div class="cockpit-body cockpit-scanlines">
+            <div class="telemetry-row">
+              <div class="stat-card cockpit-cell">
+                <div class="stat-label">Total Catalog Entities</div>
+                <div class="stat-value" id="stat-entities">—</div>
+                <div class="stat-trend positive" id="stat-entities-breakdown">Loading catalog from /api/telemetry</div>
+              </div>
+              <div class="stat-card cockpit-cell">
                 <div class="stat-label">Memory Utilization</div>
                 <div class="stat-value" id="stat-memory-mb">-- MB</div>
                 <div class="stat-trend positive" id="stat-heap-trend">Node.js V8 Process Heap</div>
               </div>
-              <div class="stat-card">
+              <div class="stat-card cockpit-cell">
                 <div class="stat-label">Active Session Runtime</div>
                 <div class="stat-value" id="stat-uptime">--s</div>
-                <div class="stat-trend positive" id="stat-uptime-trend">Zero Stalls Detected</div>
+                <div class="stat-trend positive" id="stat-uptime-trend">From process uptime</div>
               </div>
-              <div class="stat-card">
+              <div class="stat-card cockpit-cell">
                 <div class="stat-label">Active DAG Pipelines</div>
-                <div class="stat-value" id="stat-active-pipelines" style="color: var(--status-active);">1</div>
-                <div class="stat-trend positive">Execution Engine Online</div>
+                <div class="stat-value" id="stat-active-pipelines" style="color: var(--status-active);">—</div>
+                <div class="stat-trend positive" id="stat-pipeline-trend">From /api/telemetry</div>
               </div>
             </div>
 
             <!-- OAS 2.0 HUD Status & Control Plane Row -->
-            <div class="hud-status-live-panel" style="background: rgba(8, 14, 28, 0.85); border: 1px solid rgba(56, 189, 248, 0.16); border-radius: var(--radius-lg); padding: 14px 18px; margin-top: 14px; display: flex; flex-direction: column; gap: 10px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
-                <div style="display: flex; gap: 8px; align-items: center;">
-                  <span class="badge-tag font-mono" style="background: rgba(56, 189, 248, 0.15); color: #38BDF8; font-weight: 700;">oas.hud-status.v1</span>
-                  <span style="font-size: 12px; font-weight: 700; color: #F1F5F9;">Operator Statusline &amp; Session Controls</span>
+            <div class="hud-status-live-panel cockpit-cell vault-hud">
+              <div class="cockpit-toolbar" style="border: none; padding: 0 0 8px;">
+                <div class="ws-pane-title-group">
+                  <span class="ws-pane-kicker">HUD</span>
+                  <span class="ws-pane-title">Operator Statusline</span>
+                  <span class="badge-tag font-mono">oas.hud-status.v1</span>
                 </div>
                 <div style="display: flex; gap: 8px;">
                   <button class="btn btn-secondary" id="btn-run-doctor" style="font-size: 11px; padding: 4px 10px;">
@@ -839,7 +892,7 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
               </div>
             </div>
 
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; margin-bottom: 12px;">
+            <div class="vault-memory-head" style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; margin-bottom: 12px;">
               <div>
                 <h3 style="font-size: 16px; font-weight: 700; margin: 0;">Durable Memory Vault</h3>
                 <span style="font-size: 12px; color: var(--text-muted);">Scoped persistent memory with SHA-256 integrity. Search ranks with local hash-vectors (not pgvector).</span>
@@ -862,18 +915,19 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
             <div class="memory-items-grid" id="memory-grid">
               <!-- Dynamically populated via loadMemoryVault() from /api/memory -->
             </div>
+            </div>
           </div>
         </section>
 
         <!-- VIEW 6: STUDIO BUILDER (CUSTOM AGENT & SKILL CREATOR) -->
         <section class="view-panel" id="view-builder">
-          <div style="display: flex; flex-direction: column; gap: 16px; height: 100%;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
-              <div style="display: flex; gap: 12px; align-items: center;">
+          <div class="builder-cockpit studio-pane" style="display: flex; flex-direction: column; gap: 0; height: 100%;">
+            <div class="cockpit-toolbar">
+              <div class="ws-pane-title-group">
                 <div class="pill active" id="builder-tab-agent">Agent Designer</div>
                 <div class="pill" id="builder-tab-skill">Skill Designer</div>
               </div>
-              <div style="display: flex; gap: 10px; align-items: center;">
+              <div class="ws-pane-actions">
                 <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">TEMPLATE PRESET:</span>
                 <select id="builder-preset-select" class="search-input" style="width: 220px; height: 32px; padding: 2px 8px; font-size: 11px; background: #0B1120;">
                   <option value="custom">-- Custom Blank Agent --</option>
@@ -1052,10 +1106,10 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
   <!-- 2. Slide-Out Multi-Session Drawer -->
   <div class="drawer-overlay" id="session-drawer-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 10000; backdrop-filter: blur(8px);">
     <div class="drawer-content" id="session-drawer" style="position: absolute; top: 0; left: 0; bottom: 0; width: 380px; background: #0B1120; border-right: 1px solid rgba(56, 189, 248, 0.25); display: flex; flex-direction: column; box-shadow: 10px 0 35px rgba(0,0,0,0.7);">
-      <div style="padding: 16px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
-        <div>
-          <h3 style="font-size: 15px; font-weight: 700; color: #F8FAFC;">Multi-Agent Sessions</h3>
-          <span style="font-size: 11px; color: var(--text-muted);">Active & Archived Workflows</span>
+      <div class="cockpit-toolbar">
+        <div class="ws-pane-title-group">
+          <span class="ws-pane-kicker">SESSIONS</span>
+          <span class="ws-pane-title">Multi-Agent Sessions</span>
         </div>
         <button class="btn btn-secondary" id="btn-close-sessions" style="padding: 4px 8px;">✕</button>
       </div>
@@ -1111,6 +1165,14 @@ Type / for slash commands (/plan, /tdd, /loop, /worktree) or execute commands be
           <div>
             <label for="settings-ollama-model" style="font-size: 11px; font-weight: 600; color: var(--text-muted);">OLLAMA MODEL (e.g. qwen2.5-coder:7b):</label>
             <input type="text" id="settings-ollama-model" class="search-input" style="width: 100%; margin-top: 4px; box-sizing: border-box;" value="qwen2.5-coder:7b" placeholder="qwen2.5-coder:7b">
+          </div>
+          <div>
+            <label for="settings-github-token" style="font-size: 11px; font-weight: 600; color: var(--text-muted);">GITHUB TOKEN (INBOX / PR):</label>
+            <input type="password" id="settings-github-token" class="search-input" style="width: 100%; margin-top: 4px; box-sizing: border-box;" placeholder="GITHUB_TOKEN" autocomplete="off">
+          </div>
+          <div>
+            <label for="settings-linear-key" style="font-size: 11px; font-weight: 600; color: var(--text-muted);">LINEAR API KEY (INBOX):</label>
+            <input type="password" id="settings-linear-key" class="search-input" style="width: 100%; margin-top: 4px; box-sizing: border-box;" placeholder="LINEAR_API_KEY" autocomplete="off">
           </div>
         </div>
 
@@ -1890,6 +1952,6 @@ Ready for sandboxed task execution. Enter a command below or select a preset.</p
     </div>
   </div>
 
-  <script type="module" src="app.js?v=2.2.4"></script>
+  <script type="module" src="app.js?v=2.2.22"></script>
 </body>
 </html>

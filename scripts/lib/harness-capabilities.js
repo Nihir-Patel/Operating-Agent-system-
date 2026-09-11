@@ -90,8 +90,8 @@ const HARNESS_CAPABILITIES = deepFreeze([
     targetIds: ['cursor'],
     channel: 'managed-project',
     installMode: 'managed-project',
-    guidedReady: false,
-    availability: 'advanced',
+    guidedReady: true,
+    availability: 'guided',
     destination: './.cursor',
     scopes: [scope('project', 'cursor', './.cursor')],
     hooks: hooks(

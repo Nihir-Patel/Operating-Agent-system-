@@ -167,7 +167,10 @@ const ADAPTER_RECORDS = Object.freeze([
       'shared scripts',
     ],
     unsupported_surfaces: ['Cursor hook events and rule loading differ from Claude Code'],
-    install_or_onramp: ['`./install.sh --profile minimal --target cursor`'],
+    install_or_onramp: [
+      '`npx oas-universal install --guided --harness cursor --profile core`',
+      '`./install.sh --profile minimal --target cursor`',
+    ],
     verification_commands: [
       '`node tests/lib/install-targets.test.js`',
       '`npm run harness:audit -- --format json`',

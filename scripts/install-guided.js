@@ -21,7 +21,7 @@ const { startTerminalSpinner } = require('./lib/terminal-spinner');
 const { showTerminalWelcome } = require('./lib/terminal-welcome');
 const { stripAnsi } = require('./lib/utils');
 
-const ADVANCED_HARNESSES = 'Cursor, Antigravity, Gemini CLI, OpenCode, CodeBuddy, JoyCode, Qwen Code, Zed, Hermes, and OpenClaw';
+const ADVANCED_HARNESSES = 'Antigravity, Gemini CLI, OpenCode, CodeBuddy, JoyCode, Qwen Code, Zed, Hermes, and OpenClaw';
 
 function showHelp(output = process.stdout) {
   output.write(`
@@ -29,20 +29,21 @@ OAS guided multi-harness install
 
 Usage:
   oas install --guided
-  oas install --guided --harness claude --harness codex --harness kimi [options]
+  oas install --guided --harness claude --harness codex --harness kimi --harness cursor [options]
 
 Guided harnesses:
   claude  Native Claude Code plugin; choose user, project, or local scope and an OAS hook profile.
   codex   Native Codex plugin and Codex-owned hook review/trust.
   kimi    Managed project install under ./.kimi-code; OAS hooks are not configured.
+  cursor  Managed project install under ./.cursor; Cursor hook adapter and an OAS content profile.
 
 Options:
-  --harness <id[,id...]>  Repeatable; accepts Claude, Codex, Kimi, or all
-  --all-harnesses         Select all three guided harnesses
+  --harness <id[,id...]>  Repeatable; accepts Claude, Codex, Kimi, Cursor, or all
+  --all-harnesses         Select all guided harnesses
   --claude-scope <user|project|local>
   --claude-hooks <off|minimal|standard|strict>
   --profile <minimal|core|developer|security|research|full>
-                          Kimi managed-project content profile
+                          Kimi/Cursor managed-project content profile
   --yes, -y               Apply without confirmation
   --dry-run               Preflight and preview without changing files
   --json                  Emit machine-readable output
@@ -135,18 +136,18 @@ async function askHarnesses(terminal, output) {
   guided.forEach((harness, index) => {
     output.write(`  ${index + 1}. ${harness.label} — ${harness.destination}\n`);
   });
-  output.write('  all. All three guided harnesses\n');
+  output.write('  all. All guided harnesses\n');
   output.write(`\nAdvanced adapters (use oas install --target): ${ADVANCED_HARNESSES}.\n\n`);
   while (true) {
     const answer = await terminal.question('Choose one or more (for example 1,3 or all): ');
     if (answer.length > 1024) {
-      output.write('Please choose Claude, Codex, Kimi, or all.\n');
+      output.write('Please choose Claude, Codex, Kimi, Cursor, or all.\n');
       continue;
     }
     try {
       return normalizeHarnessSelection(answer);
     } catch (_error) {
-      output.write('Please choose Claude, Codex, Kimi, or all.\n');
+      output.write('Please choose Claude, Codex, Kimi, Cursor, or all.\n');
     }
   }
 }
@@ -158,15 +159,15 @@ async function collectInteractiveOptions(options, dependencies = {}) {
   if (harnesses.length === 0) harnesses = await askHarnesses(terminal, output);
   const normalizedHarnesses = normalizeHarnessSelection(harnesses);
   const includesClaude = normalizedHarnesses.includes('claude');
-  const includesKimi = normalizedHarnesses.includes('kimi');
+  const includesManaged = normalizedHarnesses.includes('kimi') || normalizedHarnesses.includes('cursor');
   const claudeScope = includesClaude && !options.claudeScope
     ? await askChoice(terminal, output, 'Where should Claude enable oas@oas?', [...VALID_CLAUDE_SCOPES], 'user')
     : options.claudeScope;
   const claudeHooks = includesClaude && !options.claudeHooks
     ? await askChoice(terminal, output, 'How should OAS hooks run in Claude?', [...VALID_CLAUDE_HOOKS], 'standard')
     : options.claudeHooks;
-  const profile = includesKimi && !options.profile
-    ? await askChoice(terminal, output, 'Which OAS content profile should Kimi receive?', [...VALID_PROFILES], 'core')
+  const profile = includesManaged && !options.profile
+    ? await askChoice(terminal, output, 'Which OAS content profile should the managed harness receive?', [...VALID_PROFILES], 'core')
     : options.profile;
   return {
     ...options,
@@ -192,8 +193,8 @@ function validateExecutionMode(options, interactive) {
   if (requiresExplicit && harnesses.includes('claude') && (!options.claudeScope || !options.claudeHooks)) {
     throw new Error('Claude requires explicit --claude-scope and --claude-hooks choices in this mode.');
   }
-  if (requiresExplicit && harnesses.includes('kimi') && !options.profile) {
-    throw new Error('Kimi requires an explicit --profile choice in this mode.');
+  if (requiresExplicit && (harnesses.includes('kimi') || harnesses.includes('cursor')) && !options.profile) {
+    throw new Error('Kimi and Cursor require an explicit --profile choice in this mode.');
   }
   if ((!interactive || options.json) && !options.yes && !options.dryRun) {
     throw new Error('Non-interactive and JSON mutations require --yes.');
@@ -209,6 +210,9 @@ function printPlan(plan, output) {
   }
   if (plan.request.harnesses.includes('kimi')) {
     output.write('\nKimi note: OAS hooks are not configured; model, provider, and authentication settings are unchanged.\n');
+  }
+  if (plan.request.harnesses.includes('cursor')) {
+    output.write('\nCursor note: OAS installs the project adapter under ./.cursor. Agent discovery varies by Cursor build.\n');
   }
   if (plan.request.harnesses.includes('claude') && plan.request.claudeHooks && plan.request.claudeHooks !== 'off') {
     output.write(
@@ -235,7 +239,7 @@ function buildRetryArguments(plan, retryHarnesses) {
   const claudeArguments = harnesses.includes('claude')
     ? ['--claude-scope', plan.request.claudeScope, '--claude-hooks', plan.request.claudeHooks]
     : [];
-  const kimiArguments = harnesses.includes('kimi')
+  const kimiArguments = (harnesses.includes('kimi') || harnesses.includes('cursor'))
     ? ['--profile', plan.request.profile]
     : [];
   return [...harnessArguments, ...claudeArguments, ...kimiArguments].join(' ');
@@ -263,7 +267,7 @@ async function main(argv = process.argv.slice(2), injected = {}) {
     validateExecutionMode(options, interactive);
     const needsChoices = selectedHarnessIds(options).length === 0
       || (selectedHarnessIds(options).includes('claude') && (!options.claudeScope || !options.claudeHooks))
-      || (selectedHarnessIds(options).includes('kimi') && !options.profile);
+      || ((selectedHarnessIds(options).includes('kimi') || selectedHarnessIds(options).includes('cursor')) && !options.profile);
     if (interactive && needsChoices) {
       if (!terminal) {
         terminal = readline.createInterface({ input: process.stdin, output });

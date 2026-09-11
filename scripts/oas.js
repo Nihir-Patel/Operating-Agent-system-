@@ -159,7 +159,7 @@ Examples:
   oas setup --mode claude-plugin --scope user --hooks standard --yes
   oas welcome
   oas install --guided
-  oas install --guided --harness claude --harness codex --harness kimi
+  oas install --guided --harness claude --harness codex --harness kimi --harness cursor
   oas typescript
   oas install --profile developer --target claude
   oas plan --profile core --target cursor

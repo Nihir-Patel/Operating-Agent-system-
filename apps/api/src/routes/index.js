@@ -9,6 +9,7 @@ const handlers = [
   require('./graph'),
   require('./filesystem'),
   require('./settings'),
+  require('./first-run'),
   require('./sessions'),
   require('./worktrees'),
   require('./leases'),

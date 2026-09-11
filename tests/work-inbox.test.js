@@ -157,6 +157,20 @@ async function run() {
   assert.ok(hud.body.sync.Linear.health);
   console.log('   import + HUD queueState.source=inbox');
 
+  console.log('2b. GitHub webhooks label sample vs live issues');
+  const liveHook = await dispatch(server, 'POST', '/api/webhooks/github', {
+    action: 'opened',
+    issue: { number: 99, title: 'New flake', html_url: 'https://github.com/acme/app/issues/99' }
+  });
+  assert.strictEqual(liveHook.status, 201);
+  const liveSession = server.store.getSession(liveHook.body.sessionId);
+  assert.strictEqual(liveSession.title, 'GitHub Issue #99: New flake');
+  const emptyHook = await dispatch(server, 'POST', '/api/webhooks/github', {});
+  assert.strictEqual(emptyHook.status, 201);
+  const sampleSession = server.store.getSession(emptyHook.body.sessionId);
+  assert.match(sampleSession.title, /^Sample · /);
+  console.log('   live GitHub URLs keep GitHub Issue titles; empty payloads are Sample');
+
   console.log('3. SQLite round-trips work items');
   const sql = new OasSqliteStore({ storagePath: path.join(tmpDir('oas-inbox-sql-'), 'db.sqlite') });
   sql.saveWorkItem(issue);

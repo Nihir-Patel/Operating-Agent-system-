@@ -208,19 +208,19 @@ function getFsFileIcon(name) {
   switch (ext) {
     case 'js':
     case 'mjs':
-    case 'cjs': return '[js]';
+    case 'cjs': return 'JS';
     case 'ts':
-    case 'tsx': return '[ts]';
-    case 'json': return '[json]';
-    case 'md': return '[md]';
-    case 'html': return '[html]';
-    case 'css': return '[css]';
-    case 'py': return '[py]';
-    case 'sh': return '[sh]';
+    case 'tsx': return 'TS';
+    case 'json': return 'JSON';
+    case 'md': return 'MD';
+    case 'html': return 'HTML';
+    case 'css': return 'CSS';
+    case 'py': return 'PY';
+    case 'sh': return 'SH';
     case 'yml':
-    case 'yaml': return '[yml]';
-    case 'lock': return '[lock]';
-    default: return '[file]';
+    case 'yaml': return 'YML';
+    case 'lock': return 'LOCK';
+    default: return 'FILE';
   }
 }
 
@@ -248,7 +248,9 @@ function renderFsTree(items, parentEl, depth = 0) {
     const row = document.createElement('div');
     row.className = `fs-tree-item fs-depth-${Math.min(depth, 4)}`;
     const isDir = item.type === 'directory';
-    const icon = isDir ? '[dir]' : getFsFileIcon(item.name);
+    const ext = (item.name.split('.').pop() || 'file').toLowerCase();
+    row.dataset.kind = isDir ? 'dir' : ext;
+    const icon = isDir ? 'DIR' : getFsFileIcon(item.name);
 
     row.innerHTML = `<span class="fs-icon">${icon}</span><span>${item.name}</span>`;
     parentEl.appendChild(row);
@@ -263,7 +265,7 @@ function renderFsTree(items, parentEl, depth = 0) {
         e.stopPropagation();
         const open = childContainer.style.display !== 'none';
         childContainer.style.display = open ? 'none' : 'block';
-        row.querySelector('.fs-icon').textContent = open ? '[dir]' : '[open]';
+        row.querySelector('.fs-icon').textContent = open ? 'DIR' : 'OPEN';
       });
     } else if (!isDir) {
       row.addEventListener('click', () => {

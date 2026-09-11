@@ -181,6 +181,7 @@ function normalizeWorkItem(input = {}) {
     sessionId: input.sessionId || null,
     worktreeId: input.worktreeId || null,
     pullRequest: input.pullRequest || null,
+    sample: input.sample === true,
     importedAt: input.importedAt || now,
     updatedAt: now
   };
@@ -189,13 +190,15 @@ function normalizeWorkItem(input = {}) {
 function fromGithubIssue(issue = {}, repo = null) {
   const isPr = Boolean(issue.pull_request || issue.pullRequest);
   const number = String(issue.number || issue.sourceId || '');
+  const url = issue.html_url || issue.url || '';
   return normalizeWorkItem({
     source: isPr ? 'github-pr' : 'github-issue',
     sourceId: number,
     title: issue.title || (isPr ? `PR #${number}` : `Issue #${number}`),
     status: issue.state === 'closed' ? 'closed' : 'open',
-    url: issue.html_url || issue.url || '',
-    repo
+    url,
+    repo,
+    sample: !/^https:\/\/github\.com\//i.test(String(url))
   });
 }
 

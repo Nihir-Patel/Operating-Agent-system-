@@ -106,6 +106,9 @@ async function runStudioModuleTests() {
   assert.ok(appJs.includes("from './js/workspace-editor.js'"), 'app.js must import workspace-editor');
   assert.ok(appJs.includes("from './js/studio-state.js'"), 'app.js must import studio-state');
   assert.ok(appJs.includes("from './js/ui.js'"), 'app.js must import ui helpers');
+  assert.ok(appJs.includes("from './js/kg-camera.js'"), 'app.js must import kg-camera');
+  assert.ok(appJs.includes("from './js/studio-labels.js'"), 'app.js must import studio-labels');
+  assert.ok(appJs.includes('./js/studio-graph-3d.js'), 'app.js must import studio-graph-3d');
   console.log('   app.js is a module graph root');
 
   console.log('3. GET /js modules are served as JavaScript');
@@ -113,7 +116,10 @@ async function runStudioModuleTests() {
     '/js/api-client.js',
     '/js/ui.js',
     '/js/studio-state.js',
-    '/js/workspace-editor.js'
+    '/js/workspace-editor.js',
+    '/js/kg-camera.js',
+    '/js/studio-graph-3d.js',
+    '/js/studio-labels.js'
   ];
   for (const pathname of requiredModules) {
     const res = await simulateRequest(server, 'GET', pathname);

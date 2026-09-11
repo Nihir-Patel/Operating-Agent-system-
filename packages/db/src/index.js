@@ -50,7 +50,10 @@ class MemoryStore {
         ollamaModel: 'qwen2.5-coder:7b',
         defaultModel: 'qwen2.5-coder:7b',
         sandboxEnabled: true,
-        worktreeIsolation: true
+        worktreeIsolation: true,
+        githubToken: '',
+        linearApiKey: '',
+        firstRunDismissed: false
       }
     };
     this.load();
@@ -111,7 +114,8 @@ class MemoryStore {
       completion_tokens: payload.completion_tokens || 0,
       cost_usd: payload.cost_usd || 0,
       started_at: new Date().toISOString(),
-      ended_at: null
+      ended_at: null,
+      metadata: payload.metadata && typeof payload.metadata === 'object' ? payload.metadata : {}
     };
     this.data.agent_sessions.unshift(session);
     this.save();

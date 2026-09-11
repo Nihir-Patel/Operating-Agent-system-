@@ -479,6 +479,7 @@
     "dashboard": "python3 ./oas_dashboard.py",
     "dashboard:web": "node scripts/dashboard-web.js",
     "studio": "node scripts/oas-studio.js",
+    "desktop": "npm run dev --prefix apps/desktop",
     "test:a11y": "node tests/studio-a11y.test.js && node tests/studio-a11y-browser.test.js"
   },
   "dependencies": {

@@ -26,7 +26,16 @@ function context() {
   };
 }
 
-const { encodeMcpMessage, feedMcpBuffer } = require('../packages/engine/src/mcp-framing');
+const { feedMcpBuffer } = require('../packages/engine/src/mcp-framing');
+
+const LATEST_PROTOCOL_VERSION = '2025-11-25';
+const SUPPORTED_PROTOCOL_VERSIONS = Object.freeze([
+  LATEST_PROTOCOL_VERSION,
+  '2025-06-18',
+  '2025-03-26',
+  '2024-11-05',
+  '2024-10-07',
+]);
 
 function send(id, result, error) {
   const payload = error
@@ -35,22 +44,28 @@ function send(id, result, error) {
   process.stdout.write(JSON.stringify(payload) + '\n');
 }
 
-function sendFramed(id, result, error) {
-  const payload = error
-    ? { jsonrpc: '2.0', id, error }
-    : { jsonrpc: '2.0', id, result };
-  process.stdout.write(encodeMcpMessage(payload));
+function resolveProtocolVersion(params) {
+  const requested = params && typeof params.protocolVersion === 'string'
+    ? params.protocolVersion
+    : '';
+  return SUPPORTED_PROTOCOL_VERSIONS.includes(requested)
+    ? requested
+    : LATEST_PROTOCOL_VERSION;
 }
 
 async function handle(message) {
   if (!message || message.jsonrpc !== '2.0') return;
   const { id, method, params } = message;
+  if (method === 'notifications/initialized') return;
   if (method === 'initialize') {
     return send(id, {
-      protocolVersion: '2025-03-26',
-      capabilities: { tools: {} },
+      protocolVersion: resolveProtocolVersion(params),
+      capabilities: { tools: { listChanged: false } },
       serverInfo: { name: 'oas-studio-read', version: '2.2.1' }
     });
+  }
+  if (method === 'ping') {
+    return send(id, {});
   }
   if (method === 'tools/list') {
     return send(id, {
@@ -76,30 +91,15 @@ async function handle(message) {
 }
 
 if (require.main === module) {
-  async function handleFramed(message) {
-    const chunks = [];
-    const orig = process.stdout.write;
-    process.stdout.write = (chunk, ...rest) => {
-      chunks.push(Buffer.from(chunk));
-      if (typeof rest[rest.length - 1] === 'function') rest[rest.length - 1]();
-      return true;
-    };
-    try {
-      await handle(message);
-    } finally {
-      process.stdout.write = orig;
-    }
-    const ndjson = Buffer.concat(chunks).toString('utf8');
-    for (const line of ndjson.split('\n')) {
-      if (!line.trim()) continue;
-      process.stdout.write(encodeMcpMessage(JSON.parse(line)));
-    }
-  }
-
   let rest = Buffer.alloc(0);
   process.stdin.on('data', chunk => {
     const fed = feedMcpBuffer(Buffer.concat([rest, Buffer.from(chunk)]), message => {
-      handleFramed(message).catch(err => sendFramed(null, null, { code: -32603, message: err.message }));
+      Promise.resolve(handle(message)).catch(err => {
+        send(message && message.id !== undefined ? message.id : null, null, {
+          code: -32603,
+          message: err.message
+        });
+      });
     });
     rest = fed.rest;
   });

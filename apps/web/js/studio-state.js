@@ -24,11 +24,21 @@ export const state = {
 export const nodeMetadata = {};
 
 export const viewTitles = {
-  'view-dag': 'Execution DAG Orchestrator',
-  'view-workspace': 'Live Streaming Workspace & Virtual Terminal',
-  'view-knowledge-graph': 'Interactive Knowledge Graph Visualizer',
-  'view-plan-canvas': 'Plan Canvas (Interactive Roadmap)',
-  'view-catalog': 'Capabilities Catalog & Studio (68 Agents • 286 Skills • 94 Commands)',
-  'view-vault': 'Memory Vault & Telemetry Dashboard',
-  'view-builder': 'Studio Builder (Visual Agent & Skill Designer)'
+  'view-dag': 'Execution DAG',
+  'view-workspace': 'Live Workspace',
+  'view-knowledge-graph': 'Knowledge Graph',
+  'view-plan-canvas': 'Plan Canvas',
+  'view-catalog': 'Capabilities Catalog',
+  'view-vault': 'Memory & Telemetry',
+  'view-builder': 'Studio Builder'
+};
+
+export const viewKickers = {
+  'view-dag': 'DAG',
+  'view-workspace': 'WORKSPACE',
+  'view-knowledge-graph': 'GRAPH',
+  'view-plan-canvas': 'PLAN',
+  'view-catalog': 'CATALOG',
+  'view-vault': 'VAULT',
+  'view-builder': 'BUILDER'
 };

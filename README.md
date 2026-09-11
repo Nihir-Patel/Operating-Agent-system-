@@ -675,13 +675,14 @@ To configure more than one coding agent in one reviewed flow, use the multi-harn
 npx oas-universal install --guided
 ```
 
-It lets you select any combination of Claude Code, Codex, and Kimi Code, shows each install channel and destination, preflights every selection before the first write, and asks for one final confirmation.
+It lets you select any combination of Claude Code, Codex, Kimi Code, and Cursor, shows each install channel and destination, preflights every selection before the first write, and asks for one final confirmation.
 
 | Harness | Guided install behavior |
 |---|---|
 | Claude Code | Native `oas@oas` plugin with one `user`, `project`, or `local` scope and an OAS hook profile |
 | Codex | Native Codex marketplace/plugin lifecycle; hook review and trust remain Codex-owned |
 | Kimi Code | Managed project files under `./.kimi-code`; OAS hooks, model/provider settings, and authentication are not configured |
+| Cursor | Managed project adapter under `./.cursor` (`cursor` target) with collision-safe update, repair, and uninstall; choose an OAS content profile |
 
 For automation, make every provider-specific choice explicit:
 
@@ -697,6 +698,7 @@ Verify the native guided Codex path and managed Kimi path without writing first:
 ```bash
 npx oas-universal install --guided --harness codex --dry-run
 npx oas-universal install --profile core --target kimi --dry-run
+npx oas-universal install --guided --harness cursor --profile core --dry-run
 ```
 
 Additional package-name commands are also available through the 2.2 alias:
@@ -709,7 +711,20 @@ npx oas-universal doctor --target kimi
 
 Do not use `npx oas-install --profile minimal --target claude`: `oas-install` is a binary name inside `oas-universal`, not a separately published npm package.
 
-OAS also ships advanced managed adapters for `cursor`, `antigravity`, `gemini`, `opencode`, `codebuddy`, `joycode`, `qwen`, `zed`, `hermes`, and `openclaw`. Those targets still use their documented `oas install --target ...` paths until each adapter has passed the guided collision, update, repair, and uninstall lifecycle matrix. Neither wizard silently installs into every detected harness.
+OAS also ships advanced managed adapters for `antigravity`, `gemini`, `opencode`, `codebuddy`, `joycode`, `qwen`, `zed`, `hermes`, and `openclaw`. Those targets still use their documented `oas install --target ...` paths until each adapter has passed the guided collision, update, repair, and uninstall lifecycle matrix. Neither wizard silently installs into every detected harness.
+
+### Open a clone and work
+
+From this repository:
+
+```bash
+npm install
+npm run studio
+```
+
+Studio opens at `http://127.0.0.1:3458` and shows a first-run checklist. The default provider is Ollama. Add a cloud key in Settings only if you are not running Ollama. GitHub and Linear inbox tokens are optional. `npm run desktop` wraps the same UI; OAS2, Itô, and `npx ccg-workflow` are not required.
+
+This repo ships a keyless project `.cursor/mcp.json` with `chrome-devtools`, `oas-memory-vault`, and `oas-studio-read`. Memory writes from Studio go to `.oas/memory` as well as the local store. If `oas` is not on PATH, use `node scripts/oas.js memory`.
 
 ## Start Using OAS
 

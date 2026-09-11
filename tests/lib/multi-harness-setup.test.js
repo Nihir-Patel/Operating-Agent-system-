@@ -139,7 +139,11 @@ function writeManagedState(plan, overrides = {}) {
     );
     assert.throws(
       () => normalizeGuidedInstallRequest({ harnesses: ['codex'], profile: 'core' }),
-      /Kimi.*selected/i
+      /Kimi or Cursor.*selected/i
+    );
+    assert.deepStrictEqual(
+      normalizeGuidedInstallRequest({ harnesses: ['cursor'], profile: 'developer' }).harnesses,
+      ['cursor']
     );
   });
 
@@ -511,6 +515,28 @@ function writeManagedState(plan, overrides = {}) {
     assert.deepStrictEqual(events, ['preview:claude', 'preview:codex', 'preview:kimi']);
   });
 
+  await test('builds a Cursor managed plan with the selected profile', async () => {
+    const calls = [];
+    const request = normalizeGuidedInstallRequest({
+      harnesses: ['cursor'],
+      profile: 'developer',
+    });
+    const plan = await createMultiHarnessPlan(request, {
+      createManagedPlan: async (req, target) => {
+        calls.push({ profile: req.profile, target });
+        return { target };
+      },
+      preflightManaged: async managedPlan => ({
+        plan: managedPlan,
+        operations: [],
+        ownershipSnapshot: { destinations: [], stateFingerprint: { exists: false, sha256: null } },
+      }),
+    });
+    assert.deepStrictEqual(calls, [{ profile: 'developer', target: 'cursor' }]);
+    assert.strictEqual(plan.harnesses[0].id, 'cursor');
+    assert.strictEqual(plan.harnesses[0].channel, 'managed-project');
+  });
+
   await test('refuses a copy-file destination created after preview but before apply', async () => {
     const root = tempDir('oas-guided-late-copy-collision-');
     try {
@@ -561,7 +587,7 @@ function writeManagedState(plan, overrides = {}) {
       });
 
       assert.strictEqual(result.status, 'failed');
-      assert.match(result.failure.message, /destination changed after Kimi preflight/i);
+      assert.match(result.failure.message, /destination changed after managed preflight/i);
       assert.deepStrictEqual(result.retryHarnesses, ['kimi']);
       assert.strictEqual(fs.readFileSync(destination, 'utf8'), 'oas\n');
     } finally {

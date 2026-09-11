@@ -20,21 +20,23 @@ function normalizeGuidedInstallRequest(input = {}) {
   const { normalizeHarnessSelection } = catalogHelpers();
   const harnesses = normalizeHarnessSelection(input.harnesses || []);
   if (harnesses.length === 0) {
-    throw new Error('Choose at least one guided harness: Claude, Codex, or Kimi.');
+    throw new Error('Choose at least one guided harness: Claude, Codex, Kimi, or Cursor.');
   }
 
   const includesClaude = harnesses.includes('claude');
   const includesKimi = harnesses.includes('kimi');
+  const includesCursor = harnesses.includes('cursor');
+  const includesManaged = includesKimi || includesCursor;
   if (!includesClaude && (input.claudeScope !== undefined || input.claudeHooks !== undefined)) {
     throw new Error('Claude scope and hook options require Claude to be selected.');
   }
-  if (!includesKimi && input.profile !== undefined) {
-    throw new Error('The managed install profile requires Kimi to be selected.');
+  if (!includesManaged && input.profile !== undefined) {
+    throw new Error('The managed install profile requires Kimi or Cursor to be selected.');
   }
 
   const claudeScope = includesClaude ? (input.claudeScope || 'user') : undefined;
   const claudeHooks = includesClaude ? (input.claudeHooks || 'standard') : undefined;
-  const profile = includesKimi ? (input.profile || 'core') : undefined;
+  const profile = includesManaged ? (input.profile || 'core') : undefined;
   if (claudeScope && !VALID_CLAUDE_SCOPES.has(claudeScope)) {
     throw new Error(`Invalid Claude scope: ${claudeScope}`);
   }
@@ -331,7 +333,7 @@ function assertManagedDestinationsWritable(plan, dependencies) {
     try {
       accessSync(candidatePath, mode);
     } catch (_error) {
-      const label = plan.target === 'kimi' ? 'Kimi' : 'Managed install';
+      const label = plan.target === 'kimi' ? 'Kimi' : plan.target === 'cursor' ? 'Cursor' : 'Managed install';
       throw new Error(
         `${label} destination is not writable by the current user: ${candidatePath}. `
         + 'Fix the project ownership or permissions, then retry.'
@@ -396,7 +398,7 @@ async function applyPreflightedManagedPlan(entry) {
         || expected.classification !== currentClassification
       ) {
         throw new Error(
-          `Refusing to write ${operation.destinationPath}: destination changed after Kimi preflight.`
+          `Refusing to write ${operation.destinationPath}: destination changed after managed preflight.`
         );
       }
       ownedDestinations.add(destination);
@@ -421,10 +423,10 @@ function defaultDependencies(options = {}) {
       { dryRun: true, hooks: request.claudeHooks, scope: request.claudeScope }
     ),
     previewCodex: () => require('./codex-plugin-setup').reconcileCodexPlugin({ dryRun: true }),
-    createManagedPlan: request => require('./install/runtime').createInstallPlanFromRequest(
+    createManagedPlan: (request, target = 'kimi') => require('./install/runtime').createInstallPlanFromRequest(
       require('./install/request').normalizeInstallRequest({
         profileId: request.profile,
-        target: 'kimi',
+        target,
       }),
       {
         homeDir: options.homeDir || process.env.HOME || os.homedir(),
@@ -449,8 +451,8 @@ async function createMultiHarnessPlan(request, injected = {}, options = {}) {
       entries = [...entries, { id, channel: 'native-plugin', preview: await dependencies.previewClaude(request) }];
     } else if (id === 'codex') {
       entries = [...entries, { id, channel: 'native-plugin', preview: await dependencies.previewCodex(request) }];
-    } else if (id === 'kimi') {
-      const managedPlan = await dependencies.createManagedPlan(request);
+    } else if (id === 'kimi' || id === 'cursor') {
+      const managedPlan = await dependencies.createManagedPlan(request, id);
       entries = [...entries, {
         id,
         channel: 'managed-project',

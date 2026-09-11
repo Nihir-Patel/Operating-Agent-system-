@@ -1,3 +1,10 @@
+# Local Studio 0.9 — same SQLite path as `npm run studio`.
+# Postgres and Redis are unused by the Node control plane; keep them behind
+# the extras profile so a default compose up matches a laptop clone.
+#
+#   docker compose -f docker/docker-compose.studio.yml up
+#   docker compose -f docker/docker-compose.studio.yml --profile extras up
+
 services:
   oas-studio:
     build:
@@ -11,12 +18,8 @@ services:
       - NODE_ENV=production
       - OAS_STUDIO_PORT=3456
       - OAS_STUDIO_HOST=0.0.0.0
-      - DATABASE_URL=postgresql://oas:oas_secret@postgres:5432/oas_enterprise
-      - REDIS_URL=redis://redis:6379
-    depends_on:
-      - postgres
-      - redis
     volumes:
+      - oas_studio_sqlite:/app/.oas-data
       - ../agents:/app/agents:ro
       - ../skills:/app/skills:ro
       - ../commands:/app/commands:ro
@@ -25,6 +28,7 @@ services:
       - ../mcp-configs:/app/mcp-configs:ro
 
   postgres:
+    profiles: ["extras"]
     image: pgvector/pgvector:pg16
     container_name: oas-postgres
     restart: unless-stopped
@@ -38,6 +42,7 @@ services:
       - oas_pg_data:/var/lib/postgresql/data
 
   redis:
+    profiles: ["extras"]
     image: redis:7-alpine
     container_name: oas-redis
     restart: unless-stopped
@@ -47,5 +52,6 @@ services:
       - oas_redis_data:/data
 
 volumes:
+  oas_studio_sqlite:
   oas_pg_data:
   oas_redis_data:

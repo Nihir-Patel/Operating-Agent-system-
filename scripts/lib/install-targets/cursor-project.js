@@ -169,7 +169,7 @@ module.exports = createInstallTargetAdapter({
 
         const childOperations = fs.readdirSync(cursorRoot, { withFileTypes: true })
           .sort((left, right) => left.name.localeCompare(right.name))
-          .filter(entry => entry.name !== 'rules')
+          .filter(entry => entry.name !== 'rules' && entry.name !== 'mcp.json' && entry.name !== 'oas-install-state.json')
           .map(entry => createManagedOperation({
             moduleId: module.id,
             sourceRelativePath: path.join('.cursor', entry.name),

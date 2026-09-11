@@ -20,22 +20,32 @@ if (pathname === '/api/graph/telemetry' && req.method === 'GET') {
 
     sessions.forEach(s => {
       if (!s) return;
-      const ag = s.leadAgent || s.lead_agent_id || 'planner';
+      const ag = s.leadAgent || s.lead_agent_id;
+      if (!ag) return;
       if (!agentMetrics[ag]) {
         agentMetrics[ag] = { runs: 0, totalDurationMs: 0, status: 'IDLE', lastRun: s.createdAt || s.started_at || null };
       }
       agentMetrics[ag].runs += 1;
-      const idLen = (s.id && typeof s.id === 'string') ? s.id.length : 10;
-      agentMetrics[ag].totalDurationMs += 1200 + (idLen * 50);
+      const duration = Number(s.durationMs || s.totalDurationMs || s.elapsed_ms);
+      if (Number.isFinite(duration) && duration > 0) {
+        agentMetrics[ag].totalDurationMs += duration;
+      }
       if (s.status === 'running' || s.status === 'active') {
         agentMetrics[ag].status = 'RUNNING';
+      }
+    });
+
+    Object.keys(agentMetrics).forEach(ag => {
+      const metric = agentMetrics[ag];
+      if (metric.runs && metric.totalDurationMs > 0) {
+        metric.avgLatencyMs = Math.round(metric.totalDurationMs / metric.runs);
       }
     });
 
     return this.sendJson(res, 200, {
       timestamp: new Date().toISOString(),
       activeSessionCount: activeSessions.length,
-      activeAgents: activeSessions.map(s => s.leadAgent || s.lead_agent_id || 'planner'),
+      activeAgents: activeSessions.map(s => s.leadAgent || s.lead_agent_id).filter(Boolean),
       agentMetrics
     });
   } catch (err) {

@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest"]
+    },
+    "oas-memory-vault": {
+      "command": "node",
+      "args": ["scripts/memory-mcp.mjs"],
+      "env": {
+        "OAS_MEMORY_HARNESS": "cursor"
+      }
+    },
+    "oas-studio-read": {
+      "command": "node",
+      "args": ["scripts/oas-studio-mcp.js"]
+    }
+  }
+}

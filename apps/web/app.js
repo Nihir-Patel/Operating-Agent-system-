@@ -3,10 +3,33 @@
  * OAS Local Studio 0.9 frontend controller
  */
 
-import { state, nodeMetadata, viewTitles } from './js/studio-state.js';
+import { state, nodeMetadata, viewTitles, viewKickers } from './js/studio-state.js';
+import { formatStudioWorkLabel, isSampleGithubWork } from './js/studio-labels.js';
 import { escapeHtml, showToast, formatUnifiedDiffHtml } from './js/ui.js';
 import { persistApiToken, getApiToken, getSseStreamUrl, installAuthenticatedFetch } from './js/api-client.js';
 import { initWorkspaceFilesystem, loadWorkspaceTree, hideWorkspaceEditors } from './js/workspace-editor.js';
+import {
+  computeZoomPan,
+  wheelZoomFactor,
+  formatKgZoomPercent,
+  matchLiveAgent,
+  isKgNodeEnergized,
+  formatKgRunCount,
+  formatKgLatency,
+  createEdgeBurstPhotons,
+  pruneKgPhotons
+} from './js/kg-camera.js';
+import {
+  GRAPH3D_DEFAULT_CAMERA,
+  projectPerspective3D,
+  centerAndScaleNodes,
+  prepareTopologyNodes,
+  createSpaceDust,
+  resizeHiDpiCanvas,
+  drawNebulaBackdrop,
+  drawGlassSphere,
+  drawPillLabel
+} from './js/studio-graph-3d.js';
 
 installAuthenticatedFetch({ onAuthRetry: () => connectSseStream() });
 
@@ -66,9 +89,14 @@ function switchView(viewId) {
   if (viewTitles[viewId]) {
     elements.currentViewTitle.textContent = viewTitles[viewId];
   }
+  const titleKicker = document.getElementById('view-title-kicker');
+  if (titleKicker) titleKicker.textContent = viewKickers[viewId] || 'STUDIO';
 
   if (viewId === 'view-knowledge-graph') {
-    setTimeout(initKgSimulation, 50);
+    setTimeout(() => {
+      resizeKgCanvas();
+      if (!kgAnimationId) loopKg();
+    }, 50);
   } else if (viewId === 'view-workspace') {
     loadWorkspaceTree();
     loadSessionSteps(state.activeSession.id);
@@ -108,13 +136,13 @@ function selectDagNode(agentKey) {
     : (agentDef?.model ? `Claude 3.7 ${agentDef.model.toUpperCase()}` : 'Claude 3.7 Sonnet');
   const model = meta.model || defaultModel;
   const role = meta.role || agentDef?.description || 'Autonomous Domain Subagent';
-  const cot = meta.cot || `[${agentKey}] Active and ready for orchestration in session ${state.activeSession.id}.`;
-  const tool = meta.tool || (agentDef?.tools ? `tools: ${Array.isArray(agentDef.tools) ? agentDef.tools.join(', ') : agentDef.tools}` : 'tool: inspect_workspace\nduration: 45ms\nstatus: active');
+  const cot = meta.cot || `[${agentKey}] Inspector bound to session ${state.activeSession.id || 'none'}.`;
+  const tool = meta.tool || (agentDef?.tools ? `tools: ${Array.isArray(agentDef.tools) ? agentDef.tools.join(', ') : agentDef.tools}` : 'tool: inspect_workspace\nstatus: idle');
 
   // Determine active status from dagNodesData or metadata
   const dagNode = dagNodesData.find(n => n.agentId === agentKey);
-  const currentStatus = dagNode?.status || meta.status || 'queued';
-  const duration = meta.duration || '65ms';
+  const currentStatus = dagNode?.status || meta.status || 'idle';
+  const duration = meta.duration || '—';
 
   // 1. Update Title & Badges
   const titleEl = document.getElementById('inspector-node-name');
@@ -143,7 +171,7 @@ function selectDagNode(agentKey) {
 
   const statusSelect = document.getElementById('inspector-node-status-select');
   if (statusSelect) {
-    statusSelect.value = currentStatus === 'pending' ? 'queued' : currentStatus;
+    statusSelect.value = (currentStatus === 'pending' || currentStatus === 'idle') ? 'queued' : currentStatus;
   }
 
   // 2. Update Model Selector & Badge
@@ -349,24 +377,39 @@ function updateDagTimelineScrubber(steps) {
   label.textContent = `Step ${count} / ${count}`;
 }
 
+function setWorkspaceAgentBadge(mode, label) {
+  const el = document.getElementById('agent-active-badge');
+  if (!el) return;
+  el.classList.remove('is-standby', 'is-live', 'is-executing');
+  if (mode === 'live') el.classList.add('is-live');
+  else if (mode === 'executing') el.classList.add('is-executing');
+  else el.classList.add('is-standby');
+  el.textContent = label;
+}
+
+function renderStreamEmptyState({ title, bodyHtml, primed = false }) {
+  return `
+    <div class="stream-empty-state${primed ? ' is-primed' : ''}">
+      <div class="stream-empty-orb" aria-hidden="true"></div>
+      <div class="stream-empty-title">${title}</div>
+      <div class="stream-empty-copy">${bodyHtml}</div>
+    </div>
+  `;
+}
+
 async function loadSessionSteps(sessionId) {
   const stream = document.getElementById('thought-stream-content');
   const stepCountBadge = document.getElementById('stream-step-count');
-  const activeAgentBadge = document.getElementById('agent-active-badge');
   if (!stream) return;
   stream.innerHTML = '';
 
   if (!sessionId) {
     if (stepCountBadge) stepCountBadge.textContent = '0 Steps';
-    if (activeAgentBadge) activeAgentBadge.textContent = 'No agent active';
-    stream.innerHTML = `
-      <div class="stream-empty-state" style="padding: 24px 16px; text-align: center; color: var(--text-muted); background: rgba(5, 9, 20, 0.6); border-radius: 8px; border: 1px dashed rgba(56, 189, 248, 0.2);">
-        <div style="font-size: 13px; font-weight: 700; color: #F1F5F9;">No Active Session Selected</div>
-        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px; line-height: 1.5;">
-          Create a session in the Sessions drawer or launch a mission prompt to begin execution.
-        </div>
-      </div>
-    `;
+    setWorkspaceAgentBadge('standby', 'STANDBY');
+    stream.innerHTML = renderStreamEmptyState({
+      title: 'No Active Session',
+      bodyHtml: 'Create a session in the Sessions drawer or launch a mission prompt to begin execution.'
+    });
     return;
   }
 
@@ -393,24 +436,26 @@ async function loadSessionSteps(sessionId) {
       if (stepCountBadge) {
         stepCountBadge.textContent = `${steps.length} Steps`;
       }
-      if (activeAgentBadge) {
-        const lastStep = steps[steps.length - 1];
-        const activeAgent = (lastStep && lastStep.agent_id) || data.session?.leadAgent || 'planner';
-        activeAgentBadge.textContent = `${activeAgent} active`;
-      }
-
       if (steps.length === 0) {
-        stream.innerHTML = `
-          <div class="stream-empty-state" style="padding: 24px 16px; text-align: center; color: var(--text-muted); background: rgba(5, 9, 20, 0.6); border-radius: 8px; border: 1px dashed rgba(56, 189, 248, 0.2);">
-            <div style="font-size: 13px; font-weight: 700; color: #F1F5F9;">Agent Workspace Primed</div>
-            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px; line-height: 1.5;">
-              Active Session: <strong style="color: #38BDF8;">${data.session?.title || sessionId}</strong><br>
-              Click a quick action chip below or enter a mission prompt to execute with your autonomous agent.
-            </div>
-          </div>
-        `;
+        setWorkspaceAgentBadge('standby', 'STANDBY');
+        stream.innerHTML = renderStreamEmptyState({
+          title: 'Agent Workspace Primed',
+          primed: true,
+          bodyHtml: `Session <strong>${escapeHtml(formatStudioWorkLabel({
+            title: data.session?.title || sessionId,
+            metadata: data.session?.metadata,
+            source: data.session?.metadata?.source,
+            sourceId: data.session?.metadata?.issueNumber,
+            url: data.session?.metadata?.html_url || data.session?.metadata?.url,
+            sample: data.session?.metadata?.sample
+          }))}</strong> is standing by. Dispatch a mission below to stream thought, tools, and diffs live.`
+        });
         return;
       }
+
+      const lastStep = steps[steps.length - 1];
+      const activeAgent = (lastStep && lastStep.agent_id) || data.session?.leadAgent || 'planner';
+      setWorkspaceAgentBadge('live', `${activeAgent} active`);
 
       steps.forEach(step => {
         appendStepToStream(step);
@@ -569,10 +614,7 @@ function connectSseStream() {
 
     sseEventSource.onopen = () => {
       sseReconnectAttempts = 0;
-      const indicator = document.querySelector('.system-status-indicator');
-      if (indicator) {
-        indicator.innerHTML = '<div class="status-dot"></div><span>Control Plane Online</span>';
-      }
+      pingControlPlaneHealth();
     };
 
     sseEventSource.onerror = () => {
@@ -832,7 +874,7 @@ if (btnRefreshCatalog) {
       await loadCatalog();
       renderCatalog();
       if (state.activeView === 'view-knowledge-graph') {
-        initKgSimulation();
+        resizeKgCanvas();
       }
       await loadTelemetry();
       const agentsCount = state.catalog?.agents?.length || 68;
@@ -874,6 +916,67 @@ if (btnInspectorIntervene) {
   });
 }
 
+function catalogTotals() {
+  const agents = (state.catalog.agents || []).length;
+  const skills = (state.catalog.skills || []).length;
+  const commands = (state.catalog.commands || []).length;
+  const mcp = (state.catalog.mcp || []).length;
+  return { agents, skills, commands, mcp, total: agents + skills + commands + mcp };
+}
+
+function syncStudioCatalogChrome() {
+  const totals = catalogTotals();
+  document.querySelectorAll('.filter-pills [data-filter]').forEach(el => {
+    const filter = el.getAttribute('data-filter');
+    if (filter === 'all') el.textContent = `All (${totals.total})`;
+    else if (filter === 'agents') el.textContent = `Agents (${totals.agents})`;
+    else if (filter === 'skills') el.textContent = `Skills (${totals.skills})`;
+    else if (filter === 'commands') el.textContent = `Commands (${totals.commands})`;
+    else if (filter === 'mcp') el.textContent = `MCPs (${totals.mcp})`;
+  });
+  document.querySelectorAll('[data-kg-filter]').forEach(el => {
+    const filter = el.getAttribute('data-kg-filter');
+    if (filter === 'all') el.textContent = `All (${totals.total})`;
+    else if (filter === 'agent') el.textContent = `Agents (${totals.agents})`;
+    else if (filter === 'skill') el.textContent = `Skills (${totals.skills})`;
+    else if (filter === 'command') el.textContent = `Commands (${totals.commands})`;
+    else if (filter === 'mcp') el.textContent = `MCPs (${totals.mcp})`;
+  });
+  const search = document.getElementById('catalog-search');
+  if (search) {
+    search.placeholder = `Search ${totals.agents} agents, ${totals.skills} skills, ${totals.commands} commands, ${totals.mcp} MCP servers...`;
+  }
+  viewTitles['view-catalog'] = 'Capabilities Catalog';
+}
+
+function syncDagSessionChrome() {
+  const badge = document.getElementById('dag-session-status-badge');
+  const status = (state.activeSession && state.activeSession.status) || 'idle';
+  if (!badge) return;
+  badge.textContent = String(status).toUpperCase();
+  const live = status === 'active' || status === 'running';
+  badge.style.color = live ? '#10B981' : '#94A3B8';
+  badge.style.borderColor = live ? 'rgba(16, 185, 129, 0.3)' : 'rgba(148, 163, 184, 0.25)';
+}
+
+let controlPlaneHealthTimer = null;
+
+async function pingControlPlaneHealth() {
+  const indicator = document.querySelector('.system-status-indicator');
+  try {
+    const res = await fetch('/health');
+    if (!res.ok) throw new Error(`health ${res.status}`);
+    const data = await res.json();
+    if (!indicator) return;
+    const version = data.studioVersion ? ` · ${data.studioVersion}` : '';
+    indicator.innerHTML = `<div class="status-dot"></div><span>Control Plane Online${version}</span>`;
+  } catch {
+    if (indicator) {
+      indicator.innerHTML = '<div class="status-dot" style="background: var(--status-danger);"></div><span>Control Plane Offline</span>';
+    }
+  }
+}
+
 // Fetch Catalog Data
 async function loadCatalog() {
   try {
@@ -891,6 +994,7 @@ async function loadCatalog() {
   }
 
   renderCatalog();
+  syncStudioCatalogChrome();
 }
 
 // Render Capabilities Catalog Cards
@@ -982,8 +1086,9 @@ function renderCatalog() {
 
   if (filtered.length === 0) {
     elements.catalogGrid.innerHTML = `
-      <div style="grid-column: 1 / -1; padding: 40px 20px; text-align: center; background: rgba(8, 14, 28, 0.7); border: 1px dashed rgba(56, 189, 248, 0.2); border-radius: var(--radius-lg);">
-        <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 12px;">No capabilities found matching the active filter.</p>
+      <div class="catalog-empty-state">
+        <p class="catalog-empty-kicker">CATALOG STANDBY</p>
+        <p>No capabilities found matching the active filter.</p>
         <button class="btn btn-secondary btn-sm" id="btn-reset-catalog-filters" style="padding: 6px 14px;">Reset Search &amp; Filters</button>
       </div>
     `;
@@ -1009,8 +1114,7 @@ function renderCatalog() {
     card.innerHTML = `
       <div class="card-title">
         <span style="font-weight: 700; letter-spacing: -0.01em;">${escapeHtml(item.name || item.id)}</span>
-        <span class="badge-tag font-mono" style="color: ${item.badgeColor}; border-color: ${item.badgeColor}44; background: ${item.badgeColor}18; display: inline-flex; align-items: center; gap: 4px;">
-          <span style="width: 5px; height: 5px; border-radius: 50%; background: ${item.badgeColor}; box-shadow: 0 0 6px ${item.badgeColor};"></span>
+        <span class="ws-pane-kicker catalog-type-kicker" style="color: ${item.badgeColor}; border-color: ${item.badgeColor}66; background: ${item.badgeColor}18;">
           ${item.type}
         </span>
       </div>
@@ -1393,7 +1497,7 @@ async function loadPlanCanvas() {
     container.innerHTML = '';
     phases.forEach((phase, idx) => {
       const card = document.createElement('div');
-      card.className = 'phase-card';
+      card.className = 'phase-card cockpit-cell';
       card.dataset.phaseId = phase.id || `p${idx}`;
 
       const statusText = phase.completed ? 'PASSED' : (phase.status || 'PENDING');
@@ -2021,14 +2125,47 @@ let dagZoom = 1;
 let dagPan = { x: 0, y: 0 };
 let isDraggingDag = false;
 let dagDragStart = { x: 0, y: 0 };
+const dagTopologyApi = {
+  active: false,
+  reset() {}
+};
 let dagNodesData = [
   { id: 'node_planner', agentId: 'planner', status: 'completed', x: 80, y: 120 },
   { id: 'node_architect', agentId: 'architect', status: 'completed', x: 340, y: 120 },
-  { id: 'node_tdd', agentId: 'tdd-guide', status: 'running', x: 600, y: 120 },
+  { id: 'node_tdd', agentId: 'tdd-guide', status: 'pending', x: 600, y: 120 },
   { id: 'node_review', agentId: 'code-reviewer', status: 'pending', x: 600, y: 320 },
   { id: 'node_sec', agentId: 'security-reviewer', status: 'pending', x: 340, y: 320 },
   { id: 'node_docs', agentId: 'doc-updater', status: 'pending', x: 80, y: 320 }
 ];
+
+function dagBoardSize() {
+  const svg = document.getElementById('dag-svg');
+  const w = Math.max(640, Math.round((svg && svg.clientWidth) || 960));
+  const h = Math.max(420, Math.round((svg && svg.clientHeight) || 560));
+  if (svg) svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  return { w, h };
+}
+
+function spreadDagLayout(nodes) {
+  const { w, h } = dagBoardSize();
+  const nodeW = 144;
+  const nodeH = 92;
+  const colGap = 52;
+  const rowGap = 72;
+  const gridW = 3 * nodeW + 2 * colGap;
+  const gridH = 2 * nodeH + rowGap;
+  const originX = Math.max(28, Math.round((w - gridW) / 2));
+  const originY = Math.max(32, Math.round((h - gridH) / 2));
+  return nodes.map((node, i) => {
+    const col = i < 3 ? i : Math.max(0, 2 - (i - 3));
+    const row = i < 3 ? 0 : 1;
+    return {
+      ...node,
+      x: originX + col * (nodeW + colGap),
+      y: originY + row * (nodeH + rowGap)
+    };
+  });
+}
 
 async function renderDynamicDag() {
   const viewport = document.getElementById('dag-viewport');
@@ -2061,6 +2198,8 @@ async function renderDynamicDag() {
   } catch {
     // Keep local layout fallback
   }
+
+  dagNodesData = spreadDagLayout(dagNodesData);
 
   viewport.innerHTML = '';
   viewport.setAttribute('transform', `translate(${dagPan.x}, ${dagPan.y}) scale(${dagZoom})`);
@@ -2188,18 +2327,19 @@ function initDynamicDag() {
   if (zoomOut) zoomOut.onclick = () => { dagZoom = Math.max(0.4, dagZoom / 1.2); renderDynamicDag(); };
 
   const resetZoom = document.getElementById('btn-dag-reset-zoom');
-  if (resetZoom) resetZoom.onclick = () => { dagZoom = 1; dagPan = { x: 0, y: 0 }; renderDynamicDag(); };
+  if (resetZoom) resetZoom.onclick = () => {
+    dagZoom = 1;
+    dagPan = { x: 0, y: 0 };
+    if (typeof dagTopologyApi.reset === 'function') dagTopologyApi.reset();
+    renderDynamicDag();
+  };
 
   const autoLayout = document.getElementById('btn-dag-auto-layout');
   if (autoLayout) autoLayout.onclick = () => {
-    dagNodesData[0] = { ...dagNodesData[0], x: 80, y: 120 };
-    dagNodesData[1] = { ...dagNodesData[1], x: 340, y: 120 };
-    dagNodesData[2] = { ...dagNodesData[2], x: 600, y: 120 };
-    dagNodesData[3] = { ...dagNodesData[3], x: 600, y: 320 };
-    dagNodesData[4] = { ...dagNodesData[4], x: 340, y: 320 };
-    dagNodesData[5] = { ...dagNodesData[5], x: 80, y: 320 };
     dagZoom = 1;
     dagPan = { x: 0, y: 0 };
+    dagNodesData = spreadDagLayout(dagNodesData);
+    if (typeof dagTopologyApi.reset === 'function') dagTopologyApi.reset();
     renderDynamicDag();
   };
 
@@ -2211,7 +2351,6 @@ function initMissionComposer() {
   const missionInput = document.getElementById('agent-mission-input');
   const btnSend = document.getElementById('btn-send-mission');
   const modelSelect = document.getElementById('agent-model-select');
-  const activeAgentBadge = document.getElementById('agent-active-badge');
   const chips = document.querySelectorAll('.mission-chip');
 
   const executeMission = async (promptText) => {
@@ -2221,12 +2360,9 @@ function initMissionComposer() {
 
     if (btnSend) {
       btnSend.disabled = true;
-      btnSend.innerHTML = `<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#38BDF8; margin-right:4px;"></span> Running...`;
+      btnSend.innerHTML = `<span class="ws-send-spinner" aria-hidden="true"></span> Running`;
     }
-    if (activeAgentBadge) {
-      activeAgentBadge.textContent = 'executing mission...';
-      activeAgentBadge.style.color = '#38BDF8';
-    }
+    setWorkspaceAgentBadge('executing', 'DISPATCHING');
 
     // Append interim thinking card in thought stream
     const stream = document.getElementById('thought-stream-content');
@@ -2287,9 +2423,6 @@ function initMissionComposer() {
       if (btnSend) {
         btnSend.disabled = false;
         btnSend.innerHTML = `<span>Send</span> <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
-      }
-      if (activeAgentBadge) {
-        activeAgentBadge.textContent = 'planner active';
       }
     }
   };
@@ -2398,10 +2531,15 @@ let kgFilteredNodes = [];
 let kgCanvas = null;
 let kgCtx = null;
 let kgZoom = 1;
+let kgZoomTarget = 1;
 let kgPan = { x: 0, y: 0 };
+let kgPanTarget = { x: 0, y: 0 };
 let selectedKgNode = null;
 let hoveredKgNode = null;
 let kgAnimationId = null;
+let kgSimSeeded = false;
+let kgLocalActivity = new Map();
+let kgLaunchHandoffTimer = null;
 
 // 3D Camera & Space Physics
 let kgCamera = {
@@ -2426,11 +2564,73 @@ let kgBlastImpact = null;
 let kgActiveTelemetry = { activeAgents: [], agentMetrics: {} };
 let kgTelemetryInterval = null;
 
+function kgEnergy(node) {
+  return isKgNodeEnergized(node, kgActiveTelemetry.activeAgents, kgLocalActivity, kgTime);
+}
+
+function pruneExpiredKgActivity() {
+  kgLocalActivity.forEach((pulse, id) => {
+    if (!pulse || pulse.until <= kgTime) kgLocalActivity.delete(id);
+  });
+}
+
+function triggerKgNodeActivity(node, { kind = 'launch', duration = 7.5 } = {}) {
+  if (!node) return;
+  kgLocalActivity.set(node.id, { until: kgTime + duration, kind });
+  const burst = createEdgeBurstPhotons(kgData.edges || [], node.id, { max: 16 });
+  kgPhotons = pruneKgPhotons(kgPhotons.concat(burst), { max: 160 });
+}
+
+function syncKgZoomHud() {
+  const label = formatKgZoomPercent(kgZoomTarget);
+  const hud = document.getElementById('kg-hud-zoom');
+  if (hud) hud.textContent = label;
+  const readout = document.getElementById('kg-zoom-readout');
+  if (readout) readout.textContent = label;
+}
+
+function resizeKgCanvas() {
+  kgCanvas = kgCanvas || document.getElementById('kg-canvas');
+  if (!kgCanvas) return;
+  kgCtx = kgCanvas.getContext('2d');
+  const rect = kgCanvas.getBoundingClientRect();
+  const width = rect.width || 900;
+  const height = rect.height || 600;
+  const dpr = window.devicePixelRatio || 1;
+  if (kgCanvas.width !== Math.round(width * dpr) || kgCanvas.height !== Math.round(height * dpr)) {
+    kgCanvas.width = width * dpr;
+    kgCanvas.height = height * dpr;
+  }
+}
+
+function resetKgCamera() {
+  kgZoomTarget = 1;
+  kgPanTarget = { x: 0, y: 0 };
+  kgCamera.targetRotX = 0.32;
+  kgCamera.targetRotY = -0.38;
+}
+
+function tickKgCamera() {
+  kgZoom += (kgZoomTarget - kgZoom) * 0.22;
+  kgPan.x += (kgPanTarget.x - kgPan.x) * 0.22;
+  kgPan.y += (kgPanTarget.y - kgPan.y) * 0.22;
+  if (Math.abs(kgZoomTarget - kgZoom) < 0.0008) kgZoom = kgZoomTarget;
+  if (Math.abs(kgPanTarget.x - kgPan.x) < 0.15) kgPan.x = kgPanTarget.x;
+  if (Math.abs(kgPanTarget.y - kgPan.y) < 0.15) kgPan.y = kgPanTarget.y;
+  syncKgZoomHud();
+}
+
+function setKgLiveFrame(isLive) {
+  const area = document.querySelector('#view-knowledge-graph .kg-canvas-area');
+  if (area) area.classList.toggle('is-live', Boolean(isLive));
+}
+
 async function loadKnowledgeGraph() {
   try {
     const res = await fetch('/api/graph');
     if (res.ok) {
       kgData = await res.json();
+      kgSimSeeded = false;
       initKgSimulation();
 
       // Ensure a default node (tdd-guide or first agent) is selected and inspected
@@ -2557,10 +2757,10 @@ async function pollKgTelemetry() {
     if (res.ok) {
       const data = await res.json();
       kgActiveTelemetry = data;
+      const liveCount = (data.activeAgents || []).length;
       const countEl = document.getElementById('kg-live-active-count');
-      if (countEl) {
-        countEl.textContent = (data.activeAgents || []).length;
-      }
+      if (countEl) countEl.textContent = liveCount;
+      setKgLiveFrame(liveCount > 0 || kgLocalActivity.size > 0);
       if (selectedKgNode) {
         updateKgInspector(selectedKgNode);
       }
@@ -2574,12 +2774,13 @@ function initKgSimulation() {
   kgCanvas = document.getElementById('kg-canvas');
   if (!kgCanvas) return;
   kgCtx = kgCanvas.getContext('2d');
+  resizeKgCanvas();
 
-  const rect = kgCanvas.getBoundingClientRect();
-  const width = rect.width || 900;
-  const height = rect.height || 600;
-  kgCanvas.width = width * window.devicePixelRatio;
-  kgCanvas.height = height * window.devicePixelRatio;
+  const needsLayout = !kgSimSeeded || kgData.nodes.some(n => n.baseX === undefined);
+  if (!needsLayout) {
+    if (!kgAnimationId) loopKg();
+    return;
+  }
 
   // Calculate connection degrees for each node
   const degrees = {};
@@ -2659,30 +2860,31 @@ function initKgSimulation() {
   });
 
   kgBackgroundDust = [];
-  for (let i = 0; i < 110; i++) {
+  for (let i = 0; i < 150; i++) {
     kgBackgroundDust.push({
-      x: (Math.random() - 0.5) * 1300,
-      y: (Math.random() - 0.5) * 1100,
-      z: (Math.random() - 0.5) * 900,
-      size: 0.8 + Math.random() * 1.6,
+      x: (Math.random() - 0.5) * 1400,
+      y: (Math.random() - 0.5) * 1200,
+      z: (Math.random() - 0.5) * 980,
+      size: 0.7 + Math.random() * 1.8,
       phase: Math.random() * Math.PI * 2,
-      twinkleSpeed: 0.8 + Math.random() * 1.2
+      twinkleSpeed: 0.7 + Math.random() * 1.6
     });
   }
 
   kgPhotons = [];
   const edgeCount = (kgData.edges || []).length;
   if (edgeCount > 0) {
-    for (let i = 0; i < 75; i++) {
+    for (let i = 0; i < 92; i++) {
       kgPhotons.push({
         edgeIndex: i % edgeCount,
         progress: Math.random(),
-        speed: 0.003 + Math.random() * 0.006,
-        size: 1.8 + Math.random() * 1.2
+        speed: 0.0032 + Math.random() * 0.007,
+        size: 1.6 + Math.random() * 1.4
       });
     }
   }
 
+  kgSimSeeded = true;
   applyKgFilter('all');
   if (!kgAnimationId) loopKg();
 }
@@ -2722,13 +2924,13 @@ function applyKgFilter(category) {
     const dist = Math.sqrt(avgX * avgX + avgZ * avgZ) || 1;
     kgCamera.targetRotY = -Math.atan2(avgX, avgZ);
     kgCamera.targetRotX = Math.max(-0.6, Math.min(0.6, Math.atan2(avgY, dist)));
-    kgZoom = 1.15;
-    kgPan = { x: 0, y: 0 };
+    kgZoomTarget = 1.15;
+    kgPanTarget = { x: 0, y: 0 };
   } else if (category === 'all') {
     kgCamera.targetRotX = 0.32;
     kgCamera.targetRotY = -0.38;
-    kgZoom = 1.0;
-    kgPan = { x: 0, y: 0 };
+    kgZoomTarget = 1.0;
+    kgPanTarget = { x: 0, y: 0 };
   }
 }
 
@@ -2746,6 +2948,10 @@ function renderKgFrame() {
   const cy = height / 2;
 
   kgTime += 0.018;
+  pruneExpiredKgActivity();
+  tickKgCamera();
+  kgPhotons = pruneKgPhotons(kgPhotons, { max: 160 });
+  setKgLiveFrame((kgActiveTelemetry.activeAgents || []).length > 0 || kgLocalActivity.size > 0);
 
   // Layout coordinate interpolation
   if (kgLayoutTransitioning) {
@@ -2795,13 +3001,15 @@ function renderKgFrame() {
 
   // 2. Compute "Alive & Breathing" Oscillations for Nodes
   kgData.nodes.forEach(node => {
-    const breath = Math.sin(kgTime * 1.5 * node.freq + node.phase);
-    const breathAmp = 8 + (node.degree > 2 ? 6 : 2);
+    const energy = kgEnergy(node);
+    const liveBoost = energy === 'live' ? 1.7 : (energy ? 1.45 : 1);
+    const breath = Math.sin(kgTime * (energy ? 2.35 : 1.5) * node.freq + node.phase);
+    const breathAmp = (8 + (node.degree > 2 ? 6 : 2)) * liveBoost;
 
     node.x3d = node.baseX + Math.cos(kgTime * 0.8 + node.phase) * (breathAmp * 0.4);
     node.y3d = node.baseY + Math.sin(kgTime * 0.8 + node.phase) * (breathAmp * 0.4);
     node.z3d = node.baseZ + breath * breathAmp;
-    node.currentRadius = node.baseRadius * (1 + breath * 0.16);
+    node.currentRadius = node.baseRadius * (1 + breath * (energy ? 0.28 : 0.16));
 
     const proj = project3D(node.x3d, node.y3d, node.z3d);
     node.projX = proj.x;
@@ -2815,9 +3023,10 @@ function renderKgFrame() {
   kgCtx.scale(dpr, dpr);
   kgCtx.clearRect(0, 0, width, height);
 
+  const nebulaPulse = 0.38 + 0.1 * Math.sin(kgTime * 0.65);
   const nebulaGrad = kgCtx.createRadialGradient(cx + kgPan.x * 0.3, cy + kgPan.y * 0.3, 20, cx, cy, Math.max(width, height) * 0.65);
-  nebulaGrad.addColorStop(0, 'rgba(14, 38, 86, 0.45)');
-  nebulaGrad.addColorStop(0.45, 'rgba(6, 14, 32, 0.3)');
+  nebulaGrad.addColorStop(0, `rgba(14, 48, 96, ${nebulaPulse})`);
+  nebulaGrad.addColorStop(0.42, 'rgba(8, 22, 48, 0.32)');
   nebulaGrad.addColorStop(1, 'rgba(3, 6, 15, 0)');
   kgCtx.fillStyle = nebulaGrad;
   kgCtx.fillRect(0, 0, width, height);
@@ -2884,6 +3093,10 @@ function renderKgFrame() {
         const avgZ = (src.projZ + tgt.projZ) / 2;
         const depthAlpha = Math.max(0.12, Math.min(0.85, 0.55 - (avgZ / 1200)));
 
+        const srcLive = kgEnergy(src);
+        const tgtLive = kgEnergy(tgt);
+        const isLiveEdge = Boolean(srcLive || tgtLive);
+
         kgCtx.beginPath();
         kgCtx.moveTo(src.projX, src.projY);
         kgCtx.lineTo(tgt.projX, tgt.projY);
@@ -2897,18 +3110,26 @@ function renderKgFrame() {
           kgCtx.strokeStyle = `rgba(30, 41, 59, 0.15)`;
           kgCtx.lineWidth = 0.5;
           kgCtx.shadowBlur = 0;
+        } else if (isLiveEdge) {
+          kgCtx.strokeStyle = srcLive === 'live' || tgtLive === 'live' ? 'rgba(52, 211, 153, 0.9)' : 'rgba(125, 211, 252, 0.85)';
+          kgCtx.lineWidth = 2.6;
+          kgCtx.shadowColor = srcLive === 'live' || tgtLive === 'live' ? '#34D399' : '#38BDF8';
+          kgCtx.shadowBlur = 14;
+          kgCtx.setLineDash([5, 9]);
+          kgCtx.lineDashOffset = -(kgTime * 52);
         } else if (isConnectedToFocus) {
           kgCtx.strokeStyle = '#38BDF8';
           kgCtx.lineWidth = 2.4;
           kgCtx.shadowColor = '#38BDF8';
           kgCtx.shadowBlur = 12;
         } else {
-          // Vibrant synaptic lines
           kgCtx.strokeStyle = `rgba(96, 165, 250, ${depthAlpha * 0.45})`;
           kgCtx.lineWidth = Math.max(0.7, 1.2 * ((src.projScale + tgt.projScale) / 2));
           kgCtx.shadowBlur = 0;
         }
         kgCtx.stroke();
+        kgCtx.setLineDash([]);
+        kgCtx.lineDashOffset = 0;
         kgCtx.shadowBlur = 0;
       }
     }
@@ -2921,20 +3142,41 @@ function renderKgFrame() {
       const src = nodeMap.get(edge.source);
       const tgt = nodeMap.get(edge.target);
       if (src && tgt) {
-        photon.progress = (photon.progress + photon.speed) % 1;
+        const isFocusEdge = activeFocusNode && (src.id === activeFocusNode.id || tgt.id === activeFocusNode.id);
+        const isBlastEdge = kgBlastImpact && (kgBlastImpact.pathEdgeIds.has(edge.id) || (kgBlastImpact.allImpacted.has(edge.source) && kgBlastImpact.allImpacted.has(edge.target)));
+        const liveEdge = Boolean(kgEnergy(src) || kgEnergy(tgt));
+        const speed = photon.speed * (liveEdge ? 2.15 : 1) * (photon.burst ? 1.35 : 1);
+
+        if (photon.burst) {
+          photon.progress += speed;
+          if (photon.progress >= 1) return;
+        } else {
+          photon.progress = (photon.progress + speed) % 1;
+        }
+
         const p = photon.progress;
         const px = src.projX + (tgt.projX - src.projX) * p;
         const py = src.projY + (tgt.projY - src.projY) * p;
         const pScale = (src.projScale + tgt.projScale) / 2;
-
-        const isFocusEdge = activeFocusNode && (src.id === activeFocusNode.id || tgt.id === activeFocusNode.id);
-        const isBlastEdge = kgBlastImpact && (kgBlastImpact.pathEdgeIds.has(edge.id) || (kgBlastImpact.allImpacted.has(edge.source) && kgBlastImpact.allImpacted.has(edge.target)));
+        const trailP = Math.max(0, p - 0.07);
+        const tx = src.projX + (tgt.projX - src.projX) * trailP;
+        const ty = src.projY + (tgt.projY - src.projY) * trailP;
+        const coreR = Math.max(1.3, photon.size * pScale * (photon.burst ? 1.4 : 1));
+        const fill = isBlastEdge ? '#F59E0B' : (liveEdge ? '#6EE7B7' : (isFocusEdge ? '#FFFFFF' : '#67E8F9'));
+        const glow = isBlastEdge ? '#F59E0B' : (liveEdge ? '#34D399' : '#38BDF8');
 
         kgCtx.beginPath();
-        kgCtx.arc(px, py, Math.max(1.4, photon.size * pScale), 0, Math.PI * 2);
-        kgCtx.fillStyle = isBlastEdge ? '#F59E0B' : (isFocusEdge ? '#FFFFFF' : '#67E8F9');
-        kgCtx.shadowColor = isBlastEdge ? '#F59E0B' : '#38BDF8';
-        kgCtx.shadowBlur = 8;
+        kgCtx.arc(tx, ty, coreR * 1.7, 0, Math.PI * 2);
+        kgCtx.fillStyle = glow;
+        kgCtx.globalAlpha = 0.28;
+        kgCtx.fill();
+        kgCtx.globalAlpha = 1;
+
+        kgCtx.beginPath();
+        kgCtx.arc(px, py, coreR, 0, Math.PI * 2);
+        kgCtx.fillStyle = fill;
+        kgCtx.shadowColor = glow;
+        kgCtx.shadowBlur = photon.burst || liveEdge ? 16 : 8;
         kgCtx.fill();
         kgCtx.shadowBlur = 0;
       }
@@ -2954,17 +3196,19 @@ function renderKgFrame() {
     // Only dim nodes when specifically inspecting a blast radius impact!
     const isDimmed = kgBlastImpact ? !isBlastNode : false;
     const isHub = (node.type === 'agent' && (node.degree >= 2 || ['planner', 'architect', 'tdd-guide', 'security-reviewer', 'code-reviewer'].includes(node.id)));
-    const isLiveActive = (kgActiveTelemetry.activeAgents || []).some(a => a === node.id || a === node.name || (node.id === 'agent:tdd-guide' && (kgActiveTelemetry.activeAgents || []).length > 0));
+    const energy = kgEnergy(node);
+    const isLiveActive = energy === 'live';
+    const isOperating = Boolean(energy);
 
     const r = Math.max(2.4, node.currentRadius * node.projScale);
     const depthAlpha = Math.max(0.35, Math.min(1, 1 - (node.projZ / 950)));
 
-    // Outer Aura Glow for Hubs / Focus / Blast
-    if (isFocus || isNeighbor || isHub || isBlastNode) {
+    // Outer Aura Glow for Hubs / Focus / Blast / Operating
+    if (isFocus || isNeighbor || isHub || isBlastNode || isOperating) {
       kgCtx.beginPath();
-      kgCtx.arc(node.projX, node.projY, r * (isFocus ? 2.8 : 2.0), 0, Math.PI * 2);
-      const auraGrad = kgCtx.createRadialGradient(node.projX, node.projY, r * 0.6, node.projX, node.projY, r * (isFocus ? 2.8 : 2.0));
-      const glowCol = isBlastRoot ? 'rgba(56, 189, 248, 0.7)' : (isBlastDownstream ? 'rgba(245, 158, 11, 0.7)' : (isFocus ? 'rgba(56, 189, 248, 0.65)' : node.glowColor));
+      kgCtx.arc(node.projX, node.projY, r * (isFocus || isOperating ? 3.05 : 2.0), 0, Math.PI * 2);
+      const auraGrad = kgCtx.createRadialGradient(node.projX, node.projY, r * 0.6, node.projX, node.projY, r * (isFocus || isOperating ? 3.05 : 2.0));
+      const glowCol = isBlastRoot ? 'rgba(56, 189, 248, 0.7)' : (isBlastDownstream ? 'rgba(245, 158, 11, 0.7)' : (isLiveActive ? 'rgba(16, 185, 129, 0.7)' : (isOperating ? 'rgba(56, 189, 248, 0.7)' : (isFocus ? 'rgba(56, 189, 248, 0.65)' : node.glowColor))));
       auraGrad.addColorStop(0, glowCol);
       auraGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
       kgCtx.fillStyle = auraGrad;
@@ -2984,15 +3228,21 @@ function renderKgFrame() {
       kgCtx.shadowBlur = 0;
     }
 
-    // Live Active Telemetry Ring
-    if (isLiveActive && !isDimmed) {
-      const activeCycle = (kgTime * 36 + node.phase * 10) % 36;
-      const activeAlpha = Math.max(0, 1 - activeCycle / 36) * 0.7;
-      kgCtx.beginPath();
-      kgCtx.arc(node.projX, node.projY, r + activeCycle, 0, Math.PI * 2);
-      kgCtx.strokeStyle = `rgba(16, 185, 129, ${activeAlpha})`;
-      kgCtx.lineWidth = 1.8;
-      kgCtx.stroke();
+    // Live / operating heartbeat rings
+    if (isOperating && !isDimmed) {
+      const beatColor = isLiveActive ? '16, 185, 129' : '56, 189, 248';
+      for (let beat = 0; beat < 2; beat++) {
+        const cycle = (kgTime * (isLiveActive ? 42 : 34) + node.phase * 10 + beat * 16) % 40;
+        const alpha = Math.max(0, 1 - cycle / 40) * (isLiveActive ? 0.85 : 0.7);
+        kgCtx.beginPath();
+        kgCtx.arc(node.projX, node.projY, r + cycle * 1.15, 0, Math.PI * 2);
+        kgCtx.strokeStyle = `rgba(${beatColor}, ${alpha})`;
+        kgCtx.lineWidth = isLiveActive ? 2.2 : 1.7;
+        kgCtx.shadowColor = isLiveActive ? '#10B981' : '#38BDF8';
+        kgCtx.shadowBlur = 10;
+        kgCtx.stroke();
+        kgCtx.shadowBlur = 0;
+      }
     }
 
     // Hub Agent Pulsing Energy Rings
@@ -3036,10 +3286,16 @@ function renderKgFrame() {
       sphereGrad.addColorStop(1, node.darkColor);
 
       kgCtx.fillStyle = sphereGrad;
-      kgCtx.globalAlpha = isFocus ? 1.0 : (isNeighbor ? 0.95 : depthAlpha * 0.82);
+      kgCtx.globalAlpha = isFocus ? 1.0 : (isNeighbor || isOperating ? 0.97 : depthAlpha * 0.82);
       if (isFocus) {
         kgCtx.shadowColor = '#38BDF8';
         kgCtx.shadowBlur = 22;
+      } else if (isLiveActive) {
+        kgCtx.shadowColor = '#10B981';
+        kgCtx.shadowBlur = 20;
+      } else if (isOperating) {
+        kgCtx.shadowColor = '#38BDF8';
+        kgCtx.shadowBlur = 16;
       } else if (isBlastNode) {
         kgCtx.shadowColor = isBlastDownstream ? '#F59E0B' : '#38BDF8';
         kgCtx.shadowBlur = 14;
@@ -3078,7 +3334,8 @@ function renderKgFrame() {
     const isNeighbor = neighborIds.has(node.id);
     const isBlastNode = kgBlastImpact && kgBlastImpact.allImpacted.has(node.id);
     const isHub = (node.type === 'agent' && (node.degree >= 2 || ['planner', 'architect', 'tdd-guide', 'security-reviewer', 'code-reviewer'].includes(node.id)));
-    const shouldShowLabel = isFocus || isNeighbor || isBlastNode || (isHub && kgZoom >= 0.7) || (kgZoom >= 1.25);
+    const isOperating = Boolean(kgEnergy(node));
+    const shouldShowLabel = isFocus || isNeighbor || isBlastNode || isOperating || (isHub && kgZoom >= 0.7) || (kgZoom >= 1.25);
 
     if (shouldShowLabel) {
       const labelText = node.name || node.id;
@@ -3091,8 +3348,8 @@ function renderKgFrame() {
       const pillX = node.projX + (node.currentRadius * node.projScale) + 6;
       const pillY = node.projY - pillHeight / 2;
 
-      kgCtx.fillStyle = isFocus ? 'rgba(14, 45, 96, 0.95)' : (isBlastNode ? 'rgba(30, 20, 5, 0.92)' : 'rgba(6, 12, 28, 0.88)');
-      kgCtx.strokeStyle = isFocus ? '#38BDF8' : (isBlastNode ? '#F59E0B' : (isNeighbor ? node.color : 'rgba(255, 255, 255, 0.18)'));
+      kgCtx.fillStyle = isFocus || isOperating ? 'rgba(14, 45, 96, 0.95)' : (isBlastNode ? 'rgba(30, 20, 5, 0.92)' : 'rgba(6, 12, 28, 0.88)');
+      kgCtx.strokeStyle = isFocus ? '#38BDF8' : (isOperating ? '#34D399' : (isBlastNode ? '#F59E0B' : (isNeighbor ? node.color : 'rgba(255, 255, 255, 0.18)')));
       kgCtx.lineWidth = isFocus ? 1.5 : 1;
 
       kgCtx.beginPath();
@@ -3123,13 +3380,30 @@ function initKnowledgeGraph() {
 
   function zoomAtPoint(factor, clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
-    const newZoom = Math.max(0.3, Math.min(4.8, kgZoom * factor));
+    const next = computeZoomPan({
+      cursorX: clientX - rect.left,
+      cursorY: clientY - rect.top,
+      centerX: rect.width / 2,
+      centerY: rect.height / 2,
+      panX: kgPanTarget.x,
+      panY: kgPanTarget.y,
+      zoom: kgZoomTarget,
+      nextZoom: kgZoomTarget * factor
+    });
+    kgZoomTarget = next.zoom;
+    kgPanTarget = { x: next.panX, y: next.panY };
+    syncKgZoomHud();
+  }
 
-    kgPan.x = x - (x - kgPan.x) * (newZoom / kgZoom);
-    kgPan.y = y - (y - kgPan.y) * (newZoom / kgZoom);
-    kgZoom = newZoom;
+  function focusKgCameraOnNode(node, zoomFactor = 1.42) {
+    if (!node) return;
+    const dist = Math.sqrt((node.baseX || 0) * (node.baseX || 0) + (node.baseZ || 0) * (node.baseZ || 0)) || 1;
+    kgCamera.targetRotY = -Math.atan2(node.baseX || 0, node.baseZ || 0);
+    kgCamera.targetRotX = Math.max(-0.7, Math.min(0.7, Math.atan2(node.baseY || 0, dist)));
+    const rect = canvas.getBoundingClientRect();
+    const sx = Number.isFinite(node.projX) ? rect.left + node.projX : rect.left + rect.width / 2;
+    const sy = Number.isFinite(node.projY) ? rect.top + node.projY : rect.top + rect.height / 2;
+    zoomAtPoint(zoomFactor, sx, sy);
   }
 
   // Mouse controls: Left-click = 3D Orbit, Shift+Left or Right-click = 2D Pan
@@ -3159,6 +3433,8 @@ function initKnowledgeGraph() {
     if (is3dPanning) {
       kgPan.x += e.clientX - kgMousePrev.x;
       kgPan.y += e.clientY - kgMousePrev.y;
+      kgPanTarget.x = kgPan.x;
+      kgPanTarget.y = kgPan.y;
       kgMousePrev = { x: e.clientX, y: e.clientY };
       return;
     }
@@ -3229,13 +3505,26 @@ function initKnowledgeGraph() {
   canvas.addEventListener('click', () => {
     if (hoveredKgNode) {
       selectedKgNode = hoveredKgNode;
+      triggerKgNodeActivity(hoveredKgNode, { kind: 'inspect', duration: 2.8 });
       updateKgInspector(hoveredKgNode);
+    }
+  });
+
+  canvas.addEventListener('dblclick', e => {
+    e.preventDefault();
+    if (hoveredKgNode) {
+      selectedKgNode = hoveredKgNode;
+      triggerKgNodeActivity(hoveredKgNode, { kind: 'inspect', duration: 3.4 });
+      updateKgInspector(hoveredKgNode);
+      focusKgCameraOnNode(hoveredKgNode, 1.48);
+    } else {
+      zoomAtPoint(1.28, e.clientX, e.clientY);
     }
   });
 
   canvas.addEventListener('wheel', e => {
     e.preventDefault();
-    const factor = e.deltaY < 0 ? 1.12 : 0.89;
+    const factor = wheelZoomFactor(e.deltaY, e.deltaMode, { pinch: e.ctrlKey || e.metaKey });
     zoomAtPoint(factor, e.clientX, e.clientY);
   }, { passive: false });
 
@@ -3309,7 +3598,7 @@ function initKnowledgeGraph() {
                 const dist = Math.sqrt(targetNode.baseX * targetNode.baseX + targetNode.baseZ * targetNode.baseZ) || 1;
                 kgCamera.targetRotY = -Math.atan2(targetNode.baseX, targetNode.baseZ);
                 kgCamera.targetRotX = Math.max(-0.7, Math.min(0.7, Math.atan2(targetNode.baseY, dist)));
-                kgZoom = Math.max(1.35, kgZoom);
+                kgZoomTarget = Math.max(1.35, kgZoomTarget);
               }
             }
           }
@@ -3325,7 +3614,7 @@ function initKnowledgeGraph() {
   if (zin) {
     zin.onclick = () => {
       const rect = canvas.getBoundingClientRect();
-      zoomAtPoint(1.25, rect.left + rect.width / 2, rect.top + rect.height / 2);
+      zoomAtPoint(1.22, rect.left + rect.width / 2, rect.top + rect.height / 2);
     };
   }
 
@@ -3333,7 +3622,7 @@ function initKnowledgeGraph() {
   if (zout) {
     zout.onclick = () => {
       const rect = canvas.getBoundingClientRect();
-      zoomAtPoint(0.8, rect.left + rect.width / 2, rect.top + rect.height / 2);
+      zoomAtPoint(1 / 1.22, rect.left + rect.width / 2, rect.top + rect.height / 2);
     };
   }
 
@@ -3341,10 +3630,7 @@ function initKnowledgeGraph() {
   const rst = document.getElementById('btn-kg-reset');
   if (rst) {
     rst.onclick = () => {
-      kgZoom = 1;
-      kgPan = { x: 0, y: 0 };
-      kgCamera.targetRotX = 0.32;
-      kgCamera.targetRotY = -0.38;
+      resetKgCamera();
       selectedKgNode = null;
       hoveredKgNode = null;
       kgBlastImpact = null;
@@ -3698,9 +3984,33 @@ function initKnowledgeGraph() {
     };
   }
 
+  window.addEventListener('keydown', e => {
+    if (state.activeView !== 'view-knowledge-graph') return;
+    const tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    const rect = canvas.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    if (e.key === '+' || e.key === '=') {
+      e.preventDefault();
+      zoomAtPoint(1.18, cx, cy);
+    } else if (e.key === '-' || e.key === '_') {
+      e.preventDefault();
+      zoomAtPoint(1 / 1.18, cx, cy);
+    } else if (e.key === '0') {
+      e.preventDefault();
+      resetKgCamera();
+    } else if (e.key === 'f' || e.key === 'F') {
+      if (selectedKgNode) {
+        e.preventDefault();
+        focusKgCameraOnNode(selectedKgNode, 1.4);
+      }
+    }
+  });
+
   window.addEventListener('resize', () => {
     if (state.activeView === 'view-knowledge-graph') {
-      initKgSimulation();
+      resizeKgCanvas();
     }
   });
 }
@@ -3726,23 +4036,21 @@ function updateKgInspector(node) {
   if (descEl) descEl.textContent = node.description || 'No description provided.';
 
   // Live Telemetry status & metrics
-  const isAgentActive = (kgActiveTelemetry.activeAgents || []).some(a => a === node.id || a === node.name || (node.id === 'agent:tdd-guide' && (kgActiveTelemetry.activeAgents || []).length > 0));
+  const isAgentActive = matchLiveAgent(node, kgActiveTelemetry.activeAgents || []);
+  const localPulse = kgLocalActivity.get(node.id);
+  const isOperating = Boolean(localPulse && localPulse.until > kgTime);
   if (statusDot) {
-    statusDot.style.background = isAgentActive ? '#10B981' : '#64748B';
-    statusDot.classList.toggle('kg-pulse-running', isAgentActive);
+    statusDot.style.background = isAgentActive ? '#10B981' : (isOperating ? '#38BDF8' : '#64748B');
+    statusDot.classList.toggle('kg-pulse-running', isAgentActive || isOperating);
   }
   if (statusText) {
-    statusText.textContent = isAgentActive ? 'LIVE ACTIVE' : 'IDLE';
-    statusText.style.color = isAgentActive ? '#10B981' : '#64748B';
+    statusText.textContent = isAgentActive ? 'LIVE ACTIVE' : (isOperating ? 'OPERATING' : 'IDLE');
+    statusText.style.color = isAgentActive ? '#10B981' : (isOperating ? '#38BDF8' : '#64748B');
   }
 
   const agentMetric = (kgActiveTelemetry.agentMetrics || {})[node.name] || (kgActiveTelemetry.agentMetrics || {})[node.id];
-  if (statRuns) {
-    statRuns.textContent = agentMetric ? agentMetric.runs : (node.degree ? node.degree * 2 : 1);
-  }
-  if (statLatency) {
-    statLatency.textContent = agentMetric ? `${agentMetric.avgLatencyMs}ms` : '620ms';
-  }
+  if (statRuns) statRuns.textContent = formatKgRunCount(agentMetric);
+  if (statLatency) statLatency.textContent = formatKgLatency(agentMetric);
 
   // Dynamic Run Button Label based on Entity Type
   if (btnKgRun) {
@@ -3768,28 +4076,42 @@ function updateKgInspector(node) {
       const n = selectedKgNode;
       if (!n) return showToast('Selection Required', 'Select an entity first', 'warning');
 
+      triggerKgNodeActivity(n, { kind: 'launch', duration: 8 });
+      updateKgInspector(n);
+      if (kgLaunchHandoffTimer) clearTimeout(kgLaunchHandoffTimer);
+
+      const handoff = (fn) => {
+        kgLaunchHandoffTimer = setTimeout(fn, 780);
+      };
+
       if (n.type === 'command') {
         const cmd = n.name.startsWith('/') ? n.name : '/' + n.name;
-        switchView('view-workspace');
-        const diffTab = document.getElementById('tab-diff-viewer');
-        if (diffTab) diffTab.click();
-        executeCliCommand(cmd);
+        handoff(() => {
+          switchView('view-workspace');
+          const diffTab = document.getElementById('tab-diff-viewer');
+          if (diffTab) diffTab.click();
+          executeCliCommand(cmd);
+        });
         showToast('Command Executed', `Executed ${cmd} in virtual terminal`, 'success');
       } else if (n.type === 'agent') {
-        switchView('view-workspace');
-        const input = document.getElementById('agent-mission-input');
-        if (input) {
-          input.value = `Dispatch autonomous capability pipeline with lead agent: ${n.name}`;
-          input.focus();
-        }
+        handoff(() => {
+          switchView('view-workspace');
+          const input = document.getElementById('agent-mission-input');
+          if (input) {
+            input.value = `Dispatch autonomous capability pipeline with lead agent: ${n.name}`;
+            input.focus();
+          }
+        });
         showToast('Agent Cockpit Loaded', `Ready to dispatch mission with ${n.name}`, 'info');
       } else if (n.type === 'skill') {
-        switchView('view-workspace');
-        const input = document.getElementById('agent-mission-input');
-        if (input) {
-          input.value = `Deploy workflow skill: ${n.name}`;
-          input.focus();
-        }
+        handoff(() => {
+          switchView('view-workspace');
+          const input = document.getElementById('agent-mission-input');
+          if (input) {
+            input.value = `Deploy workflow skill: ${n.name}`;
+            input.focus();
+          }
+        });
         showToast('Skill Selected', `Ready to run skill: ${n.name}`, 'info');
       } else {
         openEntityModal(n.type, n.entityId || n.name);
@@ -3838,12 +4160,19 @@ async function loadSessions() {
       const sessions = await res.json();
       if (sessions && sessions.length > 0) {
         const exists = sessions.find(s => s.id === state.activeSession.id);
-        if (!exists) {
+        if (exists) {
+          state.activeSession = {
+            ...state.activeSession,
+            id: exists.id,
+            title: exists.title || exists.id,
+            status: exists.status || 'idle'
+          };
+        } else {
           state.activeSession = {
             id: sessions[0].id,
             title: sessions[0].title || sessions[0].id,
             currentNode: 'node-tdd',
-            status: sessions[0].status || 'active'
+            status: sessions[0].status || 'idle'
           };
           const input = document.getElementById('dag-session-input');
           if (input) input.value = state.activeSession.id;
@@ -3864,6 +4193,7 @@ async function loadSessions() {
       }
       updateSessionDropdown(sessions || []);
       renderSessionList(sessions || []);
+      syncDagSessionChrome();
     }
   } catch (err) {
     console.error('Error loading sessions:', err);
@@ -4023,6 +4353,10 @@ async function loadSettings() {
       if (oll) oll.value = s.ollamaHost || 'http://localhost:11434';
       const ollM = document.getElementById('settings-ollama-model');
       if (ollM) ollM.value = s.ollamaModel || 'qwen2.5-coder:7b';
+      const ghTok = document.getElementById('settings-github-token');
+      if (ghTok) ghTok.value = s.githubToken || '';
+      const linKey = document.getElementById('settings-linear-key');
+      if (linKey) linKey.value = s.linearApiKey || '';
       const apiTok = document.getElementById('settings-api-token');
       if (apiTok) apiTok.value = getApiToken();
       const sb = document.getElementById('settings-sandbox-toggle');
@@ -4068,6 +4402,8 @@ function initSettingsManager() {
         geminiApiKey: document.getElementById('settings-gemini-key')?.value,
         ollamaHost: document.getElementById('settings-ollama-host')?.value,
         ollamaModel: document.getElementById('settings-ollama-model')?.value || 'qwen2.5-coder:7b',
+        githubToken: document.getElementById('settings-github-token')?.value,
+        linearApiKey: document.getElementById('settings-linear-key')?.value,
         sandboxEnabled: document.getElementById('settings-sandbox-toggle')?.checked,
         worktreeIsolation: document.getElementById('settings-worktree-toggle')?.checked
       };
@@ -4086,6 +4422,7 @@ function initSettingsManager() {
         if (res.ok) {
           showToast('Settings Saved', 'Platform and gateway settings persisted.', 'success');
           if (modal) modal.style.display = 'none';
+          if (typeof refreshFirstRunChecklist === 'function') refreshFirstRunChecklist({ silent: true });
         } else {
           showToast('Settings Warning', 'Settings saved locally in session state.', 'info');
           if (modal) modal.style.display = 'none';
@@ -4131,6 +4468,92 @@ function initSettingsManager() {
   }
 }
 
+function firstRunStatusLabel(status) {
+  if (status === 'ready') return 'Ready';
+  if (status === 'missing') return 'Needs setup';
+  if (status === 'skip') return 'Not required';
+  return 'Optional';
+}
+
+function renderFirstRunItems(report) {
+  const list = document.getElementById('first-run-items');
+  if (!list) return;
+  const items = Array.isArray(report.items) ? report.items : [];
+  list.innerHTML = items.map(item => {
+    const command = item.command ? `<code>${escapeHtml(item.command)}</code>` : '';
+    return `<li style="border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px 10px;">
+      <div style="display: flex; justify-content: space-between; gap: 8px;">
+        <strong style="font-size: 13px;">${escapeHtml(item.title || item.id)}</strong>
+        <span class="badge-tag">${escapeHtml(firstRunStatusLabel(item.status))}</span>
+      </div>
+      <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${escapeHtml(item.detail || '')}</div>
+      ${command ? `<div style="margin-top: 6px; font-size: 12px;">${command}</div>` : ''}
+    </li>`;
+  }).join('');
+}
+
+async function refreshFirstRunChecklist(options = {}) {
+  const overlay = document.getElementById('first-run-checklist');
+  if (!overlay) return null;
+  try {
+    const res = await fetch('/api/first-run');
+    if (!res.ok) return null;
+    const report = await res.json();
+    renderFirstRunItems(report);
+    const summary = document.getElementById('first-run-summary');
+    if (summary) {
+      summary.textContent = report.ready
+        ? 'Required provider setup is complete. Inbox tokens, desktop, OAS2, and Itô stay optional.'
+        : 'Add a model provider in Settings before running agents. Inbox tokens are optional.';
+    }
+    if (!options.silent && !report.dismissed) {
+      overlay.style.display = 'flex';
+    }
+    return report;
+  } catch (err) {
+    console.warn('[OAS Boot] first-run checklist unavailable:', err);
+    return null;
+  }
+}
+
+function initFirstRunChecklist() {
+  const overlay = document.getElementById('first-run-checklist');
+  const closeBtn = document.getElementById('first-run-checklist-close');
+  const dismissBtn = document.getElementById('btn-first-run-dismiss');
+  const settingsBtn = document.getElementById('btn-first-run-open-settings');
+  const hide = () => {
+    if (overlay) overlay.style.display = 'none';
+  };
+
+  if (closeBtn) closeBtn.onclick = hide;
+  if (overlay) {
+    overlay.onclick = (event) => {
+      if (event.target === overlay) hide();
+    };
+  }
+  if (settingsBtn) {
+    settingsBtn.onclick = () => {
+      hide();
+      document.getElementById('btn-open-settings')?.click();
+    };
+  }
+  if (dismissBtn) {
+    dismissBtn.onclick = async () => {
+      try {
+        await fetch('/api/first-run/dismiss', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dismissed: true })
+        });
+      } catch (err) {
+        console.warn('[OAS Boot] first-run dismiss failed:', err);
+      }
+      hide();
+    };
+  }
+  refreshFirstRunChecklist();
+}
+
 // ==========================================
 // 7. MEMORY VAULT & TELEMETRY DASHBOARD
 // ==========================================
@@ -4162,26 +4585,24 @@ async function loadMemoryVault(query = '', options = {}) {
       grid.innerHTML = '';
       memories.forEach(mem => {
         const card = document.createElement('div');
-        card.className = 'memory-card';
+        card.className = 'memory-card cockpit-cell';
         card.style.cursor = 'pointer';
         card.innerHTML = `
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <strong style="color: #F8FAFC; font-size: 14px; display: flex; align-items: center; gap: 6px;">
-              <span style="color: #A78BFA; font-size: 11px;">◈</span>
+          <div class="memory-card-head">
+            <strong class="memory-card-title">
+              <span class="memory-card-mark" aria-hidden="true">◈</span>
               ${escapeHtml(mem.title)}
             </strong>
-            <div style="display: flex; gap: 6px; align-items: center;">
-              <span class="badge-tag font-mono" style="color: #A78BFA; border-color: rgba(167, 139, 250, 0.3); background: rgba(167, 139, 250, 0.1);">${escapeHtml(mem.scope || 'project')}</span>
-              <button class="btn-delete-mem" data-id="${mem.id}" style="background: none; border: none; color: #F43F5E; cursor: pointer; font-size: 15px; padding: 0 4px;" title="Delete Memory">&times;</button>
+            <div class="memory-card-actions">
+              <span class="badge-tag font-mono memory-card-scope">${escapeHtml(mem.scope || 'project')}</span>
+              <button type="button" class="btn-delete-mem" data-id="${mem.id}" title="Delete this memory from the local vault">Delete</button>
             </div>
           </div>
-          <p style="font-size: 12px; color: #CBD5E1; line-height: 1.55; margin: 8px 0; background: rgba(3, 6, 15, 0.6); padding: 8px 10px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.08);">
-            ${escapeHtml(mem.body)}
-          </p>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span class="badge-tag font-mono mem-hash-badge" style="font-size: 10px; cursor: pointer; color: #38BDF8; border-color: rgba(56, 189, 248, 0.25);" title="Click to copy SHA-256 hash">SHA-256: ${(escapeHtml(mem.hash || 'sha256')).substring(0, 16)}...</span>
-            <span class="badge-tag" style="font-size: 10px; color: #94A3B8;">${escapeHtml(mem.kind || 'convention')}</span>
-            ${mem.vectorSource === 'local-hash-vectors' ? `<span class="badge-tag" style="font-size: 10px; color: #38BDF8;">hash-vector ${Number(mem.similarity || 0).toFixed(2)}</span>` : ''}
+          <p class="memory-card-body">${escapeHtml(mem.body || 'No body stored for this memory.')}</p>
+          <div class="memory-card-meta">
+            <span class="badge-tag font-mono mem-hash-badge" title="Click to copy SHA-256 hash">SHA-256: ${(escapeHtml(mem.hash || 'sha256')).substring(0, 16)}...</span>
+            <span class="badge-tag memory-card-kind">${escapeHtml(mem.kind || 'convention')}</span>
+            ${mem.vectorSource === 'local-hash-vectors' ? `<span class="badge-tag memory-card-vector">hash-vector ${Number(mem.similarity || 0).toFixed(2)}</span>` : ''}
           </div>
         `;
 
@@ -4266,7 +4687,15 @@ async function loadTelemetry() {
       if (elBreakdown) elBreakdown.textContent = `${data.totalAgents || 0} Agents • ${data.totalSkills || 0} Skills • ${data.totalCommands || 0} Commands • ${data.totalMcpServers || 0} MCPs`;
       if (elMemory) elMemory.textContent = `${data.memoryUtilizationMb || 0} MB`;
       if (elUptime) elUptime.textContent = `${Math.round(data.uptime || 0)}s`;
-      if (elPipelines) elPipelines.textContent = data.activePipelines !== undefined ? data.activePipelines : 1;
+      if (elPipelines) elPipelines.textContent = data.activePipelines ?? 0;
+      const elUptimeTrend = document.getElementById('stat-uptime-trend');
+      if (elUptimeTrend) {
+        elUptimeTrend.textContent = data.status ? `Process ${data.status}` : 'From process uptime';
+      }
+      const elPipelineTrend = document.getElementById('stat-pipeline-trend');
+      if (elPipelineTrend) {
+        elPipelineTrend.textContent = `${data.activePipelines ?? 0} scheduler run(s)`;
+      }
     }
     loadHudStatus();
   } catch (err) {
@@ -5932,8 +6361,8 @@ function initGitHubBridgeController() {
     inboxList.innerHTML = items.map(item => {
       const active = item.id === selectedItemId ? 'border-color: #60A5FA;' : '';
       return `<button type="button" class="inbox-item" data-inbox-id="${escapeHtml(item.id)}" style="text-align:left; background: rgba(15,23,42,0.7); border: 1px solid var(--border-subtle); ${active} border-radius: 6px; padding: 8px 10px; color: #E2E8F0; cursor: pointer;">
-        <div style="font-size: 11px; font-weight: 700;">${escapeHtml(item.title)}</div>
-        <div style="font-size: 10px; color: var(--text-muted);">${escapeHtml(item.source)} · ${escapeHtml(item.status)}${item.sourceId ? ' · #' + escapeHtml(String(item.sourceId)) : ''}</div>
+        <div style="font-size: 11px; font-weight: 700;">${escapeHtml(formatStudioWorkLabel(item))}</div>
+        <div style="font-size: 10px; color: var(--text-muted);">${escapeHtml(isSampleGithubWork(item) ? 'sample' : item.source)} · ${escapeHtml(item.status)}${item.sourceId ? ' · #' + escapeHtml(String(item.sourceId)) : ''}</div>
       </button>`;
     }).join('');
     inboxList.querySelectorAll('[data-inbox-id]').forEach(btn => {
@@ -6136,7 +6565,8 @@ function init3DTopologyController() {
   const btnToggle = document.getElementById('btn-toggle-3d-topology');
   const svgDag = document.getElementById('dag-svg');
   const canvas3d = document.getElementById('topology-3d-canvas');
-  const scrubber = document.getElementById('dag-timeline-scrubber');
+  const canvasArea = document.querySelector('#view-dag .dag-canvas-area');
+  const countsEl = document.getElementById('topology-3d-counts');
 
   if (!btnToggle || !svgDag || !canvas3d) return;
 
@@ -6144,28 +6574,54 @@ function init3DTopologyController() {
   let animId = null;
   let nodes3d = [];
   let edges3d = [];
-  let rotX = 0.3;
-  let rotY = 0.5;
+  let photons = [];
+  let dust = createSpaceDust(80);
   let isDragging = false;
   let prevMouseX = 0;
   let prevMouseY = 0;
-  let zoom = 1.0;
+  let dragOriginX = 0;
+  let dragOriginY = 0;
+  let selectedId = 'hub-oas-core';
+  let hoveredId = null;
+  let time = 0;
+  let camera = {
+    rotX: GRAPH3D_DEFAULT_CAMERA.rotX,
+    rotY: GRAPH3D_DEFAULT_CAMERA.rotY,
+    targetRotX: GRAPH3D_DEFAULT_CAMERA.rotX,
+    targetRotY: GRAPH3D_DEFAULT_CAMERA.rotY,
+    fov: GRAPH3D_DEFAULT_CAMERA.fov,
+    zoom: 1,
+    panX: 0,
+    panY: 0
+  };
+
+  const resetCamera = () => {
+    camera.targetRotX = GRAPH3D_DEFAULT_CAMERA.rotX;
+    camera.targetRotY = GRAPH3D_DEFAULT_CAMERA.rotY;
+    camera.rotX = GRAPH3D_DEFAULT_CAMERA.rotX;
+    camera.rotY = GRAPH3D_DEFAULT_CAMERA.rotY;
+    camera.zoom = 1;
+    camera.panX = 0;
+    camera.panY = 0;
+  };
+
+  dagTopologyApi.reset = resetCamera;
+  dagTopologyApi.active = false;
+
+  const syncModeChrome = () => {
+    if (canvasArea) canvasArea.classList.toggle('is-topology', is3dMode);
+    dagTopologyApi.active = is3dMode;
+    btnToggle.textContent = is3dMode ? '2D Graph' : '3D';
+    btnToggle.style.color = is3dMode ? '#38BDF8' : '#818CF8';
+  };
 
   btnToggle.addEventListener('click', () => {
     is3dMode = !is3dMode;
+    syncModeChrome();
     if (is3dMode) {
-      svgDag.style.display = 'none';
-      canvas3d.style.display = 'block';
-      if (scrubber) scrubber.style.display = 'none';
-      btnToggle.textContent = '2D SVG Graph';
-      btnToggle.style.color = '#38BDF8';
+      resetCamera();
       start3dRendering();
     } else {
-      svgDag.style.display = 'block';
-      canvas3d.style.display = 'none';
-      if (scrubber) scrubber.style.display = 'flex';
-      btnToggle.textContent = '3D Topology';
-      btnToggle.style.color = '#818CF8';
       stop3dRendering();
     }
   });
@@ -6175,120 +6631,173 @@ function init3DTopologyController() {
       const res = await fetch('/api/topology/3d');
       if (res.ok) {
         const data = await res.json();
-        nodes3d = data.nodes || [];
+        nodes3d = prepareTopologyNodes(centerAndScaleNodes(data.nodes || [], 340));
         edges3d = data.edges || [];
+        photons = edges3d.slice(0, 56).map((_, i) => ({
+          edgeIndex: i,
+          progress: (i * 0.17) % 1,
+          speed: 0.0055 + (i % 6) * 0.0011,
+          size: 2.3 + (i % 3) * 0.2
+        }));
+        if (countsEl) {
+          countsEl.textContent = `${nodes3d.length} nodes · ${edges3d.length} synapses · /api/topology/3d`;
+        }
       } else {
         nodes3d = [];
         edges3d = [];
+        photons = [];
+        if (countsEl) countsEl.textContent = `Topology request failed (${res.status})`;
         showToast('Topology Offline', `3D topology request failed (${res.status})`, 'error');
       }
     } catch (err) {
       nodes3d = [];
       edges3d = [];
+      photons = [];
+      if (countsEl) countsEl.textContent = 'Topology offline';
       showToast('Topology Offline', err.message, 'error');
     }
+  };
+
+  const measureCanvas = () => {
+    const rect = canvas3d.getBoundingClientRect();
+    return resizeHiDpiCanvas(canvas3d, {
+      width: rect.width || canvasArea?.clientWidth || 960,
+      height: rect.height || canvasArea?.clientHeight || 560,
+      dpr: window.devicePixelRatio || 1
+    });
   };
 
   const start3dRendering = async () => {
     await load3dData();
     const ctx = canvas3d.getContext('2d');
-    canvas3d.width = canvas3d.clientWidth || 960;
-    canvas3d.height = canvas3d.clientHeight || 560;
-
-    let time = 0;
+    if (!ctx) return;
 
     const render = () => {
       if (!is3dMode) return;
-      time += 0.008;
+      time += 0.018;
       if (!isDragging) {
-        rotY += 0.003;
+        camera.targetRotY += GRAPH3D_DEFAULT_CAMERA.orbitSpeed;
+      }
+      camera.rotX += (camera.targetRotX - camera.rotX) * 0.09;
+      camera.rotY += (camera.targetRotY - camera.rotY) * 0.09;
+
+      const { width, height, dpr } = measureCanvas();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+
+      const cx = width / 2;
+      const cy = height / 2;
+      drawNebulaBackdrop(ctx, {
+        width,
+        height,
+        cx,
+        cy,
+        panX: camera.panX,
+        panY: camera.panY,
+        time
+      });
+
+      dust.forEach((particle) => {
+        const dp = projectPerspective3D(particle.x, particle.y, particle.z, {
+          ...camera,
+          cx,
+          cy
+        });
+        if (dp.x < -20 || dp.x > width + 20 || dp.y < -20 || dp.y > height + 20) return;
+        const alpha = Math.max(0.08, Math.min(0.48, (0.2 + 0.22 * Math.sin(time * particle.twinkleSpeed + particle.phase)) * (1 - (dp.z / 900))));
+        ctx.fillStyle = `rgba(147, 197, 253, ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(dp.x, dp.y, Math.max(0.6, particle.size * dp.scale), 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      nodes3d.forEach((node) => {
+        const breath = Math.sin(time * 1.5 * node.freq + node.phase);
+        const amp = node.type === 'hub' ? 10 : 6;
+        node.x3d = node.baseX + Math.cos(time * 0.8 + node.phase) * (amp * 0.35);
+        node.y3d = node.baseY + Math.sin(time * 0.8 + node.phase) * (amp * 0.35);
+        node.z3d = node.baseZ + breath * amp;
+        node.currentRadius = node.baseRadius * (1 + breath * 0.16);
+        const proj = projectPerspective3D(node.x3d, node.y3d, node.z3d, { ...camera, cx, cy });
+        node.projX = proj.x;
+        node.projY = proj.y;
+        node.projZ = proj.z;
+        node.projScale = proj.scale;
+      });
+
+      const nodeMap = new Map(nodes3d.map(node => [node.id, node]));
+      const focusId = hoveredId || selectedId;
+      const neighbors = new Set();
+      if (focusId) {
+        edges3d.forEach((edge) => {
+          if (edge.source === focusId) neighbors.add(edge.target);
+          if (edge.target === focusId) neighbors.add(edge.source);
+        });
       }
 
-      ctx.clearRect(0, 0, canvas3d.width, canvas3d.height);
-      const cx = canvas3d.width / 2;
-      const cy = canvas3d.height / 2;
-      const fov = 480 * zoom;
-
-      // Project 3D to 2D
-      const cosY = Math.cos(rotY);
-      const sinY = Math.sin(rotY);
-      const cosX = Math.cos(rotX);
-      const sinX = Math.sin(rotX);
-
-      const projectedNodes = nodes3d.map(n => {
-        // Rotate around Y
-        const x1 = n.x * cosY - n.z * sinY;
-        const z1 = n.z * cosY + n.x * sinY;
-        // Rotate around X
-        const y2 = n.y * cosX - z1 * sinX;
-        const z2 = z1 * cosX + n.y * sinX;
-
-        const depth = z2 + 650;
-        const scale = fov / Math.max(10, depth);
-        const px = cx + x1 * scale;
-        const py = cy + y2 * scale;
-
-        return { ...n, px, py, pscale: scale, depth };
-      });
-
-      // Sort by depth for correct 3D z-buffering
-      projectedNodes.sort((a, b) => b.depth - a.depth);
-      const nodeMap = new Map(projectedNodes.map(pn => [pn.id, pn]));
-
-      // Draw 3D Edges & Glowing Signal Particles
-      ctx.lineWidth = 1;
-      edges3d.forEach(e => {
-        const s = nodeMap.get(e.source);
-        const t = nodeMap.get(e.target);
-        if (s && t) {
-          ctx.strokeStyle = 'rgba(56, 189, 248, 0.2)';
-          ctx.beginPath();
-          ctx.moveTo(s.px, s.py);
-          ctx.lineTo(t.px, t.py);
-          ctx.stroke();
-
-          // Particle flow
-          const pProgress = (time * 1.5 + (s.px % 10) * 0.1) % 1.0;
-          const particleX = s.px + (t.px - s.px) * pProgress;
-          const particleY = s.py + (t.py - s.py) * pProgress;
-          ctx.fillStyle = '#38BDF8';
-          ctx.beginPath();
-          ctx.arc(particleX, particleY, 2.5, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      });
-
-      // Draw 3D Spheres with Thermal Heatmap Glow
-      projectedNodes.forEach(n => {
-        const r = Math.max(4, n.radius * n.pscale * 1.8);
-        const grad = ctx.createRadialGradient(n.px - r*0.3, n.py - r*0.3, 1, n.px, n.py, r);
-
-        if (n.type === 'hub') {
-          grad.addColorStop(0, '#60A5FA');
-          grad.addColorStop(1, '#1E3A8A');
-        } else if (n.type === 'agent') {
-          grad.addColorStop(0, '#34D399');
-          grad.addColorStop(1, '#065F46');
-        } else {
-          grad.addColorStop(0, '#FBBF24');
-          grad.addColorStop(1, '#78350F');
-        }
-
-        ctx.fillStyle = grad;
+      edges3d.forEach((edge) => {
+        const src = nodeMap.get(edge.source);
+        const tgt = nodeMap.get(edge.target);
+        if (!src || !tgt) return;
+        const linked = src.id === focusId || tgt.id === focusId;
+        const avgZ = (src.projZ + tgt.projZ) / 2;
+        const depthAlpha = Math.max(0.12, Math.min(0.8, 0.55 - (avgZ / 1200)));
         ctx.beginPath();
-        ctx.arc(n.px, n.py, r, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-        ctx.stroke();
-
-        // Label
-        if (n.pscale > 0.4) {
-          ctx.fillStyle = '#F8FAFC';
-          ctx.font = `${Math.round(10 * n.pscale)}px 'JetBrains Mono', sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.fillText(n.label, n.px, n.py + r + 12 * n.pscale);
+        ctx.moveTo(src.projX, src.projY);
+        ctx.lineTo(tgt.projX, tgt.projY);
+        if (linked) {
+          ctx.strokeStyle = '#38BDF8';
+          ctx.lineWidth = 2.3;
+          ctx.shadowColor = '#38BDF8';
+          ctx.shadowBlur = 12;
+        } else {
+          ctx.strokeStyle = `rgba(96, 165, 250, ${depthAlpha * 0.5})`;
+          ctx.lineWidth = Math.max(0.7, 1.15 * ((src.projScale + tgt.projScale) / 2));
+          ctx.shadowBlur = 0;
         }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      });
+
+      photons.forEach((photon) => {
+        const edge = edges3d[photon.edgeIndex];
+        if (!edge) return;
+        const src = nodeMap.get(edge.source);
+        const tgt = nodeMap.get(edge.target);
+        if (!src || !tgt) return;
+        photon.progress = (photon.progress + photon.speed) % 1;
+        const p = photon.progress;
+        const px = src.projX + (tgt.projX - src.projX) * p;
+        const py = src.projY + (tgt.projY - src.projY) * p;
+        const trail = Math.max(0, p - 0.07);
+        const tx = src.projX + (tgt.projX - src.projX) * trail;
+        const ty = src.projY + (tgt.projY - src.projY) * trail;
+        const pScale = (src.projScale + tgt.projScale) / 2;
+        const coreR = Math.max(1.2, photon.size * pScale);
+        ctx.beginPath();
+        ctx.arc(tx, ty, coreR * 1.7, 0, Math.PI * 2);
+        ctx.fillStyle = '#38BDF8';
+        ctx.globalAlpha = 0.26;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.beginPath();
+        ctx.arc(px, py, coreR, 0, Math.PI * 2);
+        ctx.fillStyle = '#67E8F9';
+        ctx.shadowColor = '#38BDF8';
+        ctx.shadowBlur = 10;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      });
+
+      const sorted = [...nodes3d].sort((a, b) => b.projZ - a.projZ);
+      sorted.forEach((node) => {
+        const focused = node.id === focusId;
+        drawGlassSphere(ctx, node, { time, focused });
+      });
+      sorted.forEach((node) => {
+        const focused = node.id === focusId;
+        const show = focused || neighbors.has(node.id) || node.type === 'hub' || node.projScale >= 0.72;
+        if (show) drawPillLabel(ctx, node, { focused });
       });
 
       animId = requestAnimationFrame(render);
@@ -6299,31 +6808,78 @@ function init3DTopologyController() {
 
   const stop3dRendering = () => {
     if (animId) cancelAnimationFrame(animId);
+    animId = null;
   };
 
-  // Canvas Mouse Controls (Rotate and Zoom)
+  const pickNodeAt = (clientX, clientY) => {
+    const rect = canvas3d.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    let best = null;
+    let bestDist = 22;
+    nodes3d.forEach((node) => {
+      const dist = Math.hypot((node.projX || 0) - x, (node.projY || 0) - y);
+      if (dist < bestDist) {
+        best = node;
+        bestDist = dist;
+      }
+    });
+    return best;
+  };
+
   canvas3d.addEventListener('mousedown', (e) => {
     isDragging = true;
     prevMouseX = e.clientX;
     prevMouseY = e.clientY;
+    dragOriginX = e.clientX;
+    dragOriginY = e.clientY;
+    canvas3d.style.cursor = 'grabbing';
   });
 
   window.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
-    const dx = e.clientX - prevMouseX;
-    const dy = e.clientY - prevMouseY;
-    rotY += dx * 0.008;
-    rotX += dy * 0.008;
-    prevMouseX = e.clientX;
-    prevMouseY = e.clientY;
+    if (!is3dMode) return;
+    if (isDragging) {
+      camera.targetRotY += (e.clientX - prevMouseX) * 0.008;
+      camera.targetRotX += (e.clientY - prevMouseY) * 0.008;
+      prevMouseX = e.clientX;
+      prevMouseY = e.clientY;
+      return;
+    }
+    const hover = pickNodeAt(e.clientX, e.clientY);
+    hoveredId = hover ? hover.id : null;
+    canvas3d.style.cursor = hover ? 'pointer' : 'grab';
   });
 
-  window.addEventListener('mouseup', () => { isDragging = false; });
+  window.addEventListener('mouseup', (e) => {
+    if (isDragging && is3dMode) {
+      const moved = Math.hypot(e.clientX - dragOriginX, e.clientY - dragOriginY);
+      if (moved < 4) {
+        const picked = pickNodeAt(e.clientX, e.clientY);
+        if (picked) {
+          selectedId = picked.id;
+          if (picked.type === 'agent' && typeof selectDagNode === 'function') {
+            const agentId = String(picked.id || '').replace(/^agent-/, '');
+            if (agentId) selectDagNode(agentId);
+          }
+        }
+      }
+    }
+    isDragging = false;
+    if (canvas3d) canvas3d.style.cursor = 'grab';
+  });
 
   canvas3d.addEventListener('wheel', (e) => {
     e.preventDefault();
-    zoom = Math.max(0.4, Math.min(2.5, zoom - e.deltaY * 0.0015));
+    const next = camera.zoom * (e.deltaY < 0 ? 1.08 : 0.92);
+    camera.zoom = Math.max(0.42, Math.min(2.6, next));
   }, { passive: false });
+
+  if (typeof ResizeObserver === 'function') {
+    const observer = new ResizeObserver(() => {
+      if (is3dMode) measureCanvas();
+    });
+    observer.observe(canvas3d);
+  }
 }
 
 // ============================================================================
@@ -6423,9 +6979,13 @@ function bootPlatform() {
     }
   };
 
+  safeInit('pingControlPlaneHealth', () => {
+    pingControlPlaneHealth();
+    if (controlPlaneHealthTimer) clearInterval(controlPlaneHealthTimer);
+    controlPlaneHealthTimer = setInterval(pingControlPlaneHealth, 15000);
+  });
   safeInit('hydrateApiToken', () => getApiToken());
   safeInit('loadCatalog', () => loadCatalog());
-  safeInit('selectDagNode', () => selectDagNode('tdd-guide'));
   safeInit('connectSseStream', () => connectSseStream());
   safeInit('updateAgentPreview', () => updateAgentPreview());
   safeInit('updateSkillPreview', () => updateSkillPreview());
@@ -6441,6 +7001,7 @@ function bootPlatform() {
   safeInit('initKnowledgeGraph', () => initKnowledgeGraph());
   safeInit('initSessionManager', () => initSessionManager());
   safeInit('initSettingsManager', () => initSettingsManager());
+  safeInit('initFirstRunChecklist', () => initFirstRunChecklist());
   safeInit('initPipelineRunnerController', () => initPipelineRunnerController());
   safeInit('initPlanCanvasInteractions', () => initPlanCanvasInteractions());
   safeInit('initMemoryVaultManager', () => initMemoryVaultManager());
@@ -6468,6 +7029,7 @@ function bootPlatform() {
   safeInit('loadSessions', async () => {
     await loadSessions();
     await loadSessionSteps(state.activeSession.id);
+    selectDagNode(activeSelectedDagNode || 'tdd-guide');
   });
   safeInit('loadPlanCanvas', () => loadPlanCanvas());
   safeInit('loadTelemetry', () => loadTelemetry());

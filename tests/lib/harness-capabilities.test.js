@@ -43,11 +43,11 @@ function runTests() {
     assert.deepStrictEqual([...catalogTargetIds].sort(), [...adapterTargetIds].sort());
   })) passed++; else failed++;
 
-  if (test('only Claude, Codex, and Kimi are guided-ready', () => {
-    assert.deepStrictEqual(GUIDED_HARNESS_IDS, ['claude', 'codex', 'kimi']);
+  if (test('only Claude, Codex, Kimi, and Cursor are guided-ready', () => {
+    assert.deepStrictEqual(GUIDED_HARNESS_IDS, ['claude', 'codex', 'kimi', 'cursor']);
     assert.deepStrictEqual(
       listGuidedHarnesses().map(harness => harness.id),
-      ['claude', 'codex', 'kimi']
+      ['claude', 'codex', 'kimi', 'cursor']
     );
     assert.ok(HARNESS_CAPABILITIES
       .filter(harness => !harness.guidedReady)
@@ -84,6 +84,15 @@ function runTests() {
       { id: 'project', targetId: 'kimi', root: './.kimi-code' },
     ]);
 
+    const cursor = getHarnessCapability('cursor');
+    assert.strictEqual(cursor.guidedReady, true);
+    assert.strictEqual(cursor.availability, 'guided');
+    assert.strictEqual(cursor.channel, 'managed-project');
+    assert.strictEqual(cursor.destination, './.cursor');
+    assert.deepStrictEqual(cursor.scopes, [
+      { id: 'project', targetId: 'cursor', root: './.cursor' },
+    ]);
+
     const opencode = getHarnessCapability('opencode');
     assert.match(opencode.destinationResolution, /OPENCODE_CONFIG_DIR/);
     assert.match(opencode.destinationResolution, /XDG_CONFIG_HOME/);
@@ -92,7 +101,6 @@ function runTests() {
 
   if (test('keeps every advanced target attached to its registered root and scope', () => {
     const expected = {
-      cursor: ['project', './.cursor'],
       antigravity: ['project', './.agents'],
       gemini: ['project', './.gemini'],
       opencode: ['home', '~/.config/opencode'],
@@ -147,8 +155,9 @@ function runTests() {
       normalizeHarnessSelection(['3', 'claude-project', 'Codex']),
       ['claude', 'codex', 'kimi']
     );
-    assert.deepStrictEqual(normalizeHarnessSelection('all'), ['claude', 'codex', 'kimi']);
-    assert.deepStrictEqual(normalizeHarnessSelection('*'), ['claude', 'codex', 'kimi']);
+    assert.deepStrictEqual(normalizeHarnessSelection('all'), ['claude', 'codex', 'kimi', 'cursor']);
+    assert.deepStrictEqual(normalizeHarnessSelection('*'), ['claude', 'codex', 'kimi', 'cursor']);
+    assert.deepStrictEqual(normalizeHarnessSelection('cursor'), ['cursor']);
   })) passed++; else failed++;
 
   if (test('rejects empty, ambiguous, advanced, and unknown wizard selections clearly', () => {
@@ -156,7 +165,7 @@ function runTests() {
     assert.throws(() => normalizeHarnessSelection([]), /At least one guided harness/);
     assert.throws(() => normalizeHarnessSelection('none'), /At least one guided harness/);
     assert.throws(() => normalizeHarnessSelection('all,codex'), /cannot be combined/i);
-    assert.throws(() => normalizeHarnessSelection('cursor'), /advanced.*not guided-ready/i);
+    assert.throws(() => normalizeHarnessSelection('gemini'), /advanced.*not guided-ready/i);
     assert.throws(() => normalizeHarnessSelection('grok'), /Unknown guided harness selection/);
   })) passed++; else failed++;
 
@@ -177,7 +186,7 @@ function runTests() {
     guided.reverse();
     assert.deepStrictEqual(
       listGuidedHarnesses().map(harness => harness.id),
-      ['claude', 'codex', 'kimi']
+      ['claude', 'codex', 'kimi', 'cursor']
     );
   })) passed++; else failed++;
 

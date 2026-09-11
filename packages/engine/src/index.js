@@ -33,6 +33,11 @@ const {
   createGithubPullRequest
 } = require('./work-inbox');
 const {
+  formatGithubSessionTitle,
+  formatStudioWorkLabel,
+  isSampleGithubWork,
+} = require('./studio-labels');
+const {
   passAtK,
   gradeOutput,
   listGoldenTasks,
@@ -44,6 +49,13 @@ const {
 } = require('./eval-harness');
 const { evaluateSkillPromotion, writeSkillPromotion } = require('./skill-promotion');
 const { planDesktopControlPlane } = require('./desktop-control-plane');
+const {
+  ALLOWED_CURSOR_MCP_SERVERS,
+  assertProviderReady,
+  evaluateFirstRun,
+  memoryCliCommand,
+  readCursorMcpConfig,
+} = require('./studio-first-run');
 const { listOas2Sessions } = require('./oas2-read-bridge');
 const { encodeMcpMessage, feedMcpBuffer } = require('./mcp-framing');
 const { buildConsentGatedOtlp } = require('./otlp-consent');
@@ -88,6 +100,9 @@ module.exports = {
   listGithubIssues,
   listLinearIssues,
   createGithubPullRequest,
+  formatGithubSessionTitle,
+  formatStudioWorkLabel,
+  isSampleGithubWork,
   passAtK,
   gradeOutput,
   listGoldenTasks,
@@ -99,6 +114,11 @@ module.exports = {
   evaluateSkillPromotion,
   writeSkillPromotion,
   planDesktopControlPlane,
+  ALLOWED_CURSOR_MCP_SERVERS,
+  assertProviderReady,
+  evaluateFirstRun,
+  memoryCliCommand,
+  readCursorMcpConfig,
   listOas2Sessions,
   encodeMcpMessage,
   feedMcpBuffer,

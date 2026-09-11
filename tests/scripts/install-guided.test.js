@@ -143,7 +143,7 @@ function runGuidedPtyFixture(answers) {
     const output = capture();
     const terminal = fakeTerminal(['all', '1', '3', '2']);
     const options = await collectInteractiveOptions(parseArgs([]), { output, terminal });
-    assert.deepStrictEqual(options.harnesses, ['claude', 'codex', 'kimi']);
+    assert.deepStrictEqual(options.harnesses, ['claude', 'codex', 'kimi', 'cursor']);
     assert.match(output.read(), /Advanced adapters[^\n]+\.\n\n\nWhere should Claude/);
     assert.deepStrictEqual(terminal.prompts, [
       'Choose one or more (for example 1,3 or all): ',

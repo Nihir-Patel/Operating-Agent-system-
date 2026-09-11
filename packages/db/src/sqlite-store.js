@@ -687,7 +687,10 @@ class OasSqliteStore {
       ollamaModel: 'qwen2.5-coder:7b',
       defaultModel: 'qwen2.5-coder:7b',
       sandboxEnabled: true,
-      worktreeIsolation: true
+      worktreeIsolation: true,
+      githubToken: '',
+      linearApiKey: '',
+      firstRunDismissed: false
     };
 
     const rows = this.db.prepare('SELECT key, value FROM settings').all();

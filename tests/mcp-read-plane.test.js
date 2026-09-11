@@ -88,17 +88,45 @@ async function run() {
   console.log('   HTTP read plane is mutation-false');
 
   const { handle } = require('../scripts/oas-studio-mcp');
-  const writes = [];
-  const origWrite = process.stdout.write;
-  process.stdout.write = (chunk) => { writes.push(String(chunk)); return true; };
-  try {
-    await handle({ jsonrpc: '2.0', id: 1, method: 'tools/list' });
-  } finally {
-    process.stdout.write = origWrite;
+
+  async function captureHandle(message) {
+    const writes = [];
+    const origWrite = process.stdout.write;
+    process.stdout.write = (chunk) => { writes.push(String(chunk)); return true; };
+    try {
+      await handle(message);
+    } finally {
+      process.stdout.write = origWrite;
+    }
+    return writes.join('');
   }
-  const catalog = JSON.parse(writes.join('').trim().split('\n').pop());
+
+  const listOut = await captureHandle({ jsonrpc: '2.0', id: 1, method: 'tools/list' });
+  assert.ok(!listOut.includes('Content-Length:'), 'Cursor stdio handshake expects NDJSON');
+  const catalog = JSON.parse(listOut.trim().split('\n').pop());
   assert.ok(catalog.result.tools.some(tool => tool.name === 'list_sessions'));
   console.log('   stdio helper lists read-only tools');
+
+  const initOut = await captureHandle({
+    jsonrpc: '2.0',
+    id: 2,
+    method: 'initialize',
+    params: {
+      protocolVersion: '2025-11-25',
+      capabilities: {},
+      clientInfo: { name: 'cursor-test', version: '1.0.0' }
+    }
+  });
+  const initialized = JSON.parse(initOut.trim().split('\n').pop());
+  assert.strictEqual(initialized.result.protocolVersion, '2025-11-25');
+  assert.deepStrictEqual(initialized.result.capabilities.tools, { listChanged: false });
+  console.log('   initialize echoes Cursor protocol version over NDJSON');
+
+  const pingOut = await captureHandle({ jsonrpc: '2.0', id: 3, method: 'ping' });
+  assert.deepStrictEqual(JSON.parse(pingOut.trim()).result, {});
+  const noteOut = await captureHandle({ jsonrpc: '2.0', method: 'notifications/initialized' });
+  assert.strictEqual(noteOut, '');
+  console.log('   ping and initialized notification complete the Cursor handshake');
 }
 
 run().catch(err => {
