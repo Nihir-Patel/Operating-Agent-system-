@@ -114,6 +114,7 @@ assets/images/security/badrudi-exploit.mp4
 .oas-database.sqlite-shm
 .oas-database.sqlite-wal
 .oas-worktrees/
+tests/.oas/
 .tmp-validator-*.js
 tests/scratch/
 tests/tmp-wt-*/
