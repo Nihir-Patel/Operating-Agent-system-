@@ -263,12 +263,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@opencode-ai/plugin@npm:1.18.29":
-  version: 1.18.29
-  resolution: "@opencode-ai/plugin@npm:1.18.29"
+"@opencode-ai/plugin@npm:1.18.34":
+  version: 1.18.34
+  resolution: "@opencode-ai/plugin@npm:1.18.34"
   dependencies:
     "@ai-sdk/provider": "npm:3.0.8"
-    "@opencode-ai/sdk": "npm:1.18.29"
+    "@opencode-ai/sdk": "npm:1.18.34"
     effect: "npm:4.0.0-beta.83"
     zod: "npm:4.1.8"
   peerDependencies:
@@ -282,16 +282,16 @@ __metadata:
       optional: true
     "@opentui/solid":
       optional: true
-  checksum: 10c0/f59230b2f7aea248710276ad0dae4d94edd7289ca98e9ad07dcced3a876d5468bdda0aa74121439099e3b6ebb8d1dec6f8264e315a90795fca34a04e857124b0
+  checksum: 10c0/09929c3a34d73aba35287d559256489570af82c25494b0d6d8ebf887b9aaf5a2e9a7ff0d449ca9a9e864e223ebdb0d2da378ccd4e4c4daba8dcf98820042b47d
   languageName: node
   linkType: hard
 
-"@opencode-ai/sdk@npm:1.18.29":
-  version: 1.18.29
-  resolution: "@opencode-ai/sdk@npm:1.18.29"
+"@opencode-ai/sdk@npm:1.18.34":
+  version: 1.18.34
+  resolution: "@opencode-ai/sdk@npm:1.18.34"
   dependencies:
     cross-spawn: "npm:7.0.6"
-  checksum: 10c0/2dc0e77adac396489b8d4522977b011f82ceb8ab5a02d7ca80bbace1020e9814b8e5ad15743203e32142806ab6a0db55a0058b985276d89fc623230c9d001b68
+  checksum: 10c0/bad0f38016e59568d5e16e9bdeddca9d491845269de5d860640132efb3a4d5612057418a4327a4264d937fa24bf914458e458f3dcd88e68b9e50951570fb68e2
   languageName: node
   linkType: hard
 
@@ -353,12 +353,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:26.4.1":
-  version: 26.4.1
-  resolution: "@types/node@npm:26.4.1"
+"@types/node@npm:26.6.4":
+  version: 26.6.4
+  resolution: "@types/node@npm:26.6.4"
   dependencies:
-    undici-types: "npm:~8.3.0"
-  checksum: 10c0/29568336db8bc67740744782492af0e81ab1f88d86eaa07e38cf0a4c8bae7250a7b4b85c80ac1014fc98b2bc6d4bcac872b2c494ee0671b3880eada7c1fdbc94
+    undici-types: "npm:~8.9.0"
+  checksum: 10c0/094e7362df9200ba4c2da09131ca3b5d1aa51535a268a24e4ee2546d9c5a323d1d30cbdaaaa3db7ef8b2387572d1f9edabb11538ab7a09d3bca33ae5cddc2b1b
   languageName: node
   linkType: hard
 
@@ -734,9 +734,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:10.10.0":
-  version: 10.10.0
-  resolution: "eslint@npm:10.10.0"
+"eslint@npm:10.12.0":
+  version: 10.12.0
+  resolution: "eslint@npm:10.12.0"
   dependencies:
     "@eslint-community/eslint-utils": "npm:^4.8.0"
     "@eslint-community/regexpp": "npm:^4.12.2"
@@ -775,7 +775,7 @@ __metadata:
       optional: true
   bin:
     eslint: bin/eslint.js
-  checksum: 10c0/ba583145305f088585f91c5dab6825492ec657614558e4610cffc94174cf800f456e39ec3cafd3eed73e04bd9a05794067ae33b553f1323e3e7c1157242409d2
+  checksum: 10c0/1302ce8a7df2f67fe8f4014b2f9449bd38eb86903ba7b841d9a8ca5a5daf8ee15442861ab870e96c0074d5f333b405d7b2f16388981f807db410cc3a02178af9
   languageName: node
   linkType: hard
 
@@ -966,10 +966,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"globals@npm:17.12.0":
-  version: 17.12.0
-  resolution: "globals@npm:17.12.0"
-  checksum: 10c0/8325cf8818c848871d17c32974c2c74e9c5f09c1b0e04421886f64f21e77c3e95f3ba25586743895a73acd860ada151132481d87d44a1f12993ae7758a694d03
+"globals@npm:17.13.0":
+  version: 17.13.0
+  resolution: "globals@npm:17.13.0"
+  checksum: 10c0/8371d9e4e5581640141b5cce70a098edd765d2e3ab063b14998e590698071e0afb4a4a6739ccfbdcbdeb2565c5553697ba07d95703c51039912cf341a7dba7a7
   languageName: node
   linkType: hard
 
@@ -1768,13 +1768,13 @@ __metadata:
   dependencies:
     "@eslint/js": "npm:9.39.2"
     "@iarna/toml": "npm:2.2.5"
-    "@opencode-ai/plugin": "npm:1.18.29"
-    "@types/node": "npm:26.4.1"
+    "@opencode-ai/plugin": "npm:1.18.34"
+    "@types/node": "npm:26.6.4"
     ajv: "npm:8.20.0"
     axe-core: "npm:4.13.0"
     c8: "npm:11.0.0"
-    eslint: "npm:10.10.0"
-    globals: "npm:17.12.0"
+    eslint: "npm:10.12.0"
+    globals: "npm:17.13.0"
     js-yaml: "npm:4.3.2"
     markdownlint-cli: "npm:0.49.1"
     playwright: "npm:1.63.0"
@@ -2148,10 +2148,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"undici-types@npm:~8.3.0":
-  version: 8.3.0
-  resolution: "undici-types@npm:8.3.0"
-  checksum: 10c0/c8aa7e2fbebfce519654dafadc0ece59be888d2ccaf180fb4495da875e7b536d2456345c384069c7e6f3e9c9ab7435f074957da306f142343eee86ff8048855a
+"undici-types@npm:~8.9.0":
+  version: 8.9.0
+  resolution: "undici-types@npm:8.9.0"
+  checksum: 10c0/51c712c20c087368f62c6fc0f2bc49fa76bfe5dec28ff01584bb677ff29b0622569783c02d43e151143808c48c0503f804093bd2c491b10f2a830138034cb451
   languageName: node
   linkType: hard
 
