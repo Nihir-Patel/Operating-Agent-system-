@@ -263,12 +263,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@opencode-ai/plugin@npm:1.18.29":
-  version: 1.18.29
-  resolution: "@opencode-ai/plugin@npm:1.18.29"
+"@opencode-ai/plugin@npm:1.19.3":
+  version: 1.19.3
+  resolution: "@opencode-ai/plugin@npm:1.19.3"
   dependencies:
     "@ai-sdk/provider": "npm:3.0.8"
-    "@opencode-ai/sdk": "npm:1.18.29"
+    "@opencode-ai/sdk": "npm:1.19.3"
     effect: "npm:4.0.0-beta.83"
     zod: "npm:4.1.8"
   peerDependencies:
@@ -282,16 +282,16 @@ __metadata:
       optional: true
     "@opentui/solid":
       optional: true
-  checksum: 10c0/f59230b2f7aea248710276ad0dae4d94edd7289ca98e9ad07dcced3a876d5468bdda0aa74121439099e3b6ebb8d1dec6f8264e315a90795fca34a04e857124b0
+  checksum: 10c0/afd775e2a55c3cc031c1001593a681d49a875c5ccc84ac75731f50e92fb23d6a47348a6e39f387aafafb83eed735d5b76732e6edf09f7bfdf626cc625f10f095
   languageName: node
   linkType: hard
 
-"@opencode-ai/sdk@npm:1.18.29":
-  version: 1.18.29
-  resolution: "@opencode-ai/sdk@npm:1.18.29"
+"@opencode-ai/sdk@npm:1.19.3":
+  version: 1.19.3
+  resolution: "@opencode-ai/sdk@npm:1.19.3"
   dependencies:
     cross-spawn: "npm:7.0.6"
-  checksum: 10c0/2dc0e77adac396489b8d4522977b011f82ceb8ab5a02d7ca80bbace1020e9814b8e5ad15743203e32142806ab6a0db55a0058b985276d89fc623230c9d001b68
+  checksum: 10c0/54bc5a46d5568f6b2b1e5a2d45f0c9aec05cc303f32218278585a1fb9f6c5dd184f89b4ee17da3856e958cb83a901d86d06862347939cf1bd7ba0fa1f16a9059
   languageName: node
   linkType: hard
 
@@ -353,12 +353,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:26.4.1":
-  version: 26.4.1
-  resolution: "@types/node@npm:26.4.1"
+"@types/node@npm:26.6.5":
+  version: 26.6.5
+  resolution: "@types/node@npm:26.6.5"
   dependencies:
-    undici-types: "npm:~8.3.0"
-  checksum: 10c0/29568336db8bc67740744782492af0e81ab1f88d86eaa07e38cf0a4c8bae7250a7b4b85c80ac1014fc98b2bc6d4bcac872b2c494ee0671b3880eada7c1fdbc94
+    undici-types: "npm:~8.9.0"
+  checksum: 10c0/4f791f69466ace7842c09e7bef96cb1ddbb65cf3db916ef7e84f0e2b2a17220b6b816dc7539d01520cadfb17ed7169b8214910900493e0a83be8bc7d124ec20a
   languageName: node
   linkType: hard
 
@@ -448,10 +448,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axe-core@npm:4.13.0":
-  version: 4.13.0
-  resolution: "axe-core@npm:4.13.0"
-  checksum: 10c0/0e3be8be10eea64beddefd3007e1425424ff60c26c5f4d5f748ec48c2825356839c02ad4167fc1f03a6d84ecd82108f49fb2846ab7fe949273787391745561ca
+"axe-core@npm:4.14.0":
+  version: 4.14.0
+  resolution: "axe-core@npm:4.14.0"
+  checksum: 10c0/8aaa0bf748e0dcf202e8f837951a37b28b4b62d639bed58c07a6890bf035ed6a11ede9f4006db9ca8041db821dc80476c27cff08fd70afa9195ee58fb995a958
   languageName: node
   linkType: hard
 
@@ -734,9 +734,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:10.10.0":
-  version: 10.10.0
-  resolution: "eslint@npm:10.10.0"
+"eslint@npm:10.13.0":
+  version: 10.13.0
+  resolution: "eslint@npm:10.13.0"
   dependencies:
     "@eslint-community/eslint-utils": "npm:^4.8.0"
     "@eslint-community/regexpp": "npm:^4.12.2"
@@ -775,7 +775,7 @@ __metadata:
       optional: true
   bin:
     eslint: bin/eslint.js
-  checksum: 10c0/ba583145305f088585f91c5dab6825492ec657614558e4610cffc94174cf800f456e39ec3cafd3eed73e04bd9a05794067ae33b553f1323e3e7c1157242409d2
+  checksum: 10c0/4a28e85de458f13306d30f07df21b58109056bd8bd691b6158952d95e126cf742db2eb09562e3f1c1cc0154ee44dedc789f8ced8d0d8da48e82a689aa9cb1c0d
   languageName: node
   linkType: hard
 
@@ -966,10 +966,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"globals@npm:17.12.0":
-  version: 17.12.0
-  resolution: "globals@npm:17.12.0"
-  checksum: 10c0/8325cf8818c848871d17c32974c2c74e9c5f09c1b0e04421886f64f21e77c3e95f3ba25586743895a73acd860ada151132481d87d44a1f12993ae7758a694d03
+"globals@npm:17.13.0":
+  version: 17.13.0
+  resolution: "globals@npm:17.13.0"
+  checksum: 10c0/8371d9e4e5581640141b5cce70a098edd765d2e3ab063b14998e590698071e0afb4a4a6739ccfbdcbdeb2565c5553697ba07d95703c51039912cf341a7dba7a7
   languageName: node
   linkType: hard
 
@@ -1768,17 +1768,17 @@ __metadata:
   dependencies:
     "@eslint/js": "npm:9.39.2"
     "@iarna/toml": "npm:2.2.5"
-    "@opencode-ai/plugin": "npm:1.18.29"
-    "@types/node": "npm:26.4.1"
+    "@opencode-ai/plugin": "npm:1.19.3"
+    "@types/node": "npm:26.6.5"
     ajv: "npm:8.20.0"
-    axe-core: "npm:4.13.0"
+    axe-core: "npm:4.14.0"
     c8: "npm:11.0.0"
-    eslint: "npm:10.10.0"
-    globals: "npm:17.12.0"
+    eslint: "npm:10.13.0"
+    globals: "npm:17.13.0"
     js-yaml: "npm:4.3.2"
     markdownlint-cli: "npm:0.49.1"
-    playwright: "npm:1.63.0"
-    sql.js: "npm:1.14.2"
+    playwright: "npm:1.64.1"
+    sql.js: "npm:1.15.0"
     typescript: "npm:6.0.3"
   bin:
     oas: scripts/oas.js
@@ -1869,23 +1869,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"playwright-core@npm:1.63.0":
-  version: 1.63.0
-  resolution: "playwright-core@npm:1.63.0"
+"playwright-core@npm:1.64.1":
+  version: 1.64.1
+  resolution: "playwright-core@npm:1.64.1"
   bin:
     playwright-core: cli.js
-  checksum: 10c0/39c1ebae4029ca2e9371e00a5588d962038e24b6e0bdb7d0d27374dde04838f349b83ae0c8b3b648653d0935cba7fb9011f1201adaab9dd0db7801ad6c75e9aa
+  checksum: 10c0/91c4f5ed1cff4b0e18b6ac62f66770f5f1b6c204d4aebd6a321c07466dca18a70822ac692597c6059705a703f9768097ac551df179fb49294d639509148e04f3
   languageName: node
   linkType: hard
 
-"playwright@npm:1.63.0":
-  version: 1.63.0
-  resolution: "playwright@npm:1.63.0"
+"playwright@npm:1.64.1":
+  version: 1.64.1
+  resolution: "playwright@npm:1.64.1"
   dependencies:
-    playwright-core: "npm:1.63.0"
+    playwright-core: "npm:1.64.1"
   bin:
     playwright: cli.js
-  checksum: 10c0/d1fd048a89be27c9aba6757dc4f70eff4a5163b49f439ad691767be8b2a482327d0dd1928b4f73c8fe0d8b33aab2c9dc2670424ab60f112d9e98e91b94e3b090
+  checksum: 10c0/edf52d0a79feca37bf383e841a467aa68750684128218eac560063991c9e4b615a94901f580cd8a088bb05fd53008ab4a0e5e8d976067698b60ae5d1de2459f3
   languageName: node
   linkType: hard
 
@@ -2009,10 +2009,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sql.js@npm:1.14.2":
-  version: 1.14.2
-  resolution: "sql.js@npm:1.14.2"
-  checksum: 10c0/4c217404d85b7396a2c7b6037a9dc96dd05f10c94847bb8c5df70d387ff37702f51551afc97d338ff2c0d504414bb1d3631d48f2a3f33eaa45e862747135d5d5
+"sql.js@npm:1.15.0":
+  version: 1.15.0
+  resolution: "sql.js@npm:1.15.0"
+  checksum: 10c0/b5d55f888f112cc763db9ebffc6376630f33f7b444513ed8f4ed95d162e04eafc2794fc41ca5f607fa12275c42525697cbcffe98ec84108b2136f042f30dc221
   languageName: node
   linkType: hard
 
@@ -2148,10 +2148,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"undici-types@npm:~8.3.0":
-  version: 8.3.0
-  resolution: "undici-types@npm:8.3.0"
-  checksum: 10c0/c8aa7e2fbebfce519654dafadc0ece59be888d2ccaf180fb4495da875e7b536d2456345c384069c7e6f3e9c9ab7435f074957da306f142343eee86ff8048855a
+"undici-types@npm:~8.9.0":
+  version: 8.9.0
+  resolution: "undici-types@npm:8.9.0"
+  checksum: 10c0/51c712c20c087368f62c6fc0f2bc49fa76bfe5dec28ff01584bb677ff29b0622569783c02d43e151143808c48c0503f804093bd2c491b10f2a830138034cb451
   languageName: node
   linkType: hard
 
